@@ -3,11 +3,12 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { examsData, role } from "../../../../lib/data";
+
 import prisma from "../../../../lib/db";
 import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
 import { itemPerPage } from "../../../../lib/setting";
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRole } from "../../../../lib/utlis";
 
 type ExamType  = Exam & {
   lesson: {
@@ -17,7 +18,13 @@ type ExamType  = Exam & {
   };
 };
 
-const columns = [
+
+
+const ExamListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+
+  const { role, userId:currentUserId } = await getUserRole();
+
+  const columns = [
   {
     header: "Subject Name",
     accessor: "name",
@@ -36,21 +43,26 @@ const columns = [
     accessor: "date",
     className: "hidden md:table-cell",
   },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
+  ...(role === "admin" || role === "teacher")
+  ? [
+    {
+      header: "Actions",
+      accessor: "action",
+    }
+  ]: []
+
+
+
+ 
 ];
  
-
-const ExamListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const renderRow = (item: ExamType) => (
   <tr
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
     <td className="flex items-center gap-4 p-4">{item.lesson?.subject?.name}</td>
-    <td>{item.lesson?.class?.name}</td>
+    <td>{item.lesson?.class?.name || "_"}</td>
     <td className="hidden md:table-cell">
       {item.lesson?.teacher?.name + " " + item.lesson?.teacher?.surname}
     </td>
@@ -109,27 +121,27 @@ const ExamListPage = async({searchParams}: {searchParams: {[key: string]: string
   switch (role) {
     case "admin":
       break;
-    // case "teacher":
-    //   query.lesson.teacherId = currentUserId!;
-    //   break;
-    // case "student":
-    //   query.lesson.class = {
-    //     students: {
-    //       some: {
-    //         id: currentUserId!,
-    //       },
-    //     },
-    //   };
-    //   break;
-    // case "parent":
-    //   query.lesson.class = {
-    //     students: {
-    //       some: {
-    //         parentId: currentUserId!,
-    //       },
-    //     },
-    //   };
-    //   break;
+    case "teacher":
+      query.lesson.teacherId = currentUserId!;
+      break;
+    case "student":
+      query.lesson.class = {
+        students: {
+          some: {
+            id: currentUserId!,
+          },
+        },
+      };
+      break;
+    case "parent":
+      query.lesson.class = {
+        students: {
+          some: {
+            parentId: currentUserId!,
+          },
+        },
+      };
+      break;
 
     default:
       break;

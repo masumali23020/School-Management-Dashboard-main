@@ -7,10 +7,18 @@ import { eventsData, role } from "../../../../lib/data";
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
 import { Class, Event, Prisma } from "@prisma/client";
+import { getUserRole } from "../../../../lib/utlis";
 
 
 type Eventtype = Event & { class: Class[]}
 
+
+const EventListPage  = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+
+  const p = page ? parseInt(page) : 1;
+  const {role, userId:currentUserId} = await getUserRole()
+  
 const columns = [
   {
     header: "Title",
@@ -35,10 +43,14 @@ const columns = [
     accessor: "endTime",
     className: "hidden md:table-cell",
   },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
+  ...(role === "admin") ? [
+    {
+      header: "Actions",
+      accessor: "action",
+    },
+  ]
+    : [],
+
 ];
   const renderRow = (item: Eventtype) => (
     <tr
@@ -46,7 +58,7 @@ const columns = [
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
       <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td>{item.class?.name}</td>
+      <td>{item.class?.name || "_"}</td>
       <td className="hidden md:table-cell">{new Intl.DateTimeFormat("en-US").format(item.date)}</td>
       <td className="hidden md:table-cell">{new Intl.DateTimeFormat("en-US").format(item.startTime)}</td>
       <td className="hidden md:table-cell">{new Intl.DateTimeFormat("en-US").format(item.endTime)}</td>
@@ -63,11 +75,6 @@ const columns = [
       </td>
     </tr>
   );
-
-const EventListPage  = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
 
 // url params conditions 
 
@@ -87,6 +94,21 @@ const EventListPage  = async({searchParams}: {searchParams: {[key: string]: stri
       }
     }
   }
+
+   // ROLE CONDITIONS
+
+  const roleConditions = {
+    teacher: { lessons: { some: { teacherId: currentUserId! } } },
+    student: { students: { some: { id: currentUserId! } } },
+    parent: { students: { some: { parentId: currentUserId! } } },
+  };
+
+  query.OR = [
+    { classId: null },
+    {
+      class: roleConditions[role as keyof typeof roleConditions] || {},
+    },
+  ];
 
 
 

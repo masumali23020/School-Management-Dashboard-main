@@ -3,15 +3,22 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { lessonsData, role } from "../../../../lib/data";
 import prisma from "../../../../lib/db";
 import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { itemPerPage } from "../../../../lib/setting";
+import { getUserRole } from "../../../../lib/utlis";
 type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
 
-const columns = [
+
+
+const LessonListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+  const {role, userId:currentUserId} = await getUserRole()
+
+  const p = page ? parseInt(page) : 1;
+  const columns = [
   {
     header: "Subject Name",
     accessor: "name",
@@ -25,10 +32,13 @@ const columns = [
     accessor: "teacher",
     className: "hidden md:table-cell",
   },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
+  ...(role === "admin" )
+  ? [
+    {
+      header: "Actions",
+      accessor: "action",
+    }
+  ]: []
 ];
  const renderRow = (item: Lessontype) => (
     <tr
@@ -52,11 +62,6 @@ const columns = [
       </td>
     </tr>
   );
-
-const LessonListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
 
 // url params conditions 
 

@@ -9,10 +9,25 @@ import { role } from "../../../../lib/data";
 import {  getTeachersAndPaginated } from "../../../actions/teacherAction";
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
+import { getUserRole } from "../../../../lib/utlis";
 
 type TeacheType = Teacher & { subjects: Subject[] } & { classes: Class[] }
 
 
+  
+const TeacherListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+
+
+  const { page, ...queryParams } = searchParams;
+  let p = page ? parseInt(page) : 1
+
+  const { role, userId:currentUserId } = await getUserRole();
+
+  
 const columns = [
   {
     header: "Info",
@@ -43,10 +58,10 @@ const columns = [
     accessor: "address",
     className: "hidden lg:table-cell",
   },
-  {
+...(role === "admin" ) ? [ {
     header: "Actions",
     accessor: "action",
-  },
+  }]:[],
 ];
 
 const renderRow = (item: TeacheType) => (
@@ -90,16 +105,6 @@ const renderRow = (item: TeacheType) => (
     </tr>
   );
 
-  
-const TeacherListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
-
-
-  const { page, ...queryParams } = searchParams;
-  let p = page ? parseInt(page) : 1
 
   // url params conditions 
 

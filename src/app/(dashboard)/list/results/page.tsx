@@ -3,11 +3,12 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { resultsData, role } from "../../../../lib/data";
+
 import FormContainer from "../../../../components/FormContainer";
 import { Prisma } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
+import { getUserRole } from "../../../../lib/utlis";
 type ResultList = {
   id: number;
   subject: string;
@@ -27,7 +28,7 @@ const ResultListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
 
-const role = "admin"
+const { role, userId:currentUserId } = await getUserRole();
 
 
 
@@ -75,11 +76,11 @@ const renderRow = (item: ResultList) => (
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
-    <td className="flex items-center gap-4 p-4">{item?.title}</td>
-    <td>{item?.studentName + " " + item?.studentName}</td>
+    <td className="flex items-center gap-4 p-4">{item.title}</td>
+    <td>{item.studentName + " " + item.studentName}</td>
     <td className="hidden md:table-cell">{item.score}</td>
     <td className="hidden md:table-cell">
-      {item?.teacherName + " " + item?.teacherSurname}
+      {item.teacherName + " " + item.teacherSurname}
     </td>
     <td className="hidden md:table-cell">{item.className}</td>
     <td className="hidden md:table-cell">
@@ -131,22 +132,22 @@ const renderRow = (item: ResultList) => (
   switch (role) {
     case "admin":
       break;
-    // case "teacher":
-    //   query.OR = [
-    //     { exam: { lesson: { teacherId: currentUserId! } } },
-    //     { assignment: { lesson: { teacherId: currentUserId! } } },
-    //   ];
-    //   break;
+    case "teacher":
+      query.OR = [
+        { exam: { lesson: { teacherId: currentUserId! } } },
+        { assignment: { lesson: { teacherId: currentUserId! } } },
+      ];
+      break;
 
-    // case "student":
-    //   query.studentId = currentUserId!;
-    //   break;
+    case "student":
+      query.studentId = currentUserId!;
+      break;
 
-    // case "parent":
-    //   query.student = {
-    //     parentId: currentUserId!,
-    //   };
-    //   break;
+    case "parent":
+      query.student = {
+        parentId: currentUserId!,
+      };
+      break;
     default:
       break;
   }

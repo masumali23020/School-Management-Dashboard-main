@@ -4,13 +4,20 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { role } from "../../../../lib/data";
 import { Class, Grade, Prisma, Student } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
+import { getUserRole } from "../../../../lib/utlis";
 type StudentListPageType = Student & { class: Class } & {grades: Grade[]};
 
 
+
+const StudentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+  const {role} = await getUserRole()
+
+  const p = page ? parseInt(page) : 1;
+  
 const columns = [
   {
     header: "Info",
@@ -32,10 +39,10 @@ const columns = [
     accessor: "address",
     className: "hidden lg:table-cell",
   },
-  {
+...(role === "admin" ) ? [ {
     header: "Actions",
     accessor: "action",
-  },
+  }]:[],
 ];
    const renderRow = (item: StudentListPageType) => (
     <tr
@@ -76,11 +83,6 @@ const columns = [
       </td>
     </tr>
   );
-
-const StudentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
 
 // url params conditions 
 

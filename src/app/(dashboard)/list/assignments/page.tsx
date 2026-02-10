@@ -8,6 +8,9 @@ import { itemPerPage } from "../../../../lib/setting";
 import TableSearch from "../../../../components/TableSearch";
 import Table from "../../../../components/Table";
 import Pagination from "../../../../components/Pagination";
+import { getUserRole } from "../../../../lib/utlis";
+
+
 type AssignmentList = Assignment & {
   lesson: {
     subject: Subject;
@@ -22,8 +25,8 @@ const AssignmentListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
 
-
-  const role = "admin";
+const { role, userId:currentUserId } = await getUserRole();
+  
 
   
   
@@ -119,29 +122,29 @@ const AssignmentListPage = async ({
   switch (role) {
     case "admin":
       break;
-    // case "teacher":
-    //   query.lesson.teacherId = currentUserId!;
-    //   break;
-    // case "student":
-    //   query.lesson.class = {
-    //     students: {
-    //       some: {
-    //         id: currentUserId!,
-    //       },
-    //     },
-    //   };
-    //   break;
-    // case "parent":
-    //   query.lesson.class = {
-    //     students: {
-    //       some: {
-    //         parentId: currentUserId!,
-    //       },
-    //     },
-    //   };
-    //   break;
-    // default:
-    //   break;
+    case "teacher":
+      query.lesson.teacherId = currentUserId!;
+      break;
+    case "student":
+      query.lesson.class = {
+        students: {
+          some: {
+            id: currentUserId!,
+          },
+        },
+      };
+      break;
+    case "parent":
+      query.lesson.class = {
+        students: {
+          some: {
+            parentId: currentUserId!,
+          },
+        },
+      };
+      break;
+    default:
+      break;
   }
 
   const [data, count] = await prisma.$transaction([

@@ -3,14 +3,24 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { parentsData, role } from "../../../../lib/data";
 import { Student, Parent, Prisma } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRole } from "../../../../lib/utlis";
 type ParentsType = Parent & { students: Student};
 
-const columns = [
+
+
+
+
+const ParentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+
+  const p = page ? parseInt(page) : 1;
+  const {role, userId:currentUserId} = await getUserRole()
+
+  const columns = [
   {
     header: "Info",
     accessor: "info",
@@ -30,11 +40,16 @@ const columns = [
     accessor: "address",
     className: "hidden lg:table-cell",
   },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
+  ...(role === "admin"
+    ? [
+        {
+          header: "Actions",
+          accessor: "action",
+        },
+      ]
+    : []),
 ];
+
 const renderRow = (item: ParentsType) => (
   <tr
     key={item.id}
@@ -46,7 +61,7 @@ const renderRow = (item: ParentsType) => (
         <p className="text-xs text-gray-500">{item?.email}</p>
       </div>
     </td>
-    <td className="hidden md:table-cell">
+     <td className="hidden md:table-cell">
       {item.students.map((student) => student.name).join(",")}
     </td>
     <td className="hidden md:table-cell">{item.phone}</td>
@@ -63,13 +78,6 @@ const renderRow = (item: ParentsType) => (
     </td>
   </tr>
 );
-
-
-
-const ParentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
 
 // url params conditions 
 
@@ -126,7 +134,7 @@ const ParentListPage = async({searchParams}: {searchParams: {[key: string]: stri
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <FormModal table="teacher" type="create" />
+              <FormModal table="parent" type="create" />
             )}
           </div>
         </div>

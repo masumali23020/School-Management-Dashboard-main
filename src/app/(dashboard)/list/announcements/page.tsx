@@ -4,14 +4,25 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { announcementsData, role } from "../../../../lib/data";
+
 import prisma from "../../../../lib/db";
 import { Announcement, Class, Prisma } from "@prisma/client";
 import { itemPerPage } from "../../../../lib/setting";
+import { getUserRole } from "../../../../lib/utlis";
+
+
 
 
 type AnnouncementType = Announcement & {class: Class[]}
-const columns = [
+
+
+const AnnouncementListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+  const {role, userId:currentUserId} = await getUserRole()
+
+
+  const p = page ? parseInt(page) : 1;
+  const columns = [
   {
     header: "Title",
     accessor: "title",
@@ -25,11 +36,15 @@ const columns = [
     accessor: "date",
     className: "hidden md:table-cell",
   },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
-];
+ ...(role === "admin"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
+  ];
 
 const renderRow = (item: AnnouncementType) => (
     <tr
@@ -54,11 +69,6 @@ const renderRow = (item: AnnouncementType) => (
     </tr>
   );
 
-const AnnouncementListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
-
 // url params conditions 
 
   const query: Prisma.AnnouncementWhereInput = {};
@@ -78,8 +88,6 @@ const AnnouncementListPage = async({searchParams}: {searchParams: {[key: string]
     }
   }
 
-
-
   const [announcementsData, count] = await prisma.$transaction([
       prisma.announcement.findMany({
         where:query,
@@ -94,6 +102,21 @@ const AnnouncementListPage = async({searchParams}: {searchParams: {[key: string]
   }),
   prisma.announcement.count({where:query})
   ])
+
+  // ROLE CONDITIONS
+
+  const roleConditions = {
+    teacher: { lessons: { some: { teacherId: currentUserId! } } },
+    student: { students: { some: { id: currentUserId! } } },
+    parent: { students: { some: { parentId: currentUserId! } } },
+  };
+
+  query.OR = [
+    { classId: null },
+    {
+      class: roleConditions[role as keyof typeof roleConditions] || {},
+    },
+  ];
 
 
   
