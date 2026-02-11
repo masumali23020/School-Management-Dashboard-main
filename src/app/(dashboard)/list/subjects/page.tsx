@@ -3,14 +3,22 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { role, subjectsData } from "../../../../lib/data";
+
 import { Prisma, Subject, Teacher } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRole } from "../../../../lib/utlis";
 type SubjectType = Subject & { teachers: Teacher[]} 
 
-const columns = [
+
+
+const SubjectListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+  const { page, ...queryParams } = searchParams;
+  const { role } = await getUserRole()
+
+  const p = page ? parseInt(page) : 1;
+  const columns = [
   {
     header: "Subject Name",
     accessor: "name",
@@ -47,11 +55,6 @@ const columns = [
       </td>
     </tr>
   );
-
-const SubjectListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
 
 // url params conditions 
 
@@ -105,7 +108,7 @@ const SubjectListPage = async({searchParams}: {searchParams: {[key: string]: str
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && <FormModal table="subject" type="create" />}
           </div>
         </div>
       </div>
