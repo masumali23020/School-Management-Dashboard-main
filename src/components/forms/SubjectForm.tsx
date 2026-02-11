@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
 import { SubjectSchema, subjectSchema } from "../../lib/FormValidationSchema";
-import { createSubject } from "../../Actions/SubjectAction/Action";
+import { createSubject, updateSubject } from "../../Actions/SubjectAction/Action";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -23,16 +23,19 @@ const SubjectForm = ({
   type: "create" | "update";
   data?: any;
 }) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SubjectSchema>({
-    resolver: zodResolver(subjectSchema),
-  });
-  
+ const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm<SubjectSchema>({
+  resolver: zodResolver(subjectSchema),
+  defaultValues: {
+    id: data?.id,
+    name: data?.name,
+  },
+});
   const [state, formAction] = useFormState(
-    createSubject ,
+    type === "create" ? createSubject : updateSubject,
     {
       success: false,
       error: false,
@@ -51,9 +54,7 @@ useEffect(() => {
        toast(`Subject has been ${type === "create" ? "created successfully" : "updated successfully"}!`);
        setOpen(false)
        router.refresh()
-       
-
-      
+ 
     }
 
   },[state])
@@ -71,11 +72,19 @@ useEffect(() => {
           register={register}
           error={errors?.name}         
         />
+        {type === "update" && (
+  <input
+    type="hidden"
+    {...register("id")}
+
+  />
+)}
+
         
 
         
       </div>
-      {state.error && <span className="text-red-500 text-sm">Error creating subject. Please try again.</span>}
+      {state.error && <span className="text-red-500 text-sm">`Error {type === "create" ? "creating" : "updating"} subject. Please try again.`</span>}
      
       <button className="bg-blue-400 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
