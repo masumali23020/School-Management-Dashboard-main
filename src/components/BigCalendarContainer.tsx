@@ -1,9 +1,8 @@
-import React from 'react'
-import BigCalendar from './BigCalender';
-import { adjustScheduleToCurrentWeek } from '../lib/utlis';
-import  prisma  from '../lib/db'
+import prisma from "../lib/db";
+import { adjustScheduleToCurrentWeek } from "../lib/utlis";
+import BigCalendar from "./BigCalender";
 
-const BigClenderContainer = async ({
+const BigCalendarContainer = async ({
   type,
   id,
 }: {
@@ -32,4 +31,5 @@ const BigClenderContainer = async ({
     </div>
   );
 };
-export default BigClenderContainer
+
+export default BigCalendarContainer;

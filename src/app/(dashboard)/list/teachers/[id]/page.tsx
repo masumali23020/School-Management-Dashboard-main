@@ -6,9 +6,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import prisma from "../../../../../lib/db";
 import FormContainer from "../../../../../components/FormContainer";
-import BigCalendarContainer from "../../../../../components/BigCalender";
 import Announcements from "../../../../../components/Announcements";
 import Performance from "../../../../../components/Performance";
+import { getUserRole } from "../../../../../lib/utlis";
+import BigCalendarContainer from "../../../../../components/BigCalendarContainer";
 
 const SingleTeacherPage = async ({
   params: { id },
@@ -16,7 +17,7 @@ const SingleTeacherPage = async ({
   params: { id: string };
 }) => {
 
-  const role = "admin"; 
+  const { role} =await getUserRole(); 
 
   const teacher:
     | (Teacher & {
@@ -34,6 +35,7 @@ const SingleTeacherPage = async ({
       },
     },
   });
+  console.log("Teacher Data:", teacher);
 
   if (!teacher) {
     return notFound();
@@ -60,12 +62,14 @@ const SingleTeacherPage = async ({
                 <h1 className="text-xl font-semibold">
                   {teacher.name + " " + teacher.surname}
                 </h1>
-                {role === "admin" && (
+                {role === "admin" && (<div className="flex items-center gap-2 hover:underline cursor-pointer hover:bg-green-300">
+               
+
                   <FormContainer table="teacher" type="update" data={teacher} />
-                )}
+                </div>)}
               </div>
               <p className="text-sm text-gray-500">
-                Lorem ipsum, dolor sit amet consectetur adipisicing elit.
+                {teacher.address || "No address provided"}
               </p>
               <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
@@ -158,7 +162,7 @@ const SingleTeacherPage = async ({
         {/* BOTTOM */}
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Teacher&apos;s Schedule</h1>
-          <BigCalendarContainer type="teacherId" id={teacher.id} />
+           <BigCalendarContainer type="teacherId" id={teacher.id} />
         </div>
       </div>
       {/* RIGHT */}

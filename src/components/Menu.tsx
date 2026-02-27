@@ -1,7 +1,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { role } from "../lib/data";
+
 import { currentUser } from "@clerk/nextjs/server";
 
 const menuItems = [
@@ -119,8 +119,8 @@ const menuItems = [
   },
 ];
 
-const Menu = async() => {
-  const user = await currentUser()
+const Menu = async({user}: {user: any}) => {
+  
   const role = await user?.publicMetadata.role as string || "student"
 
   return (

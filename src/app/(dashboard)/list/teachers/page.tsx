@@ -10,6 +10,7 @@ import {  getTeachersAndPaginated } from "../../../actions/teacherAction";
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
 import { getUserRole } from "../../../../lib/utlis";
+import FormContainer from "../../../../components/FormContainer";
 
 type TeacheType = Teacher & { subjects: Subject[] } & { classes: Class[] }
 
@@ -98,7 +99,7 @@ const renderRow = (item: TeacheType) => (
             // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
             //   <Image src="/delete.png" alt="" width={16} height={16} />
             // </button>
-            <FormModal table="teacher" type="delete" id={item.id} />
+            <FormContainer table="teacher" type="delete" id={item.id} />
           )}
         </div>
       </td>
@@ -175,7 +176,7 @@ const renderRow = (item: TeacheType) => (
               // <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               //   <Image src="/plus.png" alt="" width={14} height={14} />
               // </button>
-              <FormModal table="teacher" type="create" />
+              <FormContainer table="teacher" type="create" />
             )}
           </div>
         </div>

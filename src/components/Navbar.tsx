@@ -3,8 +3,8 @@ import { currentUser } from "@clerk/nextjs/server"
 import Image from "next/image"
 import Link from "next/link"
 
-const Navbar = async() => {
-    const user = await currentUser()
+const Navbar = async({user}: {user: any}) => {
+
     const userName = user?.firstName + " " + user?.lastName 
   return (
    <div className="flex items-center justify-between p-4">

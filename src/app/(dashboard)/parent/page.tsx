@@ -1,7 +1,7 @@
 import Announcements from "../../../components/Announcements";
 import { getUserRole } from "../../../lib/utlis";
 import prisma from "../../../lib/db";
-import BigClenderContainer from "../../../components/BigClenderContainer";
+import BigCalendarContainer from "../../../components/BigCalendarContainer";
 
 const ParentPage = async() => {
   const { userId } = await getUserRole();
@@ -22,7 +22,7 @@ const ParentPage = async() => {
               <h1 className="text-xl font-semibold">
                 Schedule ({student.name + " " + student.surname})
               </h1>
-              <BigClenderContainer type="classId" id={student.classId} />
+              <BigCalendarContainer type="classId" id={student.classId} />
             </div>
           </div>
         ))}

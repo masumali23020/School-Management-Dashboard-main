@@ -3,10 +3,13 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import prisma from "../../../../lib/db";
-import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
+
+
 import { itemPerPage } from "../../../../lib/setting";
 import { getUserRole } from "../../../../lib/utlis";
+import FormContainer from "../../../../components/FormContainer";
+import { Class, Lesson, Subject, Teacher,Prisma } from "@prisma/client/edge";
+import prisma from "../../../../lib/db";
 type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
@@ -19,13 +22,32 @@ const LessonListPage = async({searchParams}: {searchParams: {[key: string]: stri
 
   const p = page ? parseInt(page) : 1;
   const columns = [
-  {
+      {
     header: "Subject Name",
-    accessor: "name",
+    accessor: "subject",
   },
   {
     header: "Class",
     accessor: "class",
+  },
+  {
+    header: "name",
+    accessor: "name",
+  },
+  {
+    header: "Day",
+    accessor: "day",
+  },
+
+  {
+    header: "Start Time",
+    accessor: "startTime",
+    className: "hidden md:table-cell",
+  },
+  {
+    header: "End Time",
+    accessor: "endTime",
+    className: "hidden md:table-cell",
   },
   {
     header: "Teacher",
@@ -40,28 +62,7 @@ const LessonListPage = async({searchParams}: {searchParams: {[key: string]: stri
     }
   ]: []
 ];
- const renderRow = (item: Lessontype) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">{item.subject?.name}</td>
-      <td>{item.class?.name}</td>
-       <td className="hidden md:table-cell">
-      {item.teacher?.name + " " + item.teacher?.surname}
-    </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {role === "admin" && (
-            <>
-              <FormModal table="lesson" type="update" data={item} />
-              <FormModal table="lesson" type="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+
 
 // url params conditions 
 
@@ -108,7 +109,34 @@ const LessonListPage = async({searchParams}: {searchParams: {[key: string]: stri
   }),
   prisma.lesson.count({where:query})
   ])
+ const renderRow = (item: Lessontype) => (
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    >
+      <td >{item.subject?.name}</td>
+      <td >{item.class?.name}</td>
+      <td >{item.name || "_"}</td>
+      <td >{item.day || "_"}</td>
+      <td >{item.startTime ? item.startTime.toLocaleTimeString() : "_"}</td>
+      <td >{item.endTime ? item.endTime.toLocaleTimeString() : "_"}</td>
+    
 
+       <td className="hidden md:table-cell">
+      {item.teacher?.name + " " + item.teacher?.surname}
+    </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="lesson" type="update" data={item} />
+              <FormContainer table="lesson" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
  
 
   return (
@@ -125,7 +153,7 @@ const LessonListPage = async({searchParams}: {searchParams: {[key: string]: stri
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="lesson" type="create" />}
+            {role === "admin" && <FormContainer table="lesson" type="create" />}
           </div>
         </div>
       </div>
