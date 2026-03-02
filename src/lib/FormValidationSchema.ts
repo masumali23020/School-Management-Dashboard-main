@@ -1,4 +1,47 @@
+// lib/FormValidationSchema.ts
+
 import { z } from "zod";
+
+export const classSubjectTeacherSchema = z.object({
+  id: z.number().optional(),
+  classId: z.coerce.number().min(1, { message: "Class is required" }),
+  
+  subjectId: z.coerce.number().min(1, { message: "Subject is required" }),
+  
+  teacherId: z.string().min(1, { message: "Teacher is required" }),
+  
+  academicYear: z.string({
+    required_error: "Academic year is required"
+  })
+  .min(4, { message: "Academic year must be at least 4 characters" })
+  .max(9, { message: "Academic year must be at most 9 characters" })
+  .regex(/^\d{4}(-\d{4})?$/, { message: "Invalid format. Use YYYY or YYYY-YYYY" }),
+});
+
+export type ClassSubjectTeacherSchema = z.infer<typeof classSubjectTeacherSchema>;
+
+
+// Class Schema (আপডেট)
+export const upClassSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1, { message: "Class name is required" }),
+  capacity: z.coerce.number().min(1, { message: "Capacity is required" }),
+  gradeId: z.number().min(1, { message: "Grade is required" }),
+  supervisorId: z.string().optional().nullable(),
+  subjectTeachers: z.array(classSubjectTeacherSchema).optional(), // নতুন
+});
+
+export type UpClassSchema = z.infer<typeof upClassSchema>;
+
+// Subject Schema (আপডেট)
+export const upSubjectSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1, { message: "Subject name is required" }),
+  code: z.string().optional(),
+  classTeachers: z.array(classSubjectTeacherSchema).optional(), // নতুন
+});
+
+export type UpSubjectSchema = z.infer<typeof upSubjectSchema>;
 
 
 export const subjectSchema = z.object({
@@ -6,7 +49,7 @@ export const subjectSchema = z.object({
   name: z
     .string()
     .min(1, { message: "Subject name must be required!" }),
-  teachers: z.array(z.string()), 
+  // teachers: z.array(z.string()), 
     
 });
 
@@ -56,7 +99,7 @@ export const studentSchema = z.object({
   id: z.string().optional(),
   username: z
     .string()
-    .min(3, { message: "Username must be at least 3 characters long!" })
+    .min(4, { message: "Username must be at least 3 characters long!" })
     .max(20, { message: "Username must be at most 20 characters long!" }),
   password: z
     .string()
@@ -78,7 +121,7 @@ export const studentSchema = z.object({
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
-  parentId: z.string().min(1, { message: "Parent Id is required!" }),
+  parentId: z.string().min(1, { message: "Parent Id is required!" }).optional(),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
@@ -135,16 +178,43 @@ export const DayEnum = z.enum([
   "Sunday",
 ]);
 
+// export const lessonSchema = z.object({
+//   id: z.coerce.number().optional(), // Auto increment in Prisma
+//   name: z.string().min(1, { message: "Lesson name is required" }),
+//   day: DayEnum,
+//   startTime: z.coerce.date({ message: "Start time is required" }),
+//   endTime: z.coerce.date({ message: "End time is required" }),
+
+//   subjectId: z.coerce.number({ message: "Subject is required" }),
+//   classId: z.coerce.number({ message: "Class is required" }),
+//   teacherId: z.string().min(1, { message: "Teacher is required" }),
+// });
+
+// export type LessonSchema = z.infer<typeof lessonSchema>;
+
+// lib/FormValidationSchema.ts
+
+
+
+// export const DayEnum = z.enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]);
+
 export const lessonSchema = z.object({
-  id: z.coerce.number().optional(), // Auto increment in Prisma
+  id: z.number().optional(),
   name: z.string().min(1, { message: "Lesson name is required" }),
   day: DayEnum,
-  startTime: z.coerce.date({ message: "Start time is required" }),
-  endTime: z.coerce.date({ message: "End time is required" }),
-
-  subjectId: z.coerce.number({ message: "Subject is required" }),
-  classId: z.coerce.number({ message: "Class is required" }),
-  teacherId: z.string().min(1, { message: "Teacher is required" }),
+  startTime: z.string().min(1, { message: "Start time is required" }),
+  endTime: z.string().min(1, { message: "End time is required" }),
+  classId: z.coerce.number().min(1, { message: "Class is required" }),
+  subjectId: z.coerce.number().optional(), // Will be set from assignment
+  teacherId: z.string().optional(), // Will be set from assignment
+  classSubjectTeacherId: z.coerce.number().min(1, { message: "Subject-teacher assignment is required" }),
+}).refine((data) => {
+  const start = new Date(data.startTime);
+  const end = new Date(data.endTime);
+  return end > start;
+}, {
+  message: "End time must be after start time",
+  path: ["endTime"],
 });
 
 export type LessonSchema = z.infer<typeof lessonSchema>;

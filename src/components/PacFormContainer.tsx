@@ -30,6 +30,7 @@ const FormContainer = ({
     | "parent"
     | "subject"
     | "class"
+    | "classSubjectTeacher"
     | "lesson"
     | "exam"
     | "assignment"

@@ -32,7 +32,7 @@ export const createStudent = async (
       password: data.password,
       firstName: data.name,
       lastName: data.surname,
-      publicMetadata:{role:"Student"}
+      publicMetadata:{role:"student"}
     });
     console.log("Created student user ID:", user);
     await prisma.student.create({
@@ -77,10 +77,12 @@ export const updateStudent = async (
     const client = await clerkClient();
    const user = await client.users.updateUser(data.id, {
       username: data.username,
+      password: data.password,
       ...(data.password !== "" && { password: data.password }),
       firstName: data.name,
       lastName: data.surname,
     });
+    
 
     await prisma.student.update({
       where: {

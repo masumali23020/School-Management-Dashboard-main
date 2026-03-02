@@ -22,8 +22,8 @@ import { deleteAnnouncement } from "../Actions/AnnousmentAction/AnnousmentAction
 import { deleteLesson } from "../Actions/loessonAction/LessonAction";
 
 import { deleteResult } from "../Actions/ResultAction/ResultAction";
+import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/ClassSubjectTeacherActions";
 // import AttendanceForm from "./forms/AttendanceForm";
-
 
 // USE LAZY LOADING
 // import ClassForm from "./forms/ClassForm";
@@ -66,7 +66,13 @@ const LessonForm = dynamic(() => import("./forms/LessonForm"), {
 const ResultForm = dynamic(() => import("./forms/ResultForm"), {
   loading: () => <h1>Loading...</h1>,
 });
-
+const ClassSubjectTeacherForm = dynamic(
+  () => import("./forms/ClassSubjectTeacherForm"),
+  {
+    // নতুন
+    loading: () => <h1>Loading...</h1>,
+  },
+);
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -74,6 +80,7 @@ const deleteActionMap = {
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExam,
+  classSubjectTeacher: deleteClassSubjectTeacher,
   // TODO: OTHER DELETE ACTIONS
   // parent: deleteSubject,
   lesson: deleteLesson,
@@ -92,21 +99,24 @@ const forms: {
     data?: any,
   ) => JSX.Element;
 } = {
-teacher: (
-  setOpen,
-  relatedData,
-  type,
-  data
-) => (
-  <TeacherForm
-    type={type}
-    data={data}
-    setOpen={setOpen}
-    relatedData={relatedData}
-  />
-),
+  teacher: (setOpen, relatedData, type, data) => (
+    <TeacherForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   class: (setOpen, relatedData, type, data) => (
     <ClassForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  classSubjectTeacher: (setOpen, relatedData, type, data) => (
+    <ClassSubjectTeacherForm
       type={type}
       data={data}
       setOpen={setOpen}
@@ -160,7 +170,6 @@ teacher: (
       setOpen={setOpen}
       relatedData={relatedData}
     />
-   
   ),
   lesson: (setOpen, relatedData, type, data) => (
     <LessonForm
@@ -169,7 +178,6 @@ teacher: (
       setOpen={setOpen}
       relatedData={relatedData}
     />
-   
   ),
   result: (setOpen, relatedData, type, data) => (
     <ResultForm
@@ -178,9 +186,7 @@ teacher: (
       setOpen={setOpen}
       relatedData={relatedData}
     />
-   
   ),
-  
 };
 
 const FormModal = ({

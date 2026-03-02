@@ -1,68 +1,107 @@
+// app/(dashboard)/class/page.tsx (আপডেট)
+
 import Image from "next/image";
-import FormModal from "../../../../components/FormModal";
-import Pagination from "../../../../components/Pagination";
-import Table from "../../../../components/Table";
-import TableSearch from "../../../../components/TableSearch";
+import FormModal from "@/components/FormModal";
+import Pagination from "@/components/Pagination";
+import Table from "@/components/Table";
+import TableSearch from "@/components/TableSearch";
+import prisma from "@/lib/db";
+import { Class, Prisma, Teacher, Subject, ClassSubjectTeacher } from "@prisma/client";
 
-import prisma from "../../../../lib/db";
-import { Class, Prisma, Teacher } from "@prisma/client";
-import { itemPerPage } from "../../../../lib/setting";
-import { getUserRole } from "../../../../lib/utlis";
-import FormContainer from "../../../../components/FormContainer";
-type classtype = Class & { supervisor: Teacher };
+import FormContainer from "@/components/FormContainer";
+import { getUserRole } from "@/lib/utlis";
+import { itemPerPage } from "@/lib/setting";
 
+// Extended type with relations
+type ClassWithRelations = Class & { 
+  supervisor: Teacher | null;
+  grade: { level: number };
+  subjectTeachers: (ClassSubjectTeacher & {
+    subject: Subject;
+    teacher: Teacher;
+  })[];
+};
 
-
-const ClassListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
+const ClassListPage = async ({ searchParams }: { searchParams: { [key: string]: string | undefined } }) => {
   const { page, ...queryParams } = searchParams;
-  const {role} = await getUserRole()
+  const { role } = await getUserRole();
 
   const p = page ? parseInt(page) : 1;
 
-// url params conditions 
-const columns = [
-  {
-    header: "Class Name",
-    accessor: "name",
-  },
-  {
-    header: "Capacity",
-    accessor: "capacity",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Supervisor",
-    accessor: "supervisor",
-    className: "hidden md:table-cell",
-  },
-  ...(role === "admin" || role === "teacher") ? [
+  // Columns definition
+  const columns = [
     {
-      header: "Actions",
-      accessor: "action",
+      header: "Class Name",
+      accessor: "name",
     },
-  ] : [],
-];
+    {
+      header: "Grade",
+      accessor: "grade",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Capacity",
+      accessor: "capacity",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Supervisor",
+      accessor: "supervisor",
+      className: "hidden lg:table-cell",
+    },
+    {
+      header: "Subjects & Teachers",
+      accessor: "subjects",
+      className: "hidden xl:table-cell",
+    },
+    ...(role === "admin" ? [
+      {
+        header: "Actions",
+        accessor: "action",
+      },
+    ] : []),
+  ];
 
-  const renderRow = (item: classtype) => (
+  const renderRow = (item: ClassWithRelations) => (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="flex items-center gap-4 p-4">
+        <div>
+          <h3 className="font-semibold">{item.name}</h3>
+        </div>
+      </td>
+      <td className="hidden md:table-cell">Grade {item.grade.level}</td>
       <td className="hidden md:table-cell">{item.capacity}</td>
-          <td className="hidden md:table-cell">{item.name[0]}</td>
-    <td className="hidden md:table-cell">
-      {item.supervisor?.name + " " + item.supervisor?.surname}
-    </td>
+      <td className="hidden lg:table-cell">
+        {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname || ''}` : '—'}
+      </td>
+      <td className="hidden xl:table-cell max-w-xs">
+        <div className="flex flex-col gap-1">
+          {item.subjectTeachers && item.subjectTeachers.length > 0 ? (
+            item.subjectTeachers.map((st, index) => (
+              <div key={st.id} className="text-xs bg-gray-100 p-1 rounded">
+                <span className="font-medium">{st.subject.name}:</span>{' '}
+                <span>{st.teacher.name} {st.teacher.surname}</span>
+                <span className="text-gray-500 ml-1">({st.academicYear})</span>
+              </div>
+            ))
+          ) : (
+            <span className="text-gray-400">No subjects assigned</span>
+          )}
+        </div>
+      </td>
       <td>
         <div className="flex items-center gap-2">
+          {/* Assign Subject Button */}
           {role === "admin" && (
             <>
+              <FormContainer 
+                table="classSubjectTeacher" 
+                type="create" 
+                data={{ classId: item.id }} 
+              />
               <FormContainer table="class" type="update" data={item} />
               <FormContainer table="class" type="delete" id={item.id} />
             </>
@@ -72,13 +111,13 @@ const columns = [
     </tr>
   );
 
+  // Build query
   const query: Prisma.ClassWhereInput = {};
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-         
           case "search":
             query.name = { contains: value, mode: "insensitive" };
             break;
@@ -89,24 +128,30 @@ const columns = [
     }
   }
 
-
-
+  // Fetch classes with all relations
   const [classesData, count] = await prisma.$transaction([
-      prisma.class.findMany({
-        where:query,
-    include: {
-      supervisor: true,
-    },
-    take: itemPerPage,
-    skip: itemPerPage * (p - 1),
- 
-   
-
-  }),
-  prisma.class.count({where:query})
-  ])
-
-
+    prisma.class.findMany({
+      where: query,
+      include: {
+        supervisor: true,
+        grade: true,
+        subjectTeachers: {
+          include: {
+            subject: true,
+            teacher: true,
+          },
+          orderBy: {
+            subject: {
+              name: 'asc'
+            }
+          }
+        },
+      },
+      take: itemPerPage,
+      skip: itemPerPage * (p - 1),
+    }),
+    prisma.class.count({ where: query }),
+  ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -122,12 +167,43 @@ const columns = [
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormContainer table="class" type="create" />}
+            {role === "admin" && (
+              <div className="flex gap-2">
+                <FormContainer table="class" type="create" />
+                <FormContainer table="classSubjectTeacher" type="create" />
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Stats Cards */}
+      <div className="flex gap-4 mt-4 mb-4">
+        <div className="bg-lamaSkyLight p-3 rounded-lg flex items-center gap-2">
+          <div className="bg-lamaSky w-10 h-10 rounded-full flex items-center justify-center">
+            <Image src="/class.png" alt="" width={20} height={20} />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Total Classes</p>
+            <p className="text-xl font-semibold">{count}</p>
+          </div>
+        </div>
+        <div className="bg-lamaYellowLight p-3 rounded-lg flex items-center gap-2">
+          <div className="bg-lamaYellow w-10 h-10 rounded-full flex items-center justify-center">
+            <Image src="/teacher.png" alt="" width={20} height={20} />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Total Subjects Assigned</p>
+            <p className="text-xl font-semibold">
+              {classesData.reduce((acc, cls) => acc + cls.subjectTeachers.length, 0)}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* LIST */}
       <Table columns={columns} renderRow={renderRow} data={classesData} />
+      
       {/* PAGINATION */}
       <Pagination count={count} page={p} />
     </div>

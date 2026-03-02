@@ -46,12 +46,13 @@ const StudentForm = ({
       error: false,
     }
   );
+  const imageUrl = img?.secure_url || img?.url || data?.img || "";
 
   const onSubmit = handleSubmit((data) => {
     // console.log("hello");
     // console.log(data);
     // console.log(img.url);
-    formAction({ ...data, img: img?.url });
+    formAction({ ...data, img: imageUrl });
   });
 
   const router = useRouter();

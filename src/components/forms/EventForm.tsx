@@ -52,8 +52,8 @@ const EventForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log("heloo event");
-    console.log(data);
+    // console.log("heloo event");
+    // console.log(data);
     formAction(data);
   });
 
@@ -61,7 +61,7 @@ const EventForm = ({
 
   useEffect(() => {
     if (state.success) {
-      toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+      toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }

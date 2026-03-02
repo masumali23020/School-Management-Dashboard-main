@@ -5,8 +5,7 @@ import FormModal from "../../../../components/FormModal";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { role } from "../../../../lib/data";
-import {  getTeachersAndPaginated } from "../../../actions/teacherAction";
+
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
 import { getUserRole } from "../../../../lib/utlis";

@@ -15,7 +15,6 @@ export const createResult = async (
     await prisma.result.create({
       data:{
         id: data?.id,
-       
         score: data?.score,
         studentId: data?.studentId,
         examId: data?.examId,

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import FormModal from "../../../../components/FormModal";
+
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
@@ -10,6 +10,7 @@ import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
 import { Class, Lesson, Subject, Teacher,Prisma } from "@prisma/client/edge";
 import prisma from "../../../../lib/db";
+
 type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };

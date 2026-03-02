@@ -31,6 +31,7 @@ const AnnousmentForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  
   const {
     register,
     handleSubmit,

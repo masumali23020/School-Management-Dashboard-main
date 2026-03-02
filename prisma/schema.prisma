@@ -24,8 +24,8 @@ model Student {
   bloodType   String
   sex         UserSex
   createdAt   DateTime     @default(now())
-  parentId    String
-  parent      Parent       @relation(fields: [parentId], references: [id])
+  parentId    String?
+  parent      Parent?       @relation(fields: [parentId], references: [id])
   classId     Int
   class       Class        @relation(fields: [classId], references: [id])
   gradeId     Int
@@ -50,8 +50,36 @@ model Teacher {
   subjects  Subject[]
   lessons   Lesson[]
   classes   Class[]
+  classSubjects  ClassSubjectTeacher[]
   birthday  DateTime
+  
+
+  updatedAt       DateTime       @updatedAt
 }
+model ClassSubjectTeacher {
+  id             Int            @id @default(autoincrement())
+  
+  classId        Int
+  class          Class          @relation(fields: [classId], references: [id])
+  
+  subjectId      Int
+  subject        Subject        @relation(fields: [subjectId], references: [id])
+  
+  teacherId      String
+  teacher        Teacher        @relation(fields: [teacherId], references: [id])
+  lessons  Lesson[]
+  
+  // Academic Year (যেমন: "2024", "2024-2025")
+  academicYear   String         @default("2024")
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // একই Class-এ একই Subject এক Academic Year-এ একবারই assign করা যাবে
+  @@unique([classId, subjectId, academicYear])
+  
+}
+
 
 model Parent {
   id        String    @id
@@ -86,6 +114,7 @@ model Class {
   grade         Grade          @relation(fields: [gradeId], references: [id])
   events        Event[]
   announcements Announcement[]
+  subjectTeachers ClassSubjectTeacher[] 
 }
 
 model Subject {
@@ -93,6 +122,9 @@ model Subject {
   name     String    @unique
   teachers Teacher[]
   lessons  Lesson[]
+  classTeachers  ClassSubjectTeacher[] 
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Lesson {
@@ -111,6 +143,10 @@ model Lesson {
   exams       Exam[]
   assignments Assignment[]
   attendances Attendance[]
+
+  classSubjectTeacherId Int
+  classSubjectTeacher ClassSubjectTeacher @relation(fields: [classSubjectTeacherId], references: [id])
+  
 }
 
 model Exam {

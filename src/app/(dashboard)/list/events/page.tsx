@@ -3,7 +3,7 @@ import FormContainer from "../../../../components/FormContainer";
 import Pagination from "../../../../components/Pagination";
 import Table from "../../../../components/Table";
 import TableSearch from "../../../../components/TableSearch";
-import { eventsData, role } from "../../../../lib/data";
+
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
 import { Class, Event, Prisma } from "@prisma/client";
@@ -13,8 +13,9 @@ import { getUserRole } from "../../../../lib/utlis";
 
 type EventList = Event & { class: Class[] | null }
 
-const renderRow = (item: EventList) =>{ 
-  console.log("Event item:", item);
+const renderRow = async(item: EventList) =>{ 
+  const { role } =await getUserRole();
+
   return(
     <tr
       key={item.id}

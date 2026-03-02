@@ -3,12 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
+
 import {  classSchema, ClassSchema, } from "../../lib/FormValidationSchema";
-import {
-  createSubject,
-  updateSubject,
-} from "../../Actions/SubjectAction/Action";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -48,7 +44,7 @@ const ClassForm = ({
   const router = useRouter();
 
   const onSubmit = handleSubmit((data) => {
-    // console.log("subject data ", data);
+    console.log("subject data ", data);
     formAction(data);
   });
 
@@ -60,6 +56,10 @@ const ClassForm = ({
       setOpen(false);
       router.refresh();
     }
+    if(state.error){
+      toast.error(`Error ${type === "create" ? "creating" : "updating"} class. Please try again.`);
+    }
+
   }, [state]);
 
 
