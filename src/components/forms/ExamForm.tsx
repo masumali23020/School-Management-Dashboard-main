@@ -10,7 +10,7 @@ import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { createExam, updateExam } from "../../Actions/ExamAction/EcamAction";
+import { createExam, updateExam } from "../../Actions/ExamAction/Examactions";
 
 const ExamForm = ({
   type,

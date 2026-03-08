@@ -126,16 +126,54 @@ export const studentSchema = z.object({
 
 export type StudentSchema = z.infer<typeof studentSchema>;
 
+
+
+//     534  
+
+
+// ── Single exam update ────────────────────────────────────────────────────────
 export const examSchema = z.object({
   id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Title name is required!" }),
+  title: z.string().min(1, { message: "Title is required!" }),
   startTime: z.coerce.date({ message: "Start time is required!" }),
   endTime: z.coerce.date({ message: "End time is required!" }),
-  lessonId: z.coerce.number({ message: "Lesson is required!" }),
+  totalMarks: z.coerce.number().min(1).default(100),
+  mcqMarks: z.coerce.number().nullable().optional(),
+  writtenMarks: z.coerce.number().nullable().optional(),
+  practicalMarks: z.coerce.number().nullable().optional(),
 });
-
 export type ExamSchema = z.infer<typeof examSchema>;
 
+// ── Per-subject row inside one class ─────────────────────────────────────────
+const subjectEntrySchema = z.object({
+  subjectId: z.number(),
+  subjectName: z.string(),
+  lessonId: z.number(),
+  cstId: z.number(),
+  title: z.string().min(1, { message: "Title required" }),
+  mcqMarks: z.number().nullable(),
+  writtenMarks: z.number(),
+  practicalMarks: z.number().nullable(),
+  totalMarks: z.number(),
+  include: z.boolean(),
+});
+
+// ── Per-class block ───────────────────────────────────────────────────────────
+const classBlockSchema = z.object({
+  classId: z.number(),
+  className: z.string(),
+  gradeLevel: z.number(),
+  subjects: z.array(subjectEntrySchema),
+});
+
+// ── Top-level multi-class schema ──────────────────────────────────────────────
+export const multiClassExamSchema = z.object({
+  startTime: z.coerce.date({ message: "Start time is required!" }),
+  endTime: z.coerce.date({ message: "End time is required!" }),
+  academicYear: z.string().default("2024"),
+  classes: z.array(classBlockSchema).min(1, { message: "Select at least one class" }),
+});
+export type MultiClassExamSchema = z.infer<typeof multiClassExamSchema>;
 export const assignmentSchema = z.object({
   id: z.coerce.number().optional(),
   title: z.string().min(1, { message: "Title name is required!" }),

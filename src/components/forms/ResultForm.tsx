@@ -33,7 +33,7 @@ const ResultForm = ({
     defaultValues: {
     score: data?.score || "",
     studentId: data?.studentId || "",
-    examId: data?.examId || "",
+    // examId: data?.examId || "",
     assignmentId: data?.assignmentId || "",
     id: data?.id || "",
   },
@@ -69,7 +69,7 @@ const ResultForm = ({
   }, [state, router, type, setOpen]);
 
   const { exams,assignments,students } = relatedData;
-  console.log("Related Data in ResultForm:", data)
+  console.log("Related Data in ResultForm:", assignments)
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -123,8 +123,8 @@ const ResultForm = ({
         </div>
 
         {/* Exam */}
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-xs text-gray-500"> "Exam (Optional)</label>
+        {/* <div className="flex flex-col gap-2 w-full md:w-1/3">
+          <label className="text-xs text-gray-500"> Exam (Optional)</label>
           <select
             {...register("examId")}
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
@@ -142,7 +142,7 @@ const ResultForm = ({
               {errors.examId.message.toString()}
             </p>
           )}
-        </div>
+        </div> */}
 
         {/* Assignment */}
         <div className="flex flex-col gap-2 w-full md:w-1/3">

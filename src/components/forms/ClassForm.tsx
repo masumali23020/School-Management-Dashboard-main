@@ -44,7 +44,7 @@ const ClassForm = ({
   const router = useRouter();
 
   const onSubmit = handleSubmit((data) => {
-    console.log("subject data ", data);
+    // console.log("subject data ", data);
     formAction(data);
   });
 

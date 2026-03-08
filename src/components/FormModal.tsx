@@ -12,17 +12,16 @@ import { FormContainerProps } from "./FormContainer";
 import { deleteClass } from "../Actions/ClassActions/classAction";
 import { deleteTeacher } from "../Actions/TeacherActions/teacherActions";
 import { deleteStudent } from "../Actions/studentAction/studentAction";
-import { deleteExam } from "../Actions/ExamAction/EcamAction";
 
 import { deleteAssignment } from "../Actions/AssignmentAction/AssignmentAction";
 import { deleteEvent } from "../Actions/EventAction/EventAction";
 
-import { deleteAnnouncement } from "../Actions/AnnousmentAction/AnnousmentAction";
 
 import { deleteLesson } from "../Actions/loessonAction/LessonAction";
 
-import { deleteResult } from "../Actions/ResultAction/ResultAction";
 import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/ClassSubjectTeacherActions";
+import { deleteOneExamMark } from "@/Actions/ExamAction/Examactions";
+import { deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
 // import AttendanceForm from "./forms/AttendanceForm";
 
 // USE LAZY LOADING
@@ -79,7 +78,7 @@ const deleteActionMap = {
   class: deleteClass,
   teacher: deleteTeacher,
   student: deleteStudent,
-  exam: deleteExam,
+  exam: deleteOneExamMark,
   classSubjectTeacher: deleteClassSubjectTeacher,
   // TODO: OTHER DELETE ACTIONS
   // parent: deleteSubject,
@@ -88,7 +87,7 @@ const deleteActionMap = {
   result: deleteResult,
   // attendance: deleteSubject,
   event: deleteEvent,
-  announcement: deleteAnnouncement,
+  // announcement: deleteAnnouncement,
 };
 
 const forms: {

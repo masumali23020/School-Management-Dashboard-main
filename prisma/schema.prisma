@@ -154,6 +154,10 @@ model Exam {
   title     String
   startTime DateTime
   endTime   DateTime
+  totalMarks Int     @default(100)
+   mcqMarks    Int?   // MCQ part er marks (30)
+  writtenMarks Int?  // Written part er marks (70)
+  practicalMarks Int? // Practical part er marks
 
   lessonId Int
   lesson   Lesson   @relation(fields: [lessonId], references: [id])
@@ -174,6 +178,10 @@ model Assignment {
 model Result {
   id    Int @id @default(autoincrement())
   score Int
+  mcqScore       Int?
+  writtenScore   Int?
+  practicalScore Int?
+  totalScore Int
 
   examId       Int?
   exam         Exam?       @relation(fields: [examId], references: [id])

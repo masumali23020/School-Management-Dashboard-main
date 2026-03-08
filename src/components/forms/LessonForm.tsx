@@ -86,18 +86,21 @@ const LessonForm = ({
     formAction(formData);
    
   });
-
-  useEffect(() => {
+    useEffect(() => {
     if (state.success) {
-      toast.success(state.message || `Lesson ${type === "create" ? "created" : "updated"} successfully!`);
+      toast(
+        `Lesson has been ${type === "create" ? "created successfully" : "updated successfully"}!`,
+      );
       setOpen(false);
       router.refresh();
     }
-    
-    if (state.error && state.message) {
-      toast.error(state.message);
+    if(state.error){
+      toast.error(`Error ${type === "create" ? "creating" : "updating"} Lesson. Please try again.`);
     }
-  }, [state, router, type, setOpen]);
+
+  }, [state, router, setOpen, type]);
+
+
 
   const { classes, subjects, teachers, assignments } = relatedData || {};
 

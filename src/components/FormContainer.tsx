@@ -140,6 +140,18 @@ case "lesson":
           },
           select: { id: true, name: true },
         });
+        // const assignmetLessonwithClass =await prisma.classSubjectTeacher.findMany({
+        //   where: {
+        //     ...(role === "teacher" ? { teacherId: currentUserId! } : {})
+        //   },
+        //   select:{
+        //     id: true,
+        //     // subject: { select: { name: true } },
+        //     // teacher: { select: { name: true, surname: true } },
+        //     // class: { select: { name: true } },
+        //     lessons: { select: { id: true, name: true } }
+        //   }
+        // }) 
         relatedData = { lessons: assignmetLesson };
         break;
       case "event":
