@@ -11,6 +11,7 @@ import { Class, Prisma, Teacher, Subject, ClassSubjectTeacher } from "@prisma/cl
 import FormContainer from "@/components/FormContainer";
 import { getUserRole } from "@/lib/utlis";
 import { itemPerPage } from "@/lib/setting";
+import ClassDetailModal from "@/components/Classdetailmodal";
 
 // Extended type with relations
 type ClassWithRelations = Class & { 
@@ -22,11 +23,62 @@ type ClassWithRelations = Class & {
   })[];
 };
 
+
+
 const ClassListPage = async ({ searchParams }: { searchParams: { [key: string]: string | undefined } }) => {
   const { page, ...queryParams } = searchParams;
   const { role } = await getUserRole();
 
   const p = page ? parseInt(page) : 1;
+  const renderRow = (item: ClassWithRelations) => (
+  <tr
+    key={item.id}
+    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+  >
+    {/* Class Name → now opens detail modal on click */}
+    <td className="flex items-center gap-4 p-4">
+      <div>
+        <ClassDetailModal item={item} />  {/* ← REPLACE the old <h3> with this */}
+      </div>
+    </td>
+
+    <td className="hidden md:table-cell">Grade {item.grade.level}</td>
+    <td className="hidden md:table-cell">{item.capacity}</td>
+    <td className="hidden lg:table-cell">
+      {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname || ''}` : '—'}
+    </td>
+    <td className="hidden xl:table-cell max-w-xs">
+      <div className="flex flex-col gap-1">
+        {item.subjectTeachers && item.subjectTeachers.length > 0 ? (
+          item.subjectTeachers.map((st, index) => (
+            <div key={st.id} className="text-xs bg-gray-100 p-1 rounded">
+              <span className="font-medium">{st.subject.name}:</span>{' '}
+              <span>{st.teacher.name} {st.teacher.surname}</span>
+              <span className="text-gray-500 ml-1">({st.academicYear})</span>
+            </div>
+          ))
+        ) : (
+          <span className="text-gray-400">No subjects assigned</span>
+        )}
+      </div>
+    </td>
+    <td>
+      <div className="flex items-center gap-2">
+        {role === "admin" && (
+          <>
+            <FormContainer 
+              table="classSubjectTeacher" 
+              type="create" 
+              data={{ classId: item.id }} 
+            />
+            <FormContainer table="class" type="update" data={item} />
+            <FormContainer table="class" type="delete" id={item.id} />
+          </>
+        )}
+      </div>
+    </td>
+  </tr>
+);
 
   // Columns definition
   const columns = [
@@ -62,54 +114,7 @@ const ClassListPage = async ({ searchParams }: { searchParams: { [key: string]: 
     ] : []),
   ];
 
-  const renderRow = (item: ClassWithRelations) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">
-        <div>
-          <h3 className="font-semibold">{item.name}</h3>
-        </div>
-      </td>
-      <td className="hidden md:table-cell">Grade {item.grade.level}</td>
-      <td className="hidden md:table-cell">{item.capacity}</td>
-      <td className="hidden lg:table-cell">
-        {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname || ''}` : '—'}
-      </td>
-      <td className="hidden xl:table-cell max-w-xs">
-        <div className="flex flex-col gap-1">
-          {item.subjectTeachers && item.subjectTeachers.length > 0 ? (
-            item.subjectTeachers.map((st, index) => (
-              <div key={st.id} className="text-xs bg-gray-100 p-1 rounded">
-                <span className="font-medium">{st.subject.name}:</span>{' '}
-                <span>{st.teacher.name} {st.teacher.surname}</span>
-                <span className="text-gray-500 ml-1">({st.academicYear})</span>
-              </div>
-            ))
-          ) : (
-            <span className="text-gray-400">No subjects assigned</span>
-          )}
-        </div>
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {/* Assign Subject Button */}
-          {role === "admin" && (
-            <>
-              <FormContainer 
-                table="classSubjectTeacher" 
-                type="create" 
-                data={{ classId: item.id }} 
-              />
-              <FormContainer table="class" type="update" data={item} />
-              <FormContainer table="class" type="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+ 
 
   // Build query
   const query: Prisma.ClassWhereInput = {};

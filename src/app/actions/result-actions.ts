@@ -294,8 +294,8 @@ interface ResultSchema {
   writtenScore?: number | null;
   practicalScore?: number | null;
   totalScore?: number;
-  grade?: string;
-  remarks?: string;
+  // grade?: string;
+  // remarks?: string;
 }
 
 // CREATE Result
@@ -319,17 +319,17 @@ export const createResult = async (
       data.score;
 
     // Calculate grade based on score
-    let grade = data.grade;
-    if (!grade && totalScore) {
-      const percentage = (totalScore / 100) * 100; // Assuming total marks 100
-      if (percentage >= 80) grade = "A+";
-      else if (percentage >= 70) grade = "A";
-      else if (percentage >= 60) grade = "A-";
-      else if (percentage >= 50) grade = "B";
-      else if (percentage >= 40) grade = "C";
-      else if (percentage >= 33) grade = "D";
-      else grade = "F";
-    }
+    // let grade = data.grade;
+    // if (!grade && totalScore) {
+    //   const percentage = (totalScore / 100) * 100; // Assuming total marks 100
+    //   if (percentage >= 80) grade = "A+";
+    //   else if (percentage >= 70) grade = "A";
+    //   else if (percentage >= 60) grade = "A-";
+    //   else if (percentage >= 50) grade = "B";
+    //   else if (percentage >= 40) grade = "C";
+    //   else if (percentage >= 33) grade = "D";
+    //   else grade = "F";
+    // }
 
     if (existingResult) {
       // Update existing result
@@ -341,8 +341,8 @@ export const createResult = async (
           writtenScore: data.writtenScore,
           practicalScore: data.practicalScore,
           totalScore: totalScore,
-          grade: grade,
-          remarks: data.remarks,
+          // grade: grade,
+          // remarks: data.remarks,
         }
       });
 
@@ -370,8 +370,8 @@ export const createResult = async (
           writtenScore: data.writtenScore,
           practicalScore: data.practicalScore,
           totalScore: totalScore,
-          grade: grade,
-          remarks: data.remarks,
+          // grade: grade,
+          // remarks: data.remarks,
         }
       });
 

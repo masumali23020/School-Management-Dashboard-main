@@ -12,6 +12,7 @@ model Admin {
   username String @unique
 }
 
+
 model Student {
   id          String       @id
   username    String       @unique
@@ -33,7 +34,12 @@ model Student {
   attendances Attendance[]
   results     Result[]
   birthday    DateTime
+  classHistory StudentClassHistory[]
+  
+  feePayments   FeePayment[]
 }
+
+
 
 model Teacher {
   id        String    @id
@@ -52,7 +58,7 @@ model Teacher {
   classes   Class[]
   classSubjects  ClassSubjectTeacher[]
   birthday  DateTime
-  
+
 
   updatedAt       DateTime       @updatedAt
 }
@@ -79,6 +85,21 @@ model ClassSubjectTeacher {
   @@unique([classId, subjectId, academicYear])
   
 }
+model StudentClassHistory {
+  id           Int      @id @default(autoincrement())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id])
+  classId      Int
+  class        Class    @relation(fields: [classId], references: [id])
+  gradeId      Int
+  grade        Grade    @relation(fields: [gradeId], references: [id])
+  academicYear String
+  rollNumber   Int
+  promotedAt   DateTime @default(now())
+
+  @@unique([studentId, academicYear])
+  @@unique([classId, academicYear, rollNumber])
+}
 
 
 model Parent {
@@ -99,6 +120,7 @@ model Grade {
 
   students Student[]
   classess Class[]
+  classHistory StudentClassHistory[]
 }
 
 model Class {
@@ -115,6 +137,9 @@ model Class {
   events        Event[]
   announcements Announcement[]
   subjectTeachers ClassSubjectTeacher[] 
+  classHistory StudentClassHistory[]
+   feeStructures ClassFeeStructure[]
+  feePayments   FeePayment[]
 }
 
 model Subject {
@@ -224,6 +249,67 @@ model Announcement {
   class   Class? @relation(fields: [classId], references: [id])
 }
 
+model FeeType {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  classStructures ClassFeeStructure[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Defines how much a specific fee costs for a specific class
+/// e.g. Class 6 → Monthly Fee → ৳800
+model ClassFeeStructure {
+  id        Int     @id @default(autoincrement())
+  classId   Int
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  feeTypeId Int
+  feeType   FeeType @relation(fields: [feeTypeId], references: [id], onDelete: Cascade)
+  amount    Float
+
+  payments FeePayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One fee type can only appear once per class
+  @@unique([classId, feeTypeId])
+  @@index([classId])
+}
+
+/// One row per payment transaction recorded by the cashier
+model FeePayment {
+  id                  Int               @id @default(autoincrement())
+  invoiceNumber       String            @unique   // e.g. "INV-2026-00045"
+  studentId           String
+  student             Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  classId             Int
+  class               Class             @relation(fields: [classId], references: [id], onDelete: Restrict)
+  classFeeStructureId Int
+  classFeeStructure   ClassFeeStructure @relation(fields: [classFeeStructureId], references: [id], onDelete: Restrict)
+  amountPaid          Float
+  paymentMethod       PaymentMethod
+  academicYear        String            // e.g. "2025-2026"
+  monthLabel          String?           // e.g. "January" — for monthly fees
+  remarks             String?
+  collectedBy         String            // cashier username
+
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([classId])
+  @@index([academicYear])
+  @@index([paidAt])
+}
+
+
 enum UserSex {
   MALE
   FEMALE
@@ -235,4 +321,9 @@ enum Day {
   WEDNESDAY
   THURSDAY
   FRIDAY
+}
+enum PaymentMethod {
+  CASH
+  MOBILE_BANKING
+  BANK_TRANSFER
 }

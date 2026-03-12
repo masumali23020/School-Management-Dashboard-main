@@ -13,6 +13,8 @@ const menuItems = [
       { icon: "/teacher.png", label: "Teachers", href: "/list/teachers", visible: ["admin", "teacher"] },
       { icon: "/student.png", label: "Students", href: "/list/students", visible: ["admin", "teacher"] },
       { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["admin", "teacher"] },
+      { icon: "/cashier.png", label: "Cashier", href: "/list/fees/cashier", visible: ["admin", "cashier"] },
+      { icon: "/fee.png", label: "Fees", href: "/list/fees", visible: ["admin", "cashier"] },
       { icon: "/subject.png", label: "Subjects", href: "/list/subjects", visible: ["admin"] },
       // "Classes" removed → ClassesSubMenu injected before "Lessons"
       { icon: "/lesson.png", label: "Lessons", href: "/list/lessons", visible: ["admin", "teacher"] },
