@@ -58,6 +58,8 @@ model Teacher {
   classes   Class[]
   classSubjects  ClassSubjectTeacher[]
   birthday  DateTime
+  salaryStructures TeacherSalaryStructure[]
+  salaryPayments   TeacherSalaryPayment[]
 
 
   updatedAt       DateTime       @updatedAt
@@ -138,7 +140,7 @@ model Class {
   announcements Announcement[]
   subjectTeachers ClassSubjectTeacher[] 
   classHistory StudentClassHistory[]
-   feeStructures ClassFeeStructure[]
+  feeStructures ClassFeeStructure[]
   feePayments   FeePayment[]
 }
 
@@ -280,7 +282,75 @@ model ClassFeeStructure {
   @@unique([classId, feeTypeId])
   @@index([classId])
 }
+model TeacherSalaryStructure {
+  id Int @id @default(autoincrement())
 
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  salaryTypeId Int
+  salaryType   SalaryType @relation(fields: [salaryTypeId], references: [id], onDelete: Cascade)
+
+  /// Decimal avoids floating-point rounding errors on money
+  amount Decimal @db.Decimal(10, 2)
+
+  payments TeacherSalaryPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teacherId, salaryTypeId])
+  @@index([teacherId])
+  @@index([salaryTypeId])
+}
+model TeacherSalaryPayment {
+  id            Int    @id @default(autoincrement())
+  invoiceNumber String @unique   // e.g. "SAL-2026-00012"
+
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+
+  salaryTypeId Int
+  salaryType   SalaryType @relation(fields: [salaryTypeId], references: [id], onDelete: Restrict)
+
+  /// null = ad-hoc payment not linked to a configured structure
+  salaryStructureId Int?
+  salaryStructure   TeacherSalaryStructure? @relation(fields: [salaryStructureId], references: [id], onDelete: SetNull)
+
+  /// Decimal avoids floating-point rounding errors on money
+  amountPaid    Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+
+  academicYear String    // e.g. "2025-2026"
+  monthLabel   String?   // e.g. "March" — for monthly salary tracking
+  remarks      String?
+  collectedBy  String    // cashier username
+
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([salaryTypeId])
+  @@index([salaryStructureId])
+  @@index([academicYear])
+  @@index([paidAt])
+}
+model SalaryType {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  /// true = paid every month | false = one-time / occasional
+  isRecurring Boolean @default(false)
+  /// false = hidden from new assignments but history preserved
+  isActive    Boolean @default(true)
+
+  structures TeacherSalaryStructure[]
+  payments   TeacherSalaryPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 /// One row per payment transaction recorded by the cashier
 model FeePayment {
   id                  Int               @id @default(autoincrement())
@@ -308,6 +378,8 @@ model FeePayment {
   @@index([academicYear])
   @@index([paidAt])
 }
+
+
 
 
 enum UserSex {

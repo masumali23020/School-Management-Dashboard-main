@@ -14,7 +14,9 @@ const menuItems = [
       { icon: "/student.png", label: "Students", href: "/list/students", visible: ["admin", "teacher"] },
       { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["admin", "teacher"] },
       { icon: "/cashier.png", label: "Cashier", href: "/list/fees/cashier", visible: ["admin", "cashier"] },
-      { icon: "/fee.png", label: "Fees", href: "/list/fees", visible: ["admin", "cashier"] },
+      { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: ["admin", "cashier"] },
+      { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: ["admin", "cashier"] },
+    { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["admin", "cashier"] },
       { icon: "/subject.png", label: "Subjects", href: "/list/subjects", visible: ["admin"] },
       // "Classes" removed → ClassesSubMenu injected before "Lessons"
       { icon: "/lesson.png", label: "Lessons", href: "/list/lessons", visible: ["admin", "teacher"] },
@@ -75,7 +77,7 @@ const Menu = async ({ user }: { user: any }) => {
 
                 {/* Inject Results submenu just before Attendance */}
                 {item.label === "Attendance" && RESULTS_VISIBLE.includes(role) && (
-                  <ResultsSubMenu key="results-submenu" />
+                  <ResultsSubMenu key="results-submenu"  />
                 )}
 
                 <MenuLink key={item.label} item={item} />
