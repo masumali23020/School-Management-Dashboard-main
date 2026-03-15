@@ -1,6 +1,7 @@
 // app/list/results/exams/page.tsx
 
-import { getAllClasses } from "@/Actions/ExamAction/Examactions";
+
+import { getAllClasses } from "@/Actions/ResultAction/resultSearchAction";
 import ExamsClient from "./Examsclient";
 
 

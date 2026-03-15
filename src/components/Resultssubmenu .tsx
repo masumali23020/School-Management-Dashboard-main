@@ -5,11 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, FileText, ClipboardList } from "lucide-react";
+import { getUserRole } from "@/lib/utlis";
 
 export default function ResultsSubMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
 
   const isParentActive =
     pathname === "/list/results" || pathname.startsWith("/list/results/");
@@ -72,6 +74,17 @@ export default function ResultsSubMenu() {
           >
             <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="hidden lg:block">Assignments</span>
+          </Link>
+          <Link
+            href="/list/results/publish"
+            onClick={(e) => handleNavClick(e, "/list/results/publish")}
+            className={`flex items-center justify-center lg:justify-start gap-2 py-1.5 md:px-2 rounded-md text-sm transition-colors
+              ${isAssignmentActive
+                ? "bg-lamaYellow text-yellow-800 font-semibold"
+                : "text-gray-500 hover:bg-lamaSkyLight"}`}
+          >
+            <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="hidden lg:block">Publish</span>
           </Link>
 
         </div>

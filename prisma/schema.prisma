@@ -142,6 +142,8 @@ model Class {
   classHistory StudentClassHistory[]
   feeStructures ClassFeeStructure[]
   feePayments   FeePayment[]
+ 
+  examPublish    ExamPublish[] 
 }
 
 model Subject {
@@ -186,6 +188,8 @@ model Exam {
   writtenMarks Int?  // Written part er marks (70)
   practicalMarks Int? // Practical part er marks
 
+  examPublish    ExamPublish[] 
+
   lessonId Int
   lesson   Lesson   @relation(fields: [lessonId], references: [id])
   results  Result[]
@@ -216,6 +220,26 @@ model Result {
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
   studentId    String
   student      Student     @relation(fields: [studentId], references: [id])
+}
+model ExamPublish {
+  id Int @id @default(autoincrement())
+
+  examId Int
+  exam   Exam @relation(fields: [examId], references: [id])
+
+  classId Int
+  class   Class @relation(fields: [classId], references: [id])
+
+  session String
+
+  isPublished Boolean @default(false)
+  publishedAt DateTime?
+  publishedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examId, classId, session])
 }
 
 model Attendance {
@@ -250,6 +274,7 @@ model Announcement {
   classId Int?
   class   Class? @relation(fields: [classId], references: [id])
 }
+
 
 model FeeType {
   id          Int    @id @default(autoincrement())
