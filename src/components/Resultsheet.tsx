@@ -245,7 +245,7 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
                     123 Education Road, Dhaka, Bangladesh | Phone: 01700-000000
                   </div>
                   <div style={{ fontSize: "9px", color: "#c8a84b", fontStyle: "italic", marginTop: "2px" }}>
-                    "Education is the most powerful weapon" — Estd. 1985
+                    `Education is the most powerful weapon — Estd. 1985`
                   </div>
                 </div>
                 <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#1a3a5c", display: "flex", alignItems: "center", justifyContent: "center" }}>

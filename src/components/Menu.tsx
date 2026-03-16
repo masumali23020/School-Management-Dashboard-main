@@ -40,7 +40,7 @@ const menuItems = [
 ];
 
 const CLASSES_VISIBLE = ["admin", "teacher"];
-const RESULTS_VISIBLE = ["admin", "teacher", "student", "parent"];
+const RESULTS_VISIBLE = ["admin", "teacher", "cashier", ];
 
 const Menu = async ({ user }: { user: any }) => {
   const role = (user?.publicMetadata?.role as string) || "student";

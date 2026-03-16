@@ -3,13 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
+
 import { examSchema, ExamSchema, SubjectSchema, subjectSchema } from "../../lib/FormValidationSchema";
 
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { createExam, updateExam } from "@/Actions/ExamAction/Examactions";
 
 
 const ExamForm = ({
@@ -42,7 +43,7 @@ const ExamForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    // console.log(data);
     formAction(data);
   });
 

@@ -50,7 +50,7 @@ export const createStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        parentId: data.parentId || null,
 
       
       }

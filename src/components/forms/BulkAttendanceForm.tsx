@@ -67,7 +67,7 @@ export default function BulkAttendanceForm({ classData, month, students }: BulkA
     });
     
     setAttendanceData(initialData);
-  }, [students, month]);
+  }, [students, month, days]);
 
   const handleAttendanceChange = (studentId: string, date: Date, checked: boolean) => {
     setAttendanceData(prev => {

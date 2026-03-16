@@ -224,7 +224,7 @@ model Result {
 model ExamPublish {
   id Int @id @default(autoincrement())
 
-  examId Int
+   examId      Int       @unique 
   exam   Exam @relation(fields: [examId], references: [id])
 
   classId Int
@@ -403,6 +403,9 @@ model FeePayment {
   @@index([academicYear])
   @@index([paidAt])
 }
+
+// staff 
+
 
 
 

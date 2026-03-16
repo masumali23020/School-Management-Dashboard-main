@@ -34,8 +34,8 @@ function DeleteModal({ target, onConfirm, onCancel, loading }: {
   const isSalaryType  = target.kind === "salaryType";
   const title         = isSalaryType ? "Delete Salary Type" : "Remove Salary Structure";
   const body          = isSalaryType
-    ? <>Delete salary type <strong>"{target.name}"</strong>? All salary structures using this type will also be removed.</>
-    : <>Remove <strong>"{target.name}"</strong> from salary structure? Existing payment records will not be affected.</>;
+    ? <>Delete salary type <strong>{target.name}</strong>? All salary structures using this type will also be removed.</>
+    : <>Remove <strong>{target.name}</strong> from salary structure? Existing payment records will not be affected.</>;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onCancel}>

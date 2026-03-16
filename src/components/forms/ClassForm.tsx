@@ -60,7 +60,7 @@ const ClassForm = ({
       toast.error(`Error ${type === "create" ? "creating" : "updating"} class. Please try again.`);
     }
 
-  }, [state]);
+  }, [state, router, setOpen, type]);
 
 
 

@@ -76,7 +76,7 @@ export default function PaymentListClient({
     setLoading(false);
   }, [filterName, filterClass, filterYear, filterMethod, filterFrom, filterTo]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSearch = () => fetchData();
   const handleReset = () => {

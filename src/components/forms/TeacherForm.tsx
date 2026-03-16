@@ -79,8 +79,8 @@ const TeacherForm = ({
         },
       );
     }
-  }, [state]);
-  console.log("related data tea", relatedData?.teachers);
+  }, [state,router, setOpen, type]);
+  // console.log("related data tea", relatedData?.teachers);
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">

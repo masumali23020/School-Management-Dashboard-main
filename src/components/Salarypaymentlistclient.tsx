@@ -83,23 +83,31 @@ export default function SalaryPaymentListClient({
   const [reportGenerating, setReportGenerating] = useState(false);
 
   // ── Fetch from server action ──────────────────────────────────────────────
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const res = await getAllSalaryPayments({
-      teacherName:   filterName    || undefined,
-      salaryTypeId:  filterTypeId  ? Number(filterTypeId) : undefined,
-      academicYear:  filterYear    || undefined,
-      paymentMethod: filterMethod  || undefined,
-      fromDate:      filterFrom    || undefined,
-      toDate:        filterTo      || undefined,
-    });
-    if (res.success) {
-      setPayments(res.data as PaymentRow[]);
-      setTotalAmount(res.totalAmount);
-    }
-    setPage(1);
-    setLoading(false);
-  }, [filterName, filterTypeId, filterYear, filterMethod, filterFrom, filterTo]);
+const fetchData = useCallback(async () => {
+  setLoading(true);
+
+  const res = await getAllSalaryPayments({
+    teacherName: filterName || undefined,
+    salaryTypeId: filterTypeId ? Number(filterTypeId) : undefined,
+    academicYear: filterYear || undefined,
+    paymentMethod: filterMethod || undefined,
+    fromDate: filterFrom || undefined,
+    toDate: filterTo || undefined,
+  });
+
+  if (res.success) {
+    const formatted: PaymentRow[] = res.data.map((item) => ({
+      ...item,
+      amountPaid: Number(item.amountPaid),
+    }));
+
+    setPayments(formatted);
+    setTotalAmount(res.totalAmount);
+  }
+
+  setPage(1);
+  setLoading(false);
+}, [filterName, filterTypeId, filterYear, filterMethod, filterFrom, filterTo]);
 
   // ── Only fetch AFTER mount — never during SSR ─────────────────────────────
   useEffect(() => {
@@ -126,21 +134,32 @@ export default function SalaryPaymentListClient({
   const pageSlice = displayPayments.slice((page - 1) * perPage, page * perPage);
 
   // ── Individual invoice PDF ────────────────────────────────────────────────
-  const handleDownloadInvoice = async (p: PaymentRow) => {
-    setDownloading(p.invoiceNumber);
-    const res = await getFullSalaryInvoiceForPDF(p.invoiceNumber);
-    if (res.success && res.data) {
-      generateSalaryPDF({
-        ...res.data,
-        schoolName:    "Your School Name",
-        schoolAddress: "School Address, City",
-        schoolPhone:   "01XXXXXXXXX",
-      } as SalaryInvoiceData);
-    } else {
-      alert("Failed: " + (res.error ?? "Unknown error"));
-    }
-    setDownloading(null);
+const convertDecimalsToNumbers = (data: any): SalaryInvoiceData => {
+  return {
+    ...data,
+    amountPaid: data.amountPaid ? Number(data.amountPaid) : 0,
+  
   };
+};
+
+const handleDownloadInvoice = async (p: PaymentRow) => {
+  setDownloading(p.invoiceNumber);
+  const res = await getFullSalaryInvoiceForPDF(p.invoiceNumber);
+  
+  if (res.success && res.data) {
+    const pdfData = {
+      ...convertDecimalsToNumbers(res.data),
+      schoolName: "Your School Name",
+      schoolAddress: "School Address, City",
+      schoolPhone: "01XXXXXXXXX",
+    };
+    
+    generateSalaryPDF(pdfData);
+  } else {
+    alert("Failed: " + (res.error ?? "Unknown error"));
+  }
+  setDownloading(null);
+};
 
   // ── Report PDF ────────────────────────────────────────────────────────────
   const handleGenerateReport = () => {
@@ -414,7 +433,7 @@ export default function SalaryPaymentListClient({
           </div>
 
           <p className="text-xs text-gray-400">
-            💡 Select a month then click <strong>Export PDF Report</strong> to download that month's salary report.
+            💡 Select a month then click <strong>Export PDF Report</strong> to download that months salary report.
           </p>
         </div>
       )}

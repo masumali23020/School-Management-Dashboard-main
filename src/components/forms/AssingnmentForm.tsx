@@ -51,7 +51,7 @@ const AssignmentForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    // console.log(data);
     formAction(data);
   });
 
@@ -66,7 +66,7 @@ const AssignmentForm = ({
   }, [state, router, type, setOpen]);
 
   const { lessons } = relatedData;
-  console.log("lessons ass ", relatedData);
+  // console.log("lessons ass ", relatedData);
   const rawLessons = relatedData?.lessons || [];
 
 // যদি nested থাকে তাহলে flatten করবো

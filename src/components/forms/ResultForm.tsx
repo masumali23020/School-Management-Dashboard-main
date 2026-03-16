@@ -50,7 +50,7 @@ const ResultForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    // console.log(data);
     formAction(data);
   });
 
@@ -69,7 +69,7 @@ const ResultForm = ({
   }, [state, router, type, setOpen]);
 
   const { exams,assignments,students } = relatedData;
-  console.log("Related Data in ResultForm:", assignments)
+  // console.log("Related Data in ResultForm:", assignments)
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>

@@ -58,7 +58,7 @@ export async function getFinanceData(params: {
   toDate?:       string;
   type?:         "INCOME" | "EXPENSE" | "";
 }) {
-  await requireRole("admin", "HisabRokhok");
+  await requireRole("admin", "cashier");
 
   const dateFilter: any = {};
   if (params.fromDate || params.toDate) {

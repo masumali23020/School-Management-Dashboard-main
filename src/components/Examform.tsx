@@ -8,9 +8,9 @@ import { Loader2, CheckSquare, Square, Users, BookOpen } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { createMultiClassExams, getSubjectsForClass, updateExam } from "@/Actions/ExamAction/EcamAction";
 import InputField from "./InputField";
 import { examSchema, ExamSchema } from "@/lib/FormValidationSchema";
+import { getSubjectsForClass } from "@/app/actions/examActions/examActions";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────

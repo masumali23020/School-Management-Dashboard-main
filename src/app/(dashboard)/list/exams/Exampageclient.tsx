@@ -540,7 +540,7 @@ function DeleteExamModal({
     <div className="flex flex-col gap-5">
       <p className="text-sm text-gray-600 text-center">
         Are you sure you want to delete{" "}
-        <span className="font-semibold text-gray-800">"{exam.title}"</span>?
+        <span className="font-semibold text-gray-800">{exam.title}</span>?
         <br />
         <span className="text-xs text-gray-400">
           {exam.lesson.subject.name} · {exam.lesson.class.name}

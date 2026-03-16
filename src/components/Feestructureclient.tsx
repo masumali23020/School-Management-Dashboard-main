@@ -40,8 +40,8 @@ function DeleteModal({
   const title      = isFeeType ? "Delete Fee Type" : "Remove Fee Structure";
   const icon       = isFeeType ? "🗑️" : "❌";
   const body       = isFeeType
-    ? <>Are you sure you want to delete the fee type <strong>"{target.name}"</strong>?<br/>All class fee structures using this type will also be removed.</>
-    : <>Are you sure you want to remove <strong>"{target.name}"</strong> from the fee structure?<br/>Existing payment records will not be affected.</>;
+    ? <>Are you sure you want to delete the fee type <strong>{target.name}</strong>?<br/>All class fee structures using this type will also be removed.</>
+    : <>Are you sure you want to remove <strong>{target.name}</strong> from the fee structure?<br/>Existing payment records will not be affected.</>;
   const confirmLabel = isFeeType ? "Yes, Delete" : "Yes, Remove";
 
   return (
