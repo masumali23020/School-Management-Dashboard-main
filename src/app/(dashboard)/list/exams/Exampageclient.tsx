@@ -110,7 +110,7 @@ export default function ExamPageClient({ exams, count, page, role, classes }: Pr
                           className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky hover:bg-sky-200 transition-colors"
                           title="Edit"
                         >
-                          <Image src="/update.png" alt="edit" width={14} height={14} />
+                          <Image src="/edit.png" alt="edit" width={14} height={14} />
                         </button>
                         <button
                           onClick={() => setDeleteItem(exam)}
@@ -243,52 +243,86 @@ function CreateExamModal({
     });
   };
 
-  const handleCreate = async () => {
-    // ── Validate ──────────────────────────────────────────────────────────
-    if (!title.trim()) { toast.error("Exam title is required"); return; }
-    if (!startTime)    { toast.error("Start date is required"); return; }
-    if (!endTime)      { toast.error("End date is required");   return; }
-    if (new Date(endTime) <= new Date(startTime)) {
-      toast.error("End date must be after start date");
-      return;
-    }
-    if (selectedIds.size === 0) {
-      toast.error("Select at least one class");
-      return;
+const handleCreate = async () => {
+  // ── VALIDATION ───────────────────────────────────────────────
+  if (!title.trim()) {
+    toast.error("Exam title is required");
+    return;
+  }
+
+  if (!startTime) {
+    toast.error("Start date is required");
+    return;
+  }
+
+  if (!endTime) {
+    toast.error("End date is required");
+    return;
+  }
+
+  if (new Date(endTime) <= new Date(startTime)) {
+    toast.error("End date must be after start date");
+    return;
+  }
+
+  if (selectedIds.size === 0) {
+    toast.error("Select at least one class");
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    const selectedClasses = classes.filter((c) =>
+      selectedIds.has(c.id)
+    );
+
+    // 🔥 Fetch subjects + validate per class
+    const classesWithSubjects = [];
+
+    for (const cls of selectedClasses) {
+      const subjects = await getSubjectsForClass(cls.id);
+
+      // ❌ যদি কোন subject না থাকে → skip বা error
+      if (!subjects.length) {
+        toast.error(
+          `No subjects assigned for class "${cls.name}". Please assign subjects first.`
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      classesWithSubjects.push({
+        classId: cls.id,
+        gradeLevel: cls.gradeLevel,
+        subjects,
+      });
     }
 
-    setSubmitting(true);
-    try {
-      // Fetch subjects for each selected class in parallel
-      const selectedClasses = classes.filter((c) => selectedIds.has(c.id));
-      const classesWithSubjects = await Promise.all(
-        selectedClasses.map(async (cls) => {
-          const subjects = await getSubjectsForClass(cls.id);
-          return { classId: cls.id, gradeLevel: cls.gradeLevel, subjects };
-        })
+    // ── CREATE EXAMS ────────────────────────────────────────────
+    const result = await createExamsBulk({
+      title: title.trim(),
+      startTime,
+      endTime,
+      classes: classesWithSubjects,
+    });
+
+    if (result.success) {
+      toast.success(
+        `✅ ${result.created} exam(s) created across ${classesWithSubjects.length} class(es)!`
       );
 
-      const result = await createExamsBulk({
-        title: title.trim(),
-        startTime,
-        endTime,
-        classes: classesWithSubjects,
-      });
-
-      if (result.success) {
-        toast.success(
-          `✅ ${result.created} exam(s) created across ${selectedIds.size} class(es)!`
-        );
-        onSuccess();
-      } else {
-        toast.error(result.message ?? "Something went wrong");
-      }
-    } catch {
-      toast.error("Failed to create exams");
-    } finally {
-      setSubmitting(false);
+      onSuccess();
+    } else {
+      toast.error(result.message || "Failed to create exams");
     }
-  };
+  } catch (err: any) {
+    console.error(err);
+    toast.error(err?.message || "Something went wrong");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="flex flex-col gap-5">

@@ -1,19 +1,26 @@
-import { auth } from "@clerk/nextjs/server";
-
-type UserRoleResult = {
+import { auth, currentUser } from "@clerk/nextjs/server";
+// types/index.ts বা যেখানে টাইপ ডিফাইন করা আছে
+export type UserRoleResult = {
   role: string;
   userId: string | null;
+  username: string;
 };
+
+
 
 export const getUserRole = async (): Promise<UserRoleResult> => {
   const { sessionClaims, userId } = await auth();
+  const user = await currentUser(); // Clerk থেকে ফুল ডাটা আনার জন্য
 
-  const role =
-    (sessionClaims?.metadata as { role?: string })?.role || "student";
+  const role = (sessionClaims?.metadata as { role?: string })?.role || "student";
+  
+  // ইউজারনেম বা ফুল নেম নেয়া
+  const username = user?.firstName ? `${user.firstName} ${user.lastName || ""}` : (user?.username || "Guest");
 
   return {
     role,
     userId,
+    username,
   };
 };
 

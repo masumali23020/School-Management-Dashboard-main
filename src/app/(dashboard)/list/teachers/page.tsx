@@ -1,4 +1,4 @@
-import { Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { Class, Employee, Prisma, Subject,  UserRole } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import FormModal from "../../../../components/FormModal";
@@ -11,7 +11,7 @@ import prisma from "../../../../lib/db";
 import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
 
-type TeacheType = Teacher & { subjects: Subject[] } & { classes: Class[] }
+type TeacheType = Employee & { subjects: Subject[] } & { classes: Class[] }
 
 
   
@@ -107,9 +107,9 @@ const renderRow = (item: TeacheType) => (
 
 
   // url params conditions 
-
-  const qury : Prisma.TeacherWhereInput = {}
-
+const query: Prisma.EmployeeWhereInput = {
+    role: UserRole.TEACHER
+  };
   if(queryParams){
     for(const [key,  value] of Object.entries(queryParams))
     {
@@ -117,14 +117,14 @@ const renderRow = (item: TeacheType) => (
 
       switch(key){
         case "classId":
-          qury.lessons = {
+          query.lessons = {
             some:{
               classId: parseInt(value)
             }
           }
           break;
           case "search":
-            qury.name = {
+            query.name = {
               contains:value,
               mode: "insensitive"
             }
@@ -138,8 +138,8 @@ const renderRow = (item: TeacheType) => (
 
    // The $transaction call to fetch data and count
   const [teachers, count] = await prisma.$transaction([
-    prisma.teacher.findMany({
-      where: qury,
+    prisma.employee.findMany({
+      where: query,
      
       include: {
         subjects: true,
@@ -152,7 +152,7 @@ const renderRow = (item: TeacheType) => (
       }
    
     }),
-    prisma.teacher.count({where: qury}),
+    prisma.employee.count({where: query}),
   ]);
 
   

@@ -1,32 +1,46 @@
 // src/app/(dashboard)/list/salary/page.tsx
-// Admin: manage salary types + teacher salary structures
+// Access: ADMIN (full manage) | CASHIER (view only)
 
 import SalaryStructureClient from "@/components/Salarystructureclient";
 import prisma from "@/lib/db";
 import { getUserRole } from "@/lib/utlis";
 import { redirect } from "next/navigation";
 
-
 export default async function SalaryManagementPage() {
   const { role } = await getUserRole();
-  if (!["admin", "cashier"].includes(role)) redirect("/");
 
-  const [salaryTypes, teachers, structures] = await Promise.all([
+  const normalizedRole = role.toUpperCase();
+  if (!["ADMIN", "CASHIER"].includes(normalizedRole)) redirect("/");
+
+  const [salaryTypes, employees, structures] = await Promise.all([
     prisma.salaryType.findMany({ orderBy: { name: "asc" } }),
-    prisma.teacher.findMany({
-      select: { id: true, name: true, surname: true, img: true, phone: true,
-        subjects: { select: { name: true } } },
+
+    prisma.employee.findMany({
+      select: {
+        id:          true,
+        name:        true,
+        surname:     true,
+        img:         true,
+        phone:       true,
+        role:        true,
+        designation: true,
+        subjects:    { select: { name: true } },
+      },
       orderBy: [{ name: "asc" }, { surname: "asc" }],
     }),
-    prisma.teacherSalaryStructure.findMany({
-      include: { teacher: true, salaryType: true },
-      orderBy: [{ teacher: { name: "asc" } }, { salaryType: { name: "asc" } }],
+
+    prisma.employeeSalaryStructure.findMany({
+      include: { employee: true, salaryType: true },
+      orderBy: [
+        { employee: { name: "asc" } },
+        { salaryType: { name: "asc" } },
+      ],
     }),
   ]);
 
   return (
     <SalaryStructureClient
-      role={role}
+      role={normalizedRole}
       salaryTypes={salaryTypes.map((s) => ({
         id:          s.id,
         name:        s.name,
@@ -34,22 +48,25 @@ export default async function SalaryManagementPage() {
         isActive:    s.isActive,
         isRecurring: s.isRecurring,
       }))}
-      teachers={teachers.map((t) => ({
-        id:       t.id,
-        name:     t.name,
-        surname:  t.surname,
-        img:      t.img,
-        phone:    t.phone,
-        subjects: t.subjects.map((s) => s.name),
+      employees={employees.map((e) => ({
+        id:           e.id,
+        name:         e.name,
+        surname:      e.surname,
+        img:          e.img,
+        phone:        e.phone,
+        employeeRole: e.role as "ADMIN" | "CASHIER" | "TEACHER" | "STAFF",
+        designation:  e.designation,
+        subjects:     e.subjects.map((s) => s.name),
       }))}
       structures={structures.map((s) => ({
-        id:            s.id,
-        teacherId:     s.teacherId,
-        teacherName:   `${s.teacher.name} ${s.teacher.surname}`,
-        salaryTypeId:  s.salaryTypeId,
+        id:             s.id,
+        employeeId:     s.employeeId,
+        employeeName:   `${s.employee.name} ${s.employee.surname}`,
+        employeeRole:   s.employee.role as "ADMIN" | "CASHIER" | "TEACHER" | "STAFF",
+        salaryTypeId:   s.salaryTypeId,
         salaryTypeName: s.salaryType.name,
-        isRecurring:   s.salaryType.isRecurring,
-        amount:        s.amount,
+        isRecurring:    s.salaryType.isRecurring,
+        amount:         s.amount.toNumber(),
       }))}
     />
   );

@@ -80,7 +80,7 @@ const TeacherForm = ({
       );
     }
   }, [state,router, setOpen, type]);
-  // console.log("related data tea", relatedData?.teachers);
+  console.log("related data tea", relatedData?.teachers);
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
@@ -187,28 +187,26 @@ const TeacherForm = ({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Subjects</label>
-          <select
-            multiple
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("subjects")}
-            defaultValue={data?.subjects}
-          >
-            {relatedData?.subjects.map(
-              (subject: { id: number; name: string }) => (
-                <option value={subject.id} key={subject.id}>
-                  {subject.name}
-                </option>
-              ),
-            )}
-          </select>
-          {errors.subjects?.message && (
-            <p className="text-xs text-red-400">
-              {errors.subjects.message.toString()}
-            </p>
-          )}
-        </div>
+    {/* TeacherForm.tsx এর ভেতর এই অংশটি ব্যবহার করুন */}
+<div className="flex flex-col gap-2 w-full md:w-1/4">
+  <label className="text-xs text-gray-500">Subjects</label>
+  <select
+    multiple
+    className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+    {...register("subjects")}
+    defaultValue={data?.subjects}
+  >
+    {relatedData?.subjects && Array.isArray(relatedData.subjects) ? (
+      relatedData.subjects.map((subject: { id: number; name: string }) => (
+        <option value={subject.id} key={subject.id}>
+          {subject.name}
+        </option>
+      ))
+    ) : (
+      <option disabled>No subjects found</option>
+    )}
+  </select>
+</div>
 
         <div className="flex flex-col gap-2 w-full md:w-1/4 justify-center">
           <CldUploadWidget

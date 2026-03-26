@@ -22,8 +22,7 @@ import { deleteLesson } from "../Actions/loessonAction/LessonAction";
 import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/ClassSubjectTeacherActions";
 import { deleteOneExamMark } from "@/Actions/ExamAction/Examactions";
 import { deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
-import { deleteParent } from "@/Actions/ParentActions/ParentActions";
-// import ParentForm from "./forms/ParentForm";
+import ParentForm from "./forms/ParentForm";
 // import AttendanceForm from "./forms/AttendanceForm";
 
 // USE LAZY LOADING
@@ -46,9 +45,6 @@ const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ClassForm = dynamic(() => import("./forms/ClassForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
-const ParentForm = dynamic(() => import("./forms/ParentForm"), { // Add this
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -86,7 +82,7 @@ const deleteActionMap = {
   exam: deleteOneExamMark,
   classSubjectTeacher: deleteClassSubjectTeacher,
   // TODO: OTHER DELETE ACTIONS
-  parent: deleteParent,
+  // parent: deleteSubject,
   lesson: deleteLesson,
   assignment: deleteAssignment,
   result: deleteResult,
@@ -129,14 +125,6 @@ const forms: {
   ),
   student: (setOpen, relatedData, type, data) => (
     <StudentForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
-  ),
-  parent: (setOpen, relatedData, type, data) => (
-    <ParentForm
       type={type}
       data={data}
       setOpen={setOpen}
@@ -199,6 +187,15 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+    parent: (setOpen, relatedData, type, data) => (
+    <ParentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  
 };
 
 const FormModal = ({

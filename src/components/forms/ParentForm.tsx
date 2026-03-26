@@ -195,14 +195,14 @@ const ParentForm = ({
       </span>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="First Name"
+          label="Father Name"
           name="name"
           defaultValue={data?.name}
           register={register}
           error={errors.name}
         />
         <InputField
-          label="Last Name"
+          label="Mother Name"
           name="surname"
           defaultValue={data?.surname}
           register={register}

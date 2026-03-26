@@ -1,40 +1,35 @@
 // src/lib/generateInvoicePDF.ts
-// Invoice PDF — styled like National University exam form
-// Two copies on one A4 page: Student's Copy (top) + College Copy (bottom)
-// Install: npm install jspdf
+// Invoice PDF — National University style, two copies on A4
+// Student's Copy (top) + School's Copy (bottom)
 
 import jsPDF from "jspdf";
 
 export type InvoiceData = {
-  invoiceNumber: string;
-  studentName: string;
-  studentId: string;
-  className: string;
-  gradeLevel?: number | null;
-  rollNumber?: number | null;
-  fatherName?: string | null;
-  feeTypeName: string;
-  amountPaid: number;
-  paymentMethod: string;
-  monthLabel?: string | null;
-  academicYear: string;
-  paidAt: string;
-  collectedBy: string;
-  remarks?: string | null;
-  // School info
-  schoolName?: string;
-  schoolAddress?: string;
-  schoolPhone?: string;
-  schoolEmail?: string;
+  invoiceNumber:   string;
+  studentName:     string;
+  studentId:       string;
+  className:       string;
+  gradeLevel?:     number | null;
+  rollNumber?:     number | null;
+  fatherName?:     string | null;   // ← shown if available
+  feeTypeName:     string;
+  amountPaid:      number;
+  paymentMethod:   string;
+  monthLabel?:     string | null;
+  academicYear:    string;
+  paidAt:          string;
+  collectedByName: string;          // ← always use this field
+  remarks?:        string | null;
+  schoolName?:     string;
+  schoolAddress?:  string;
+  schoolPhone?:    string;
+  schoolEmail?:    string;
 };
 
 const METHOD_LABEL: Record<string, string> = {
-  CASH: "Cash",
-  MOBILE_BANKING: "Mobile Banking",
-  BANK_TRANSFER: "Bank Transfer",
+  CASH: "Cash", MOBILE_BANKING: "Mobile Banking", BANK_TRANSFER: "Bank Transfer",
 };
 
-// ── number to words (simple, for Bangladeshi amounts) ──────────────────────
 function amountInWords(n: number): string {
   const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
     "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
@@ -50,38 +45,39 @@ function amountInWords(n: number): string {
 
 export function generateInvoicePDF(inv: InvoiceData): void {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const PW = 210; // A4 width
-  const PH = 297; // A4 height
+  const PW = 210;
+  const PH = 297;
 
   const schoolName    = inv.schoolName    ?? "Your School Name";
   const schoolAddress = inv.schoolAddress ?? "School Address, City";
   const schoolPhone   = inv.schoolPhone   ?? "01XXXXXXXXX";
   const schoolEmail   = inv.schoolEmail   ?? "";
 
-  const paidDate = new Date(inv.paidAt).toLocaleDateString("en-GB", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-  const paidDateLong = new Date(inv.paidAt).toLocaleDateString("en-GB", {
-    day: "2-digit", month: "long", year: "numeric",
-  });
+  const paidDate     = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const paidDateLong = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const words        = amountInWords(Math.round(Number(inv.amountPaid))) + " Taka Only";
+  const methodStr    = METHOD_LABEL[inv.paymentMethod] ?? inv.paymentMethod;
 
-  const words = amountInWords(Math.round(inv.amountPaid)) + " Taka Only";
-  const methodStr = METHOD_LABEL[inv.paymentMethod] ?? inv.paymentMethod;
+  // ── Resolve collectedByName safely ──────────────────────────────────────
+  // Support both field names coming from different parts of the codebase
+  const collectedByDisplay =
+    inv.collectedByName ||
+    (inv as any).collectedBy ||
+    "Admin";
 
-  // ═══════════════════════════════════════════════════════════════
-  // Helper: draw one copy block
-  // yStart = top of the block, height = block height
-  // copyLabel = "Student's Copy" | "College Copy"
-  // ═══════════════════════════════════════════════════════════════
+  // ── Resolve fatherName — show only if available ──────────────────────────
+  const fatherNameDisplay = inv.fatherName
+    ? inv.fatherName.trim()
+    : null;
+
   const drawCopy = (yStart: number, copyLabel: string) => {
-    const ML = 15;   // margin left
-    const MR = 15;   // margin right
-    const CW = PW - ML - MR; // content width = 180
+    const ML = 15;
+    const MR = 15;
+    const CW = PW - ML - MR;
     const x  = ML;
     let y    = yStart + 6;
 
-    // ── School header ─────────────────────────────────────────────
-    // Left logo placeholder circle
+    // Header
     doc.setDrawColor(100, 100, 200);
     doc.setLineWidth(0.5);
     doc.circle(x + 10, y + 6, 10);
@@ -89,31 +85,31 @@ export function generateInvoicePDF(inv: InvoiceData): void {
     doc.setTextColor(80, 80, 180);
     doc.setFont("helvetica", "bold");
     doc.text("LOGO", x + 10, y + 7, { align: "center" });
-
-    // Right logo placeholder circle
     doc.circle(x + CW - 10, y + 6, 10);
     doc.text("LOGO", x + CW - 10, y + 7, { align: "center" });
 
-    // School name center
     doc.setFontSize(15);
     doc.setTextColor(20, 20, 20);
     doc.setFont("helvetica", "bold");
     doc.text(schoolName, PW / 2, y + 3, { align: "center" });
-
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60, 60, 60);
     doc.text(schoolAddress, PW / 2, y + 9, { align: "center" });
-    if (schoolPhone) doc.text(`Phone: ${schoolPhone}${schoolEmail ? "  |  Email: " + schoolEmail : ""}`, PW / 2, y + 14, { align: "center" });
+    if (schoolPhone) {
+      doc.text(
+        `Phone: ${schoolPhone}${schoolEmail ? "  |  Email: " + schoolEmail : ""}`,
+        PW / 2, y + 14, { align: "center" }
+      );
+    }
 
     y += 20;
 
-    // Underlined title
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(20, 20, 20);
     const titleText = "Fee Payment Receipt";
-    const titleW = doc.getTextWidth(titleText);
+    const titleW    = doc.getTextWidth(titleText);
     doc.text(titleText, PW / 2, y, { align: "center" });
     doc.setDrawColor(20, 20, 20);
     doc.setLineWidth(0.3);
@@ -121,7 +117,7 @@ export function generateInvoicePDF(inv: InvoiceData): void {
 
     y += 5;
 
-    // ── Colored copy label header ─────────────────────────────────
+    // Copy label bar
     const isStudent = copyLabel === "Student's Copy";
     doc.setFillColor(isStudent ? 70 : 30, isStudent ? 130 : 100, isStudent ? 180 : 60);
     doc.rect(x, y, CW, 7, "F");
@@ -132,101 +128,71 @@ export function generateInvoicePDF(inv: InvoiceData): void {
 
     y += 9;
 
-    // ── Table rows helper ─────────────────────────────────────────
     doc.setLineWidth(0.2);
     doc.setDrawColor(180, 180, 180);
-
     const rowH = 8;
 
-    const drawTableRow = (
+    const drawRow = (
       label1: string, val1: string,
       label2?: string, val2?: string,
       highlight?: boolean
     ) => {
-      if (highlight) {
-        doc.setFillColor(240, 240, 255);
-        doc.rect(x, y, CW, rowH, "F");
-      }
+      if (highlight) { doc.setFillColor(240, 240, 255); doc.rect(x, y, CW, rowH, "F"); }
       doc.rect(x, y, CW, rowH);
 
-      // ── Row with 2 columns ──
       if (label2 !== undefined && val2 !== undefined) {
-        const col1W = CW * 0.5;
-        const col2W = CW * 0.5;
+        const half = CW * 0.5;
+        doc.line(x + half, y, x + half, y + rowH);
+        doc.line(x + half * 0.42, y, x + half * 0.42, y + rowH);
+        doc.line(x + half + half * 0.42, y, x + half + half * 0.42, y + rowH);
 
-        // divider
-        doc.line(x + col1W, y, x + col1W, y + rowH);
-        // inner col label/value divider col1
-        doc.line(x + col1W * 0.42, y, x + col1W * 0.42, y + rowH);
-        // inner col label/value divider col2
-        doc.line(x + col1W + col2W * 0.42, y, x + col1W + col2W * 0.42, y + rowH);
-
-        // Col1 label
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
         doc.text(label1, x + 2, y + 5.5);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(20, 20, 20);
+        doc.text(String(val1 ?? ""), x + half * 0.44, y + 5.5);
 
-        // Col1 value
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(20, 20, 20);
-        doc.text(val1, x + col1W * 0.44, y + 5.5);
-
-        // Col2 label
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(80, 80, 80);
-        doc.text(label2, x + col1W + 2, y + 5.5);
-
-        // Col2 value
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(20, 20, 20);
-        doc.text(val2, x + col1W + col2W * 0.44, y + 5.5);
+        doc.setFont("helvetica", "bold"); doc.setTextColor(80, 80, 80);
+        doc.text(label2, x + half + 2, y + 5.5);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(20, 20, 20);
+        doc.text(String(val2 ?? ""), x + half + half * 0.44, y + 5.5);
       } else {
-        // Full-width row
         const labelColW = CW * 0.35;
         doc.line(x + labelColW, y, x + labelColW, y + rowH);
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(80, 80, 80);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
         doc.text(label1, x + 2, y + 5.5);
-
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(20, 20, 20);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(20, 20, 20);
         const maxW = CW - labelColW - 4;
-        const lines = doc.splitTextToSize(val1, maxW);
+        const lines = doc.splitTextToSize(String(val1 ?? ""), maxW);
         doc.text(lines[0], x + labelColW + 2, y + 5.5);
       }
       y += rowH;
     };
 
-    // ── Student info rows ─────────────────────────────────────────
-    drawTableRow("Student's Name:", inv.studentName);
-    drawTableRow("Father's Name:", inv.fatherName ?? "—");
-    drawTableRow(
-      "Student ID:", inv.studentId,
-      "Academic Year:", inv.academicYear
-    );
-    drawTableRow(
-      "Class:", inv.className + (inv.gradeLevel ? ` (Grade ${inv.gradeLevel})` : ""),
-      "Roll No:", inv.rollNumber ? String(inv.rollNumber) : "N/A"
+    // ── Student info ──────────────────────────────────────────────────────
+    drawRow("Student's Name:", inv.studentName);
+
+    // Father's name row — only show if value exists
+    if (fatherNameDisplay) {
+      drawRow("Father's Name:", fatherNameDisplay);
+    }
+
+    drawRow("Student ID:", inv.studentId, "Academic Year:", inv.academicYear);
+    drawRow(
+      "Class:",     inv.className + (inv.gradeLevel ? ` (Grade ${inv.gradeLevel})` : ""),
+      "Roll No:",   inv.rollNumber ? String(inv.rollNumber) : "N/A"
     );
 
-    // ── Payment info rows ─────────────────────────────────────────
-    drawTableRow("Invoice No:", inv.invoiceNumber, "Date:", paidDate, true);
-    drawTableRow(
-      "Fee Type:", inv.feeTypeName,
-      "Month:", inv.monthLabel ?? "—",
-      true
-    );
-    drawTableRow("Amount:", `${inv.amountPaid.toLocaleString()}/=`, "Method:", methodStr, true);
-    drawTableRow("In Words:", words, undefined, undefined, true);
-    if (inv.remarks) drawTableRow("Remarks:", inv.remarks);
-    drawTableRow("Collected By:", inv.collectedBy, "Status:", "PAID ✓", true);
+    // ── Payment info ──────────────────────────────────────────────────────
+    drawRow("Invoice No:", inv.invoiceNumber,                    "Date:",   paidDate,    true);
+    drawRow("Fee Type:",   inv.feeTypeName,                      "Month:",  inv.monthLabel ?? "—", true);
+    drawRow("Amount:",     `${Number(inv.amountPaid).toLocaleString()}/=`, "Method:", methodStr, true);
+    drawRow("In Words:",   words,                                undefined, undefined,   true);
+    if (inv.remarks) drawRow("Remarks:", inv.remarks);
+    drawRow("Collected By:", collectedByDisplay,                 "Status:", "PAID ✓",   true);
 
     y += 4;
 
-    // ── Declaration text (College Copy only) ──────────────────────
+    // Declaration (school copy only)
     if (!isStudent) {
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
@@ -240,48 +206,29 @@ export function generateInvoicePDF(inv: InvoiceData): void {
       y += lines.length * 4 + 2;
     }
 
-    // ── Signature area ────────────────────────────────────────────
+    // Signature lines
     const sigY = y + 8;
-    doc.setDrawColor(80, 80, 80);
-    doc.setLineWidth(0.3);
-    // Left signature
+    doc.setDrawColor(80, 80, 80); doc.setLineWidth(0.3);
     doc.line(x, sigY, x + 55, sigY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(80, 80, 80);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(80, 80, 80);
     doc.text(`Date: ${paidDateLong}`, x, sigY + 4);
-
-    // Right signature
     doc.line(x + CW - 60, sigY, x + CW, sigY);
     doc.text("Signature & Seal of Principal", x + CW - 60, sigY + 4);
 
-    // ── Outer border around entire copy block ─────────────────────
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.5);
+    doc.setDrawColor(100, 100, 100); doc.setLineWidth(0.5);
     doc.rect(ML - 3, yStart, CW + 6, sigY + 10 - yStart);
   };
 
-  // ═══════════════════════════════════════════════════════════════
-  // Draw Student's Copy (top half)
-  // ═══════════════════════════════════════════════════════════════
   drawCopy(8, "Student's Copy");
 
-  // ── Scissor / cut line ────────────────────────────────────────
   const midY = PH / 2 - 2;
-  doc.setDrawColor(150, 150, 150);
-  doc.setLineWidth(0.3);
-  doc.setLineDashPattern([2, 2], 0);
+  doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.3); doc.setLineDashPattern([2, 2], 0);
   doc.line(12, midY, PW - 12, midY);
   doc.setLineDashPattern([], 0);
-  doc.setFontSize(7);
-  doc.setTextColor(130, 130, 130);
+  doc.setFontSize(7); doc.setTextColor(130, 130, 130);
   doc.text("✂ - - - - - - - - - - - - - - - cut here - - - - - - - - - - - - - - - - ✂", PW / 2, midY - 1, { align: "center" });
 
-  // ═══════════════════════════════════════════════════════════════
-  // Draw College Copy (bottom half)
-  // ═══════════════════════════════════════════════════════════════
-  drawCopy(midY + 4, "College Copy");
+  drawCopy(midY + 4, "School's Copy");
 
-  // ── Save ──────────────────────────────────────────────────────
   doc.save(`${inv.invoiceNumber}.pdf`);
 }

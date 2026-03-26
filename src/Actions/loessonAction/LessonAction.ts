@@ -84,9 +84,9 @@ export const createLesson = async (
       },
     });
 
-    revalidatePath("/lesson");
-    revalidatePath("/class");
-    revalidatePath("/subject");
+    // revalidatePath("/lesson");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
     
     return { success: true, error: false, message: "Lesson created successfully" };
   } catch (err) {
@@ -177,13 +177,13 @@ export const updateLesson = async (
       },
     });
 
-    revalidatePath("/lesson");
-    revalidatePath("/class");
-    revalidatePath("/subject");
+    // revalidatePath("/lesson");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
     
     return { success: true, error: false, message: "Lesson updated successfully" };
   } catch (err) {
-    console.error("Error updating lesson:", err);
+    // console.error("Error updating lesson:", err);
     return { success: false, error: true, message: "Failed to update lesson" };
   }
 };
@@ -227,13 +227,13 @@ export const deleteLesson = async (
       where: { id: lessonId },
     });
 
-    revalidatePath("/lesson");
-    revalidatePath("/class");
-    revalidatePath("/subject");
+    // revalidatePath("/lesson");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
     
     return { success: true, error: false, message: "Lesson deleted successfully" };
   } catch (err) {
-    console.error("Error deleting lesson:", err);
+    // console.error("Error deleting lesson:", err);
     return { success: false, error: true, message: "Failed to delete lesson" };
   }
 };

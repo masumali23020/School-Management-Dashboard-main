@@ -121,37 +121,55 @@ export default function SalaryCashierClient({
   };
 
   // ── Record payment ──────────────────────────────────────────────────────
-  const handlePay = async () => {
-    if (!selected || !selSalaryTypeId || !payAmount) {
-      setPayError("Please select a salary type and enter an amount."); return;
-    }
-    const amount = parseFloat(payAmount);
-    if (isNaN(amount) || amount <= 0) { setPayError("Enter a valid amount."); return; }
+// ── Record payment - Updated for Type Safety ──
+const handlePay = async () => {
+  if (!selected || !selSalaryTypeId || !payAmount) {
+    setPayError("Please select a salary type and enter an amount."); return;
+  }
+  const amount = parseFloat(payAmount);
+  if (isNaN(amount) || amount <= 0) { setPayError("Enter a valid amount."); return; }
 
-    setPayError(""); setPayLoading(true);
+  setPayError(""); setPayLoading(true);
 
-    const res = await recordSalaryPayment({
-      teacherId:         selected.id,
-      salaryTypeId:      Number(selSalaryTypeId),
-      salaryStructureId: selStructureId ? Number(selStructureId) : undefined,
-      amountPaid:        amount,
-      paymentMethod:     payMethod,
-      academicYear:      currentYear,
-      monthLabel:        payMonth   || undefined,
-      remarks:           payRemarks || undefined,
-    });
+  const res = await recordSalaryPayment({
+    employeeId:         selected.id,
+    salaryTypeId:       Number(selSalaryTypeId),
+    salaryStructureId:  selStructureId ? Number(selStructureId) : undefined,
+    amountPaid:         amount,
+    paymentMethod:      payMethod,
+    academicYear:       currentYear,
+    monthLabel:         payMonth   || undefined,
+    remarks:            payRemarks || undefined,
+  });
 
-    setPayLoading(false);
+  setPayLoading(false);
 
-    if (res.success && res.data) {
-      setLastInvoice(res.data as Invoice);
-      setShowInvoice(true);
-      setSelStructureId(""); setSelSalaryTypeId(""); setPayAmount(""); setPayMonth(""); setPayRemarks("");
-      handleSelect(selected);
-    } else {
-      setPayError(res.error ?? "Payment failed.");
-    }
-  };
+  if (res.success && res.data) {
+    // এখানে ডাটা ম্যানুয়ালি ম্যাপ করুন
+    const rawData = res.data as any; 
+    
+    const mappedInvoice: Invoice = {
+      id:             rawData.id,
+      invoiceNumber:  rawData.invoiceNumber,
+      teacherName:    `${rawData.employee?.name || ""} ${rawData.employee?.surname || ""}`,
+      teacherId:      rawData.employeeId,
+      salaryTypeName: rawData.salaryType?.name || "N/A",
+      amountPaid:     Number(rawData.amountPaid),
+      paymentMethod:  rawData.paymentMethod,
+      monthLabel:     rawData.monthLabel,
+      academicYear:   rawData.academicYear,
+      paidAt:         rawData.paidAt,
+      collectedBy:    rawData.processedById || "System",
+    };
+
+    setLastInvoice(mappedInvoice);
+    setShowInvoice(true);
+    setSelStructureId(""); setSelSalaryTypeId(""); setPayAmount(""); setPayMonth(""); setPayRemarks("");
+    handleSelect(selected); // রিফ্রেশ ডাটা
+  } else {
+    setPayError(res.error ?? "Payment failed.");
+  }
+};
 
   // ── Download PDF ────────────────────────────────────────────────────────
   const handleDownloadPDF = () => {

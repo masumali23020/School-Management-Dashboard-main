@@ -8,11 +8,11 @@ import TableSearch from "../../../../components/TableSearch";
 import { itemPerPage } from "../../../../lib/setting";
 import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
-import { Class, Lesson, Subject, Teacher,Prisma } from "@prisma/client/edge";
+import { Class, Lesson, Subject,Prisma, Employee } from "@prisma/client/edge";
 import prisma from "../../../../lib/db";
 
 type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
-  teacher: Teacher;
+  teacher: Employee;
 };
 
 
@@ -94,22 +94,51 @@ const LessonListPage = async({searchParams}: {searchParams: {[key: string]: stri
 
 
 
-  const [lessonsData, count] = await prisma.$transaction([
-      prisma.lesson.findMany({
-        where:query,
-      include: {
-        subject: { select: { name: true } },
-        class: { select: { name: true } },
-        teacher: { select: { name: true, surname: true } },
+ const [lessonsData, count] = await prisma.$transaction([
+  prisma.lesson.findMany({
+    where: {
+      ...query,
+
+      // 🔥 ensure only TEACHER আসে
+      teacher: {
+        role: "TEACHER",
       },
+    },
+
+    include: {
+      subject: {
+        select: { name: true },
+      },
+      class: {
+        select: { name: true },
+      },
+      teacher: {
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          role: true, // debug / safety
+        },
+      },
+    },
+
     take: itemPerPage,
     skip: itemPerPage * (p - 1),
- 
-   
 
+    orderBy: {
+      startTime: "asc",
+    },
   }),
-  prisma.lesson.count({where:query})
-  ])
+
+  prisma.lesson.count({
+    where: {
+      ...query,
+      teacher: {
+        role: "TEACHER",
+      },
+    },
+  }),
+]);
  const renderRow = (item: Lessontype) => (
     <tr
       key={item.id}

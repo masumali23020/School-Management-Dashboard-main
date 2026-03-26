@@ -36,7 +36,7 @@ export const createClassSubjectTeacher = async (
     const [classExists, subjectExists, teacherExists] = await Promise.all([
       prisma.class.findUnique({ where: { id: data.classId } }),
       prisma.subject.findUnique({ where: { id: data.subjectId } }),
-      prisma.teacher.findUnique({ where: { id: data.teacherId } }),
+      prisma.employee.findUnique({ where: { id: data.teacherId } }),
     ]);
 
     if (!classExists) {
@@ -72,13 +72,13 @@ export const createClassSubjectTeacher = async (
       },
     });
 
-    revalidatePath("/class");
-    revalidatePath("/subject");
-    revalidatePath("/teacher");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
+    // revalidatePath("/teacher");
     
     return { success: true, error: false, message: "Assignment created successfully" };
   } catch (err) {
-    console.error("Error creating class subject teacher:", err);
+    // console.error("Error creating class subject teacher:", err);
     return { success: false, error: true, message: "Failed to create assignment" };
   }
 };
@@ -114,7 +114,7 @@ export const updateClassSubjectTeacher = async (
     const [classExists, subjectExists, teacherExists] = await Promise.all([
       prisma.class.findUnique({ where: { id: data.classId } }),
       prisma.subject.findUnique({ where: { id: data.subjectId } }),
-      prisma.teacher.findUnique({ where: { id: data.teacherId } }),
+      prisma.employee.findUnique({ where: { id: data.teacherId } }),
     ]);
 
     if (!classExists) {
@@ -151,13 +151,13 @@ export const updateClassSubjectTeacher = async (
       },
     });
 
-    revalidatePath("/class");
-    revalidatePath("/subject");
-    revalidatePath("/teacher");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
+    // revalidatePath("/teacher");
     
     return { success: true, error: false, message: "Assignment updated successfully" };
   } catch (err) {
-    console.error("Error updating class subject teacher:", err);
+    // console.error("Error updating class subject teacher:", err);
     return { success: false, error: true, message: "Failed to update assignment" };
   }
 };
@@ -192,13 +192,13 @@ export const deleteClassSubjectTeacher = async (
       where: { id: assignmentId },
     });
 
-    revalidatePath("/class");
-    revalidatePath("/subject");
-    revalidatePath("/teacher");
+    // revalidatePath("/class");
+    // revalidatePath("/subject");
+    // revalidatePath("/teacher");
     
     return { success: true, error: false, message: "Assignment deleted successfully" };
   } catch (err) {
-    console.error("Error deleting class subject teacher:", err);
+    // console.error("Error deleting class subject teacher:", err);
     return { success: false, error: true, message: "Failed to delete assignment" };
   }
 };
@@ -239,7 +239,7 @@ export const getClassSubjectTeachers = async (filters?: {
 
     return { success: true, data: assignments };
   } catch (err) {
-    console.error("Error fetching assignments:", err);
+    // console.error("Error fetching assignments:", err);
     return { success: false, error: true, message: "Failed to fetch assignments" };
   }
 };
@@ -273,7 +273,7 @@ export const getClassSubjectTeacherById = async (id: number) => {
 
     return { success: true, data: assignment };
   } catch (err) {
-    console.error("Error fetching assignment:", err);
+    // console.error("Error fetching assignment:", err);
     return { success: false, error: true, message: "Failed to fetch assignment" };
   }
 };

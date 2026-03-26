@@ -51,45 +51,52 @@ export async function getAllClasses() {
 // Also finds the latest exam per subject for this class
 export async function getClassSubjectsWithExams(
   classId: number,
-  academicYear = "2024"
+  academicYear?: string
 ): Promise<SubjectWithExam[]> {
+
+  // যদি না পাঠাও → latest year নিবে
+  const year =
+    academicYear ??
+    (await prisma.classSubjectTeacher.findFirst({
+      where: { classId },
+      orderBy: { academicYear: "desc" },
+      select: { academicYear: true },
+    }))?.academicYear;
+
+  if (!year) return [];
+
   const cstRows = await prisma.classSubjectTeacher.findMany({
-    where: { classId, academicYear },
+    where: { classId, academicYear: year },
     include: {
       subject: true,
       lessons: {
         include: {
           exams: {
             orderBy: { startTime: "desc" },
-           
           },
         },
       },
     },
     orderBy: { subject: { name: "asc" } },
   });
-  console.log("CST Rows:", JSON.stringify(cstRows, null, 2));
 
   const gradeRow = await prisma.class.findUnique({
     where: { id: classId },
     select: { grade: { select: { level: true } } },
   });
+
   const gradeLevel = gradeRow?.grade.level ?? 1;
   const primary = gradeLevel <= 5;
 
   return cstRows.map((row) => {
-    // Find the first lesson that has an exam
     const examLesson = row.lessons.find((l) => l.exams.length > 0);
     const exam = examLesson?.exams[0] ?? null;
-    console.log(`Subject ${row.subject.name} - Found exam:`, exam);
 
     return {
       subjectId: row.subjectId,
       subjectName: row.subject.name,
       examId: exam?.id ?? null,
       examTitle: exam?.title ?? null,
-      // Primary: no MCQ, written = 100
-      // Secondary: MCQ = 30, written = 60 (or from exam record), practical optional
       mcqMarks: primary ? null : (exam?.mcqMarks ?? 30),
       writtenMarks: primary ? (exam?.writtenMarks ?? 100) : (exam?.writtenMarks ?? 60),
       practicalMarks: primary ? null : (exam?.practicalMarks ?? null),
@@ -97,7 +104,6 @@ export async function getClassSubjectsWithExams(
     };
   });
 }
-
 // ── Get all students with their marks for ALL subjects in a class ─────────────
 export async function getStudentsWithAllSubjectMarks(
   classId: number,

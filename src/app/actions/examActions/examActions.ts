@@ -75,24 +75,35 @@ export async function getExamList({
 // Works purely from ClassSubjectTeacher — NO lesson required
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getSubjectsForClass(
-  classId: number,
-  academicYear = "2024"
-) {
-  const rows = await prisma.classSubjectTeacher.findMany({
-    where: { classId, academicYear },
-    include: {
-      subject: { select: { id: true, name: true } },
+export async function getSubjectsForClass(classId: number) {
+  const data = await prisma.classSubjectTeacher.findMany({
+    where: {
+      classId,
     },
-    orderBy: { subject: { name: "asc" } },
+    include: {
+      subject: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      teacher: {
+        select: {
+          id: true,
+          role: true,
+        },
+      },
+    },
   });
 
-  // Return ALL subjects assigned to this class, no lesson check
-  return rows.map((r) => ({
-    cstId: r.id,
-    subjectId: r.subjectId,
-    subjectName: r.subject.name,
-    teacherId: r.teacherId,
+  // 🔥 Only TEACHER নিশ্চিত করা
+  const filtered = data.filter((cst) => cst.teacher.role === "TEACHER");
+
+  return filtered.map((cst) => ({
+    cstId: cst.id,
+    subjectId: cst.subject.id,
+    subjectName: cst.subject.name,
+    teacherId: cst.teacher.id,
   }));
 }
 

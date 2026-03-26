@@ -152,7 +152,10 @@ export async function searchStudents(params: {
     });
 
     if (!history) return { success: true, data: [] };
-    return { success: true, data: [formatStudent(history.student, history.rollNumber)] };
+    return {
+      success: true,
+      data: [formatStudent(history.student, history.rollNumber)],
+    };
   }
 
   // General search
@@ -190,7 +193,7 @@ function formatStudent(s: any, roll: number | null) {
     className: s.class?.name,
     gradeLevel: s.class?.grade?.level,
     fatherName: s.parent?.name
-      ? `${s.parent.name} ${s.parent.surname ?? ""}`
+      ? `${s.parent.name} ${s.parent.surname ?? ""}`.trim()
       : null,
     rollNumber: roll,
   };
@@ -229,7 +232,10 @@ export async function getStudentFeeStatus(
   // Get all payments this student has made this academic year
   const payments = await prisma.feePayment.findMany({
     where: { studentId, academicYear: year },
-    include: { classFeeStructure: { include: { feeType: true } } },
+    include: {
+      classFeeStructure: { include: { feeType: true } },
+      collectedBy: { select: { name: true, surname: true } },
+    },
     orderBy: { paidAt: "desc" },
   });
 
@@ -252,7 +258,9 @@ export async function getStudentFeeStatus(
       paymentMethod: p.paymentMethod,
       monthLabel: p.monthLabel,
       paidAt: p.paidAt.toISOString(),
-      collectedBy: p.collectedBy,
+      collectedBy: p.collectedBy
+        ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
+        : "",
     })),
     totalPaid: (paidMap[s.id] || []).reduce((sum, p) => sum + p.amountPaid, 0),
   }));
@@ -290,31 +298,54 @@ export async function recordPayment(data: {
   monthLabel?: string;
   remarks?: string;
 }) {
-  // ── 1. Auth ────────────────────────────────────────────────────────────
-  let role: string;
+  // ── 1. Auth + get cashier's userId ────────────────────────────────────
+  let cashierId: string;
   try {
-    role = await requireRole("admin", "HisabRokhok");
+    const result = await getUserRole() as { role: string; userId: string };
+    const { role, userId } = result;
+    if (!["admin", "HisabRokhok"].includes(role)) {
+      return { success: false, error: "AUTH_FAILED: You do not have permission to record payments." };
+    }
+    cashierId = userId;
   } catch {
-    return { success: false, error: "AUTH_FAILED: You do not have permission to record payments." };
+    return { success: false, error: "AUTH_FAILED: Could not resolve user." };
   }
 
-  // ── 2. Cashier name ──────────────────────────────────────────────────────
-  // getUserRole() already calls auth() internally — extract the id from there.
-  // Avoid importing anything extra from @clerk to prevent webpack errors.
-  let collectedByName = role;
+  // ── 2. Resolve cashier display name (for invoice response only) ───────
+  let collectedByDisplayName = "Unknown";
   try {
-    const session = await getUserRole() as any;
-    // getUserRole returns { role, userId } or similar — use whatever is available
-    collectedByName =
-      session?.username ||
-      session?.userId   ||
-      session?.id       ||
-      role;
+    const { currentUser } = await import("@clerk/nextjs/server");
+    const clerkUser = await currentUser();
+    if (clerkUser) {
+      const firstName = clerkUser.firstName ?? "";
+      const lastName  = clerkUser.lastName  ?? "";
+      const fullName  = `${firstName} ${lastName}`.trim();
+      if (fullName) {
+        collectedByDisplayName = fullName;
+      } else {
+        // Fallback: look up in Employee table
+        const employee = await prisma.employee.findUnique({
+          where:  { id: cashierId },
+          select: { name: true, surname: true },
+        }).catch(() => null);
+
+        if (employee) {
+          collectedByDisplayName = `${employee.name} ${employee.surname}`.trim();
+        } else {
+          // Last resort: Admin table
+          const admin = await prisma.admin.findUnique({
+            where:  { id: cashierId },
+            select: { username: true },
+          }).catch(() => null);
+          if (admin?.username) collectedByDisplayName = admin.username;
+        }
+      }
+    }
   } catch {
-    // non-fatal — role is fine as fallback
+    // Non-fatal — we'll still have the relation via collectedById
   }
 
-  // ── 3. Validate fee structure ──────────────────────────────────────────
+  // ── 3. Validate fee structure ─────────────────────────────────────────
   let structure: { classId: number; feeType: { name: string } } | null = null;
   try {
     structure = await prisma.classFeeStructure.findUnique({
@@ -324,17 +355,36 @@ export async function recordPayment(data: {
   } catch (e: any) {
     return { success: false, error: "DB_ERROR fetching fee structure: " + e.message };
   }
-  if (!structure) return { success: false, error: "Fee structure not found for id: " + data.classFeeStructureId };
+  if (!structure)
+    return { success: false, error: "Fee structure not found for id: " + data.classFeeStructureId };
 
-  // ── 4. Validate student ────────────────────────────────────────────────
+  // ── 4. Validate student ───────────────────────────────────────────────
   try {
     const student = await prisma.student.findUnique({ where: { id: data.studentId } });
-    if (!student) return { success: false, error: "Student not found for id: " + data.studentId };
+    if (!student)
+      return { success: false, error: "Student not found for id: " + data.studentId };
   } catch (e: any) {
     return { success: false, error: "DB_ERROR fetching student: " + e.message };
   }
 
-  // ── 5. Generate invoice number ─────────────────────────────────────────
+  // ── 5. Validate cashier exists in Employee table ──────────────────────
+  // The FeePayment.collectedById is a required FK to Employee.
+  // If the logged-in user is an Admin (not in Employee table), we need a fallback.
+  const employeeExists = await prisma.employee.findUnique({
+    where: { id: cashierId },
+    select: { id: true },
+  }).catch(() => null);
+
+  if (!employeeExists) {
+    // Try to find any admin/cashier employee as fallback
+    // (This handles the case where the logged-in user is in Admin table, not Employee)
+    return {
+      success: false,
+      error: `The logged-in user (${cashierId}) does not exist in the Employee table. Only employees assigned as Cashier/Admin in the Employee table can record payments. Please contact your system administrator.`,
+    };
+  }
+
+  // ── 6. Generate invoice number ────────────────────────────────────────
   let invoiceNumber: string;
   try {
     invoiceNumber = await generateInvoiceNumber();
@@ -342,7 +392,7 @@ export async function recordPayment(data: {
     return { success: false, error: "DB_ERROR generating invoice: " + e.message };
   }
 
-  // ── 6. Create payment ──────────────────────────────────────────────────
+  // ── 7. Create payment ─────────────────────────────────────────────────
   let paymentId: number;
   try {
     const payment = await prisma.feePayment.create({
@@ -354,28 +404,36 @@ export async function recordPayment(data: {
         amountPaid:          data.amountPaid,
         paymentMethod:       data.paymentMethod,
         academicYear:        data.academicYear,
-        monthLabel:          data.monthLabel  || null,
-        remarks:             data.remarks     || null,
-        collectedBy:         collectedByName,
+        monthLabel:          data.monthLabel || null,
+        remarks:             data.remarks    || null,
+        collectedById:       cashierId,       // ✅ proper FK to Employee
       },
     });
     paymentId = payment.id;
   } catch (e: any) {
     console.error("[recordPayment] create failed:", e);
-    return { success: false, error: "DB_ERROR creating payment: " + (e?.message ?? String(e)) };
+    return {
+      success: false,
+      error: "DB_ERROR creating payment: " + (e?.message ?? String(e)),
+    };
   }
 
-  // ── 7. Fetch full record for response ──────────────────────────────────
+  // ── 8. Fetch full record for response ─────────────────────────────────
   try {
     const full = await prisma.feePayment.findUnique({
       where: { id: paymentId },
       include: {
         student:           { include: { class: true } },
         classFeeStructure: { include: { feeType: true } },
+        collectedBy:       { select: { name: true, surname: true } },
       },
     });
 
     if (!full) return { success: false, error: "Payment saved but retrieval failed." };
+
+    const collectedByName = full.collectedBy
+      ? `${full.collectedBy.name} ${full.collectedBy.surname}`.trim()
+      : collectedByDisplayName;
 
     revalidatePath("/list/fees/cashier");
     revalidatePath(`/list/students/${data.studentId}`);
@@ -392,7 +450,7 @@ export async function recordPayment(data: {
         paymentMethod: full.paymentMethod,
         monthLabel:    full.monthLabel,
         paidAt:        full.paidAt.toISOString(),
-        collectedBy:   full.collectedBy,
+        collectedBy:   collectedByName,
         academicYear:  full.academicYear,
       },
     };
@@ -409,7 +467,7 @@ export async function getStudentPaymentHistory(
   studentId: string,
   academicYear?: string
 ) {
-  await requireRole("admin", "HisabRokhok", "teacher");
+  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
 
   const where: { studentId: string; academicYear?: string } = { studentId };
   if (academicYear) where.academicYear = academicYear;
@@ -418,27 +476,27 @@ export async function getStudentPaymentHistory(
     where,
     include: {
       classFeeStructure: { include: { feeType: true } },
+      collectedBy: { select: { name: true, surname: true } },
     },
     orderBy: { paidAt: "desc" },
   });
 
   return {
     success: true,
-    data: payments.map((p) => {
-      const feeTypeName = p.classFeeStructure?.feeType?.name ?? "Unknown";
-      return {
-        id:            p.id,
-        invoiceNumber: p.invoiceNumber,
-        feeTypeName,
-        amountPaid:    p.amountPaid,
-        paymentMethod: p.paymentMethod,
-        academicYear:  p.academicYear,
-        monthLabel:    p.monthLabel,
-        paidAt:        p.paidAt.toISOString(),
-        collectedBy:   p.collectedBy,
-        remarks:       p.remarks,
-      };
-    }),
+    data: payments.map((p) => ({
+      id:            p.id,
+      invoiceNumber: p.invoiceNumber,
+      feeTypeName:   p.classFeeStructure?.feeType?.name ?? "Unknown",
+      amountPaid:    p.amountPaid,
+      paymentMethod: p.paymentMethod,
+      academicYear:  p.academicYear,
+      monthLabel:    p.monthLabel,
+      paidAt:        p.paidAt.toISOString(),
+      collectedBy: p.collectedBy
+        ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
+        : "",
+      remarks: p.remarks,
+    })),
   };
 }
 
@@ -447,52 +505,56 @@ export async function getStudentPaymentHistory(
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getInvoiceById(invoiceNumber: string) {
-  await requireRole("admin", "HisabRokhok", "teacher");
+  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
 
   const payment = await prisma.feePayment.findUnique({
     where: { invoiceNumber },
     include: {
       student: {
         include: {
-          class: { include: { grade: true } },
+          class:  { include: { grade: true } },
           parent: true,
         },
       },
       classFeeStructure: { include: { feeType: true } },
+      collectedBy: { select: { name: true, surname: true } },
     },
   });
 
   if (!payment) return { success: false, error: "Invoice not found." };
 
-  // Get roll number for this academic year
   const history = await prisma.studentClassHistory.findFirst({
-    where: {
-      studentId: payment.studentId,
-      academicYear: payment.academicYear,
-    },
+    where: { studentId: payment.studentId, academicYear: payment.academicYear },
     select: { rollNumber: true },
   });
+
+  const parent = (payment.student as any).parent;
+  const fatherName = parent
+    ? `${parent.name ?? ""} ${parent.surname ?? ""}`.trim() || null
+    : null;
+
+  const collectedByName = payment.collectedBy
+    ? `${payment.collectedBy.name} ${payment.collectedBy.surname}`.trim()
+    : "Admin";
 
   return {
     success: true,
     data: {
-      invoiceNumber: payment.invoiceNumber,
-      studentId: payment.student.id,
-      studentName: `${payment.student.name} ${payment.student.surname}`,
-      fatherName: payment.student.parent
-        ? `${payment.student.parent.name} ${payment.student.parent.surname ?? ""}`
-        : null,
-      className: payment.student.class?.name,
-      gradeLevel: payment.student.class?.grade?.level,
-      rollNumber: history?.rollNumber ?? null,
-      feeTypeName: payment.classFeeStructure.feeType.name,
-      amountPaid: payment.amountPaid,
-      paymentMethod: payment.paymentMethod,
-      monthLabel: payment.monthLabel,
-      academicYear: payment.academicYear,
-      paidAt: payment.paidAt.toISOString(),
-      collectedBy: payment.collectedBy,
-      remarks: payment.remarks,
+      invoiceNumber:  payment.invoiceNumber,
+      studentId:      payment.student.id,
+      studentName:    `${payment.student.name} ${payment.student.surname}`,
+      fatherName,
+      className:      payment.student.class?.name    ?? "",
+      gradeLevel:     payment.student.class?.grade?.level ?? null,
+      rollNumber:     history?.rollNumber ?? null,
+      feeTypeName:    payment.classFeeStructure.feeType.name,
+      amountPaid:     Number(payment.amountPaid),
+      paymentMethod:  payment.paymentMethod,
+      monthLabel:     payment.monthLabel,
+      academicYear:   payment.academicYear,
+      paidAt:         payment.paidAt.toISOString(),
+      collectedBy:    collectedByName,
+      remarks:        payment.remarks,
     },
   };
 }
@@ -513,7 +575,7 @@ export async function getAllPayments(params: {
 
   const where: any = {};
 
-  if (params.academicYear) where.academicYear = params.academicYear;
+  if (params.academicYear)  where.academicYear  = params.academicYear;
   if (params.paymentMethod) where.paymentMethod = params.paymentMethod;
 
   if (params.fromDate || params.toDate) {
@@ -542,6 +604,7 @@ export async function getAllPayments(params: {
     include: {
       student:           { include: { class: true } },
       classFeeStructure: { include: { feeType: true } },
+      collectedBy:       { select: { name: true, surname: true } },
     },
     orderBy: { paidAt: "desc" },
     take: 500,
@@ -565,8 +628,10 @@ export async function getAllPayments(params: {
       academicYear:  p.academicYear,
       monthLabel:    p.monthLabel,
       paidAt:        p.paidAt.toISOString(),
-      collectedBy:   p.collectedBy,
-      remarks:       p.remarks,
+      collectedBy: p.collectedBy
+        ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
+        : "",
+      remarks: p.remarks,
     })),
   };
 }
@@ -583,4 +648,117 @@ export async function getAcademicYears() {
     orderBy:  { academicYear: "desc" },
   });
   return rows.map((r) => r.academicYear);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GET FULL INVOICE DATA FOR PDF (student/parent safe)
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function getFullInvoiceForPDF(invoiceNumber: string) {
+  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
+
+  const payment = await prisma.feePayment.findUnique({
+    where: { invoiceNumber },
+    include: {
+      student: {
+        include: {
+          class:  { include: { grade: true } },
+          parent: true,
+        },
+      },
+      classFeeStructure: { include: { feeType: true } },
+      collectedBy: { select: { name: true, surname: true } },
+    },
+  });
+
+  if (!payment) return { success: false, error: "Invoice not found." };
+
+  const history = await prisma.studentClassHistory.findFirst({
+    where: { studentId: payment.studentId, academicYear: payment.academicYear },
+    select: { rollNumber: true },
+  });
+
+  const parent = (payment.student as any).parent;
+  const fatherName = parent
+    ? `${parent.name ?? ""} ${parent.surname ?? ""}`.trim() || null
+    : null;
+
+  const collectedByName = payment.collectedBy
+    ? `${payment.collectedBy.name} ${payment.collectedBy.surname}`.trim()
+    : "Admin";
+
+  return {
+    success: true,
+    data: {
+      invoiceNumber:  payment.invoiceNumber,
+      studentId:      payment.student.id,
+      studentName:    `${payment.student.name} ${payment.student.surname}`,
+      fatherName,
+      className:      payment.student.class?.name ?? "",
+      gradeLevel:     payment.student.class?.grade?.level ?? null,
+      rollNumber:     history?.rollNumber ?? null,
+      feeTypeName:    payment.classFeeStructure.feeType.name,
+      amountPaid:     Number(payment.amountPaid),
+      paymentMethod:  payment.paymentMethod as string,
+      monthLabel:     payment.monthLabel,
+      academicYear:   payment.academicYear,
+      paidAt:         payment.paidAt.toISOString(),
+      collectedBy:    collectedByName,
+      remarks:        payment.remarks,
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GET PARENT'S CHILDREN + ALL THEIR PAYMENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function getParentStudentsPayments(
+  parentId: string,
+  academicYear?: string
+) {
+  await requireRole("admin", "HisabRokhok", "parent");
+
+  const students = await prisma.student.findMany({
+    where: { parentId },
+    include: {
+      class: { include: { grade: true } },
+      feePayments: {
+        where: academicYear ? { academicYear } : {},
+        include: {
+          classFeeStructure: { include: { feeType: true } },
+          collectedBy: { select: { name: true, surname: true } },
+        },
+        orderBy: { paidAt: "desc" },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return {
+    success: true,
+    data: students.map((s) => ({
+      id:         s.id,
+      name:       s.name,
+      surname:    s.surname,
+      img:        s.img,
+      className:  s.class?.name ?? "",
+      gradeLevel: s.class?.grade?.level ?? null,
+      totalPaid:  s.feePayments.reduce((sum, p) => sum + p.amountPaid, 0),
+      payments:   s.feePayments.map((p) => ({
+        id:            p.id,
+        invoiceNumber: p.invoiceNumber,
+        feeTypeName:   p.classFeeStructure?.feeType?.name ?? "Unknown",
+        amountPaid:    p.amountPaid,
+        paymentMethod: p.paymentMethod as string,
+        academicYear:  p.academicYear,
+        monthLabel:    p.monthLabel,
+        paidAt:        p.paidAt.toISOString(),
+        collectedBy: p.collectedBy
+          ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
+          : "",
+        remarks: p.remarks,
+      })),
+    })),
+  };
 }
