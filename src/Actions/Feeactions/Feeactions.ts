@@ -31,7 +31,7 @@ export async function createFeeType(data: {
   name: string;
   description?: string;
 }) {
-  await requireRole("admin");
+  await requireRole("admin", );
   try {
     const feeType = await prisma.feeType.create({ data });
     revalidatePath("/list/fees");
@@ -129,7 +129,7 @@ export async function searchStudents(params: {
   rollNumber?: number;
   academicYear?: string;
 }) {
-  await requireRole("admin", "HisabRokhok");
+  await requireRole("admin", "cashier");
 
   const { studentId, name, classId, rollNumber, academicYear } = params;
 
@@ -207,7 +207,7 @@ export async function getStudentFeeStatus(
   studentId: string,
   academicYear?: string
 ) {
-  await requireRole("admin", "HisabRokhok");
+  await requireRole("admin", "cashier");
 
   const year =
     academicYear ||
@@ -303,7 +303,7 @@ export async function recordPayment(data: {
   try {
     const result = await getUserRole() as { role: string; userId: string };
     const { role, userId } = result;
-    if (!["admin", "HisabRokhok"].includes(role)) {
+    if (!["admin", "cashier"].includes(role)) {
       return { success: false, error: "AUTH_FAILED: You do not have permission to record payments." };
     }
     cashierId = userId;
@@ -467,7 +467,7 @@ export async function getStudentPaymentHistory(
   studentId: string,
   academicYear?: string
 ) {
-  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
+  await requireRole("admin", "cashier", "teacher", "student", "parent");
 
   const where: { studentId: string; academicYear?: string } = { studentId };
   if (academicYear) where.academicYear = academicYear;
@@ -497,7 +497,10 @@ export async function getStudentPaymentHistory(
         : "",
       remarks: p.remarks,
     })),
+
+    
   };
+  
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -505,7 +508,7 @@ export async function getStudentPaymentHistory(
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getInvoiceById(invoiceNumber: string) {
-  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
+  await requireRole("admin", "cashier", "teacher", "student", "parent");
 
   const payment = await prisma.feePayment.findUnique({
     where: { invoiceNumber },
@@ -571,7 +574,7 @@ export async function getAllPayments(params: {
   toDate?: string;
   paymentMethod?: string;
 }) {
-  await requireRole("admin", "HisabRokhok");
+  await requireRole("admin", "cashier");
 
   const where: any = {};
 
@@ -641,7 +644,7 @@ export async function getAllPayments(params: {
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getAcademicYears() {
-  await requireRole("admin", "HisabRokhok");
+  await requireRole("admin", "cashier");
   const rows = await prisma.feePayment.findMany({
     distinct: ["academicYear"],
     select:   { academicYear: true },
@@ -655,7 +658,7 @@ export async function getAcademicYears() {
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getFullInvoiceForPDF(invoiceNumber: string) {
-  await requireRole("admin", "HisabRokhok", "teacher", "student", "parent");
+  await requireRole("admin", "cashier", "teacher", "student", "parent");
 
   const payment = await prisma.feePayment.findUnique({
     where: { invoiceNumber },
@@ -717,7 +720,7 @@ export async function getParentStudentsPayments(
   parentId: string,
   academicYear?: string
 ) {
-  await requireRole("admin", "HisabRokhok", "parent");
+  await requireRole("admin", "cashier", "parent");
 
   const students = await prisma.student.findMany({
     where: { parentId },

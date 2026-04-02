@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 
 export default async function PaymentListPage() {
   const { role } = await getUserRole();
-  if (!["admin", "HisabRokhok"].includes(role)) redirect("/");
+  if (!["admin", "cashier"].includes(role)) redirect("/");
 
   const classes = await prisma.class.findMany({
     include: { grade: true },

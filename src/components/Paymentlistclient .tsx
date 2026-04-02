@@ -124,8 +124,8 @@ export default function PaymentListClient({
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">📊 Payment Records</h1>
-          <p className="text-sm text-gray-500">All fee collection history</p>
+          <h1 className="text-xl font-bold text-gray-800">📊 Student Payment Records</h1>
+          <p className="text-sm text-gray-500">All student fee collection history</p>
         </div>
         <a href="/list/fees/cashier"
           className="text-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg font-medium">

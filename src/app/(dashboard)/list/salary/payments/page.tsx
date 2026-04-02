@@ -14,12 +14,10 @@ import { getUserRole } from "@/lib/utlis";
 import { redirect } from "next/navigation";
 
 export default async function SalaryPaymentListPage() {
-  const { role } = await getUserRole();
+ const { role } = await getUserRole();
+  if (!["admin", "cashier"].includes(role)) redirect("/");
 
-  const normalizedRole = role.toUpperCase();
-
-  // ADMIN has full access. Extend this array when you add roles like ACCOUNTANT.
-  if (!["ADMIN"].includes(normalizedRole)) redirect("/");
+ 
 
   const [salaryTypes, yearRows] = await Promise.all([
     prisma.salaryType.findMany({

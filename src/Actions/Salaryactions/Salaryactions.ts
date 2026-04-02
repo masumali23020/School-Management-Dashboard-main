@@ -18,32 +18,24 @@ async function requireRole(...roles: string[]) {
 
 /**
  * Gets the current logged-in employee's DB `id` for use as processedById FK.
- *
- * All create actions (createAdmin, createTeacher, createStaff, createCashier)
- * set Employee.id = Clerk user.id, so auth().userId should always match.
- *
- * If the ADMIN was created manually in Clerk dashboard (not via createAdmin action),
- * their Employee row won't exist — solution is to recreate them via the app's form.
  */
 async function getProcessorId(): Promise<string> {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized: Not logged in.");
 
   const employee = await prisma.employee.findUnique({
-    where:  { id: userId },
+    where: { id: userId },
     select: { id: true },
   });
 
   if (!employee) {
-    // Fallback: try matching by Clerk username → Employee.username
-    const client    = await clerkClient();
+    const client = await clerkClient();
     const clerkUser = await client.users.getUser(userId);
-    const uname     = clerkUser.username;
-    console.log(clerkUser)
+    const uname = clerkUser.username;
 
     if (uname) {
       const byUsername = await prisma.employee.findUnique({
-        where:  { username: uname },
+        where: { username: uname },
         select: { id: true },
       });
       if (byUsername) return byUsername.id;
@@ -65,6 +57,46 @@ async function generateSalaryInvoice(): Promise<string> {
     where: { invoiceNumber: { startsWith: `SAL-${year}-` } },
   });
   return `SAL-${year}-${String(count + 1).padStart(5, "0")}`;
+}
+
+// Helper function to get processed by details
+async function getProcessedByDetails(processedById: string) {
+  try {
+    const employee = await prisma.employee.findUnique({
+      where: { id: processedById },
+      select: { name: true, surname: true, username: true }
+    });
+    
+    if (employee) {
+      return `${employee.name} ${employee.surname}`.trim() || employee.username || "Unknown";
+    }
+    
+    const admin = await prisma.admin.findUnique({
+      where: { id: processedById },
+      select: { username: true, name: true }
+    });
+    
+    if (admin) {
+      return admin.name || admin.username || "Unknown";
+    }
+    
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    try {
+      const clerkUser = await clerkClient.users.getUser(processedById);
+      const firstName = clerkUser.firstName || "";
+      const lastName = clerkUser.lastName || "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      if (fullName) return fullName;
+      if (clerkUser.username) return clerkUser.username;
+    } catch (err) {
+      // Clerk user not found
+    }
+    
+    return "Unknown";
+  } catch (error) {
+    console.error("Error fetching processed by details:", error);
+    return "Unknown";
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -120,24 +152,24 @@ export async function deleteSalaryType(id: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function upsertEmployeeSalaryStructure(data: {
-  employeeId:   string;
+  employeeId: string;
   salaryTypeId: number;
-  amount:       number;
+  amount: number;
 }) {
   await requireRole("ADMIN");
   try {
     const record = await prisma.employeeSalaryStructure.upsert({
       where: {
         employeeId_salaryTypeId: {
-          employeeId:   data.employeeId,
+          employeeId: data.employeeId,
           salaryTypeId: data.salaryTypeId,
         },
       },
       update: { amount: data.amount },
       create: {
-        employeeId:   data.employeeId,
+        employeeId: data.employeeId,
         salaryTypeId: data.salaryTypeId,
-        amount:       data.amount,
+        amount: data.amount,
       },
     });
     revalidatePath("/list/salary");
@@ -166,9 +198,9 @@ export async function deleteEmployeeSalaryStructure(id: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function searchEmployees(params: {
-  name?:       string;
+  name?: string;
   employeeId?: string;
-  subjectId?:  number;
+  subjectId?: number;
 }) {
   await requireRole("ADMIN", "CASHIER");
   try {
@@ -178,7 +210,7 @@ export async function searchEmployees(params: {
           params.name
             ? {
                 OR: [
-                  { name:    { contains: params.name, mode: "insensitive" } },
+                  { name: { contains: params.name, mode: "insensitive" } },
                   { surname: { contains: params.name, mode: "insensitive" } },
                 ],
               }
@@ -192,7 +224,7 @@ export async function searchEmployees(params: {
         ],
       },
       include: {
-        subjects:         { select: { id: true, name: true } },
+        subjects: { select: { id: true, name: true } },
         salaryStructures: { include: { salaryType: true } },
       },
       orderBy: { name: "asc" },
@@ -202,17 +234,17 @@ export async function searchEmployees(params: {
     return {
       success: true,
       data: employees.map((e) => ({
-        id:       e.id,
-        name:     e.name,
-        surname:  e.surname,
-        img:      e.img,
-        phone:    e.phone,
+        id: e.id,
+        name: e.name,
+        surname: e.surname,
+        img: e.img,
+        phone: e.phone,
         subjects: e.subjects.map((s) => s.name),
         salaryStructures: e.salaryStructures.map((s) => ({
-          id:             s.id,
-          salaryTypeId:   s.salaryTypeId,
+          id: s.id,
+          salaryTypeId: s.salaryTypeId,
           salaryTypeName: s.salaryType.name,
-          amount:         Number(s.amount),
+          amount: Number(s.amount),
         })),
       })),
     };
@@ -233,7 +265,7 @@ export async function getEmployeeSalaryStatus(employeeId: string, academicYear: 
       include: {
         salaryStructures: { include: { salaryType: true } },
         salaryPayments: {
-          where:   { academicYear },
+          where: { academicYear },
           include: { salaryType: true },
           orderBy: { paidAt: "desc" },
         },
@@ -249,19 +281,19 @@ export async function getEmployeeSalaryStatus(employeeId: string, academicYear: 
       const totalPaid = structurePayments.reduce((sum, p) => sum + Number(p.amountPaid), 0);
 
       return {
-        structureId:    structure.id,
-        salaryTypeId:   structure.salaryTypeId,
+        structureId: structure.id,
+        salaryTypeId: structure.salaryTypeId,
         salaryTypeName: structure.salaryType.name,
-        isRecurring:    structure.salaryType.isRecurring,
-        amount:         Number(structure.amount),
+        isRecurring: structure.salaryType.isRecurring,
+        amount: Number(structure.amount),
         totalPaid,
         payments: structurePayments.map((p) => ({
-          id:            p.id,
+          id: p.id,
           invoiceNumber: p.invoiceNumber,
-          amountPaid:    Number(p.amountPaid),
+          amountPaid: Number(p.amountPaid),
           paymentMethod: p.paymentMethod,
-          monthLabel:    p.monthLabel,
-          paidAt:        p.paidAt.toISOString(),
+          monthLabel: p.monthLabel,
+          paidAt: p.paidAt.toISOString(),
           processedById: p.processedById,
         })),
       };
@@ -286,22 +318,48 @@ export async function getEmployeeSalaryStatus(employeeId: string, academicYear: 
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function recordSalaryPayment(data: {
-  employeeId:         string;
-  salaryTypeId:       number;
+  employeeId: string;
+  salaryTypeId: number;
   salaryStructureId?: number;
-  amountPaid:         number;
-  paymentMethod:      "CASH" | "MOBILE_BANKING" | "BANK_TRANSFER";
-  academicYear:       string;
-  monthLabel?:        string;
-  remarks?:           string;
+  amountPaid: number;
+  paymentMethod: "CASH" | "MOBILE_BANKING" | "BANK_TRANSFER";
+  academicYear: string;
+  monthLabel?: string;
+  remarks?: string;
 }) {
   await requireRole("ADMIN", "CASHIER");
 
   let processedById: string;
+  let processedByName: string = "";
+
   try {
-    processedById = await getProcessorId();
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized: Not logged in.");
+
+    const employee = await prisma.employee.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, surname: true }
+    });
+
+    if (employee) {
+      processedById = employee.id;
+      processedByName = `${employee.name} ${employee.surname}`.trim();
+    } else {
+      const admin = await prisma.admin.findUnique({
+        where: { id: userId },
+        select: { id: true, username: true }
+      });
+
+      if (admin) {
+        processedById = userId;
+        processedByName = admin.username || "Admin";
+      } else {
+        throw new Error("User not found in Employee or Admin table.");
+      }
+    }
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Error getting processor ID:", e);
+    return { success: false, error: "Failed to identify user: " + e.message };
   }
 
   try {
@@ -310,19 +368,20 @@ export async function recordSalaryPayment(data: {
     const payment = await prisma.employeeSalaryPayment.create({
       data: {
         invoiceNumber,
-        employeeId:        data.employeeId,
-        salaryTypeId:      data.salaryTypeId,
+        employeeId: data.employeeId,
+        salaryTypeId: data.salaryTypeId,
         salaryStructureId: data.salaryStructureId ?? null,
-        amountPaid:        data.amountPaid,
-        paymentMethod:     data.paymentMethod,
-        academicYear:      data.academicYear,
-        monthLabel:        data.monthLabel ?? null,
-        remarks:           data.remarks ?? null,
+        amountPaid: data.amountPaid,
+        paymentMethod: data.paymentMethod,
+        academicYear: data.academicYear,
+        monthLabel: data.monthLabel ?? null,
+        remarks: data.remarks ?? null,
         processedById,
       },
       include: {
-        employee:   true,
+        employee: true,
         salaryType: true,
+        processedBy: true,
       },
     });
 
@@ -335,7 +394,10 @@ export async function recordSalaryPayment(data: {
       data: {
         ...payment,
         amountPaid: Number(payment.amountPaid),
-        paidAt:     payment.paidAt.toISOString(),
+        paidAt: payment.paidAt.toISOString(),
+        processedBy: payment.processedBy
+          ? `${payment.processedBy.name} ${payment.processedBy.surname}`.trim()
+          : processedByName,
       },
     };
   } catch (e: any) {
@@ -349,19 +411,19 @@ export async function recordSalaryPayment(data: {
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getAllSalaryPayments(params: {
-  employeeName?:  string;
-  salaryTypeId?:  number;
-  academicYear?:  string;
-  fromDate?:      string;
-  toDate?:        string;
+  teacherName?: string;  // Changed to teacherName to match frontend
+  salaryTypeId?: number;
+  academicYear?: string;
+  fromDate?: string;
+  toDate?: string;
   paymentMethod?: string;
 }) {
   await requireRole("ADMIN", "CASHIER");
 
   const where: any = {};
-  if (params.academicYear)  where.academicYear  = params.academicYear;
+  if (params.academicYear) where.academicYear = params.academicYear;
   if (params.paymentMethod) where.paymentMethod = params.paymentMethod;
-  if (params.salaryTypeId)  where.salaryTypeId  = params.salaryTypeId;
+  if (params.salaryTypeId) where.salaryTypeId = params.salaryTypeId;
 
   if (params.fromDate || params.toDate) {
     where.paidAt = {};
@@ -373,11 +435,11 @@ export async function getAllSalaryPayments(params: {
     }
   }
 
-  if (params.employeeName) {
+  if (params.teacherName) {
     where.employee = {
       OR: [
-        { name:    { contains: params.employeeName, mode: "insensitive" } },
-        { surname: { contains: params.employeeName, mode: "insensitive" } },
+        { name: { contains: params.teacherName, mode: "insensitive" } },
+        { surname: { contains: params.teacherName, mode: "insensitive" } },
       ],
     };
   }
@@ -385,8 +447,8 @@ export async function getAllSalaryPayments(params: {
   const payments = await prisma.employeeSalaryPayment.findMany({
     where,
     include: {
-      employee:    true,
-      salaryType:  true,
+      employee: true,
+      salaryType: true,
       processedBy: true,
     },
     orderBy: { paidAt: "desc" },
@@ -403,27 +465,27 @@ export async function getAllSalaryPayments(params: {
     totalAmount,
     count: payments.length,
     data: payments.map((p) => ({
-      id:             p.id,
-      invoiceNumber:  p.invoiceNumber,
-      employeeId:     p.employeeId,
-      employeeName:   `${p.employee.name} ${p.employee.surname}`,
-      employeeImg:    p.employee.img,
+      id: p.id,
+      invoiceNumber: p.invoiceNumber,
+      employeeId: p.employeeId,
+      employeeName: `${p.employee.name} ${p.employee.surname}`,
+      employeeImg: p.employee.img,
       salaryTypeName: p.salaryType.name,
-      amountPaid:     Number(p.amountPaid),
-      paymentMethod:  p.paymentMethod as string,
-      academicYear:   p.academicYear,
-      monthLabel:     p.monthLabel,
-      paidAt:         p.paidAt.toISOString(),
-      processedBy:    p.processedBy
+      amountPaid: Number(p.amountPaid),
+      paymentMethod: p.paymentMethod as string,
+      academicYear: p.academicYear,
+      monthLabel: p.monthLabel,
+      paidAt: p.paidAt.toISOString(),
+      processedBy: p.processedBy
         ? `${p.processedBy.name} ${p.processedBy.surname}`
         : "—",
-      remarks:        p.remarks,
+      remarks: p.remarks,
     })),
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// GET FULL INVOICE FOR PDF
+// GET FULL INVOICE FOR PDF (Single version - no duplicate)
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
@@ -432,33 +494,47 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
   const payment = await prisma.employeeSalaryPayment.findUnique({
     where: { invoiceNumber },
     include: {
-      employee:    true,
-      salaryType:  true,
+      employee: {
+        include: {
+          subjects: true,
+        }
+      },
+      salaryType: true,
       processedBy: true,
     },
   });
 
   if (!payment) return { success: false, error: "Invoice not found." };
 
+  let processedByName = "—";
+  if (payment.processedBy) {
+    processedByName = `${payment.processedBy.name} ${payment.processedBy.surname}`.trim();
+  } else if (payment.processedById) {
+    processedByName = await getProcessedByDetails(payment.processedById);
+  }
+
   return {
     success: true,
     data: {
-      invoiceNumber:  payment.invoiceNumber,
-      employeeId:     payment.employeeId,
-      employeeName:   `${payment.employee.name} ${payment.employee.surname}`,
-      employeePhone:  payment.employee.phone,
+      invoiceNumber: payment.invoiceNumber,
+      employeeId: payment.employee.id,
+      employeeName: `${payment.employee.name} ${payment.employee.surname}`.trim(),
+      employeePhone: payment.employee.phone,
+      employeeEmail: payment.employee.email,
+      employeeImg: payment.employee.img,
       salaryTypeName: payment.salaryType.name,
-      isRecurring:    payment.salaryType.isRecurring,
-      amountPaid:     Number(payment.amountPaid),
-      paymentMethod:  payment.paymentMethod as string,
-      monthLabel:     payment.monthLabel,
-      academicYear:   payment.academicYear,
-      paidAt:         payment.paidAt.toISOString(),
-      processedBy:    payment.processedBy
-        ? `${payment.processedBy.name} ${payment.processedBy.surname}`
-        : "—",
-      processedById:  payment.processedById,
-      remarks:        payment.remarks,
+      isRecurring: payment.salaryType.isRecurring,
+      amountPaid: Number(payment.amountPaid),
+      paymentMethod: payment.paymentMethod as string,
+      monthLabel: payment.monthLabel,
+      academicYear: payment.academicYear,
+      paidAt: payment.paidAt.toISOString(),
+      processedBy: processedByName,
+      processedById: payment.processedById,
+      remarks: payment.remarks,
+      schoolName: "Your School Name",
+      schoolAddress: "School Address, City",
+      schoolPhone: "01XXXXXXXXX",
     },
   };
 }
@@ -475,12 +551,12 @@ export async function getTeacherSalaryStatus(employeeId: string, academicYear?: 
 
   try {
     const structures = await prisma.employeeSalaryStructure.findMany({
-      where:   { employeeId },
+      where: { employeeId },
       include: { salaryType: true },
     });
 
     const payments = await prisma.employeeSalaryPayment.findMany({
-      where:   { employeeId, academicYear: year },
+      where: { employeeId, academicYear: year },
       include: { salaryType: true },
       orderBy: { paidAt: "desc" },
     });
@@ -490,19 +566,19 @@ export async function getTeacherSalaryStatus(employeeId: string, academicYear?: 
       const totalPaid = structurePayments.reduce((sum, p) => sum + Number(p.amountPaid), 0);
 
       return {
-        structureId:    s.id,
-        salaryTypeId:   s.salaryTypeId,
+        structureId: s.id,
+        salaryTypeId: s.salaryTypeId,
         salaryTypeName: s.salaryType?.name ?? "N/A",
-        isRecurring:    s.salaryType?.isRecurring ?? false,
-        amount:         Number(s.amount),
+        isRecurring: s.salaryType?.isRecurring ?? false,
+        amount: Number(s.amount),
         totalPaid,
         payments: structurePayments.map((p) => ({
-          id:            p.id,
+          id: p.id,
           invoiceNumber: p.invoiceNumber,
-          amountPaid:    Number(p.amountPaid),
+          amountPaid: Number(p.amountPaid),
           paymentMethod: p.paymentMethod,
-          monthLabel:    p.monthLabel,
-          paidAt:        p.paidAt.toISOString(),
+          monthLabel: p.monthLabel,
+          paidAt: p.paidAt.toISOString(),
           processedById: p.processedById,
         })),
       };
@@ -513,8 +589,8 @@ export async function getTeacherSalaryStatus(employeeId: string, academicYear?: 
       data: {
         salaryStatus,
         totalConfigured: structures.reduce((s, r) => s + Number(r.amount), 0),
-        totalPaid:       payments.reduce((s, p) => s + Number(p.amountPaid), 0),
-        academicYear:    year,
+        totalPaid: payments.reduce((s, p) => s + Number(p.amountPaid), 0),
+        academicYear: year,
       },
     };
   } catch (e: any) {
@@ -532,8 +608,8 @@ export async function getSalaryAcademicYears() {
   try {
     const rows = await prisma.employeeSalaryPayment.findMany({
       distinct: ["academicYear"],
-      select:   { academicYear: true },
-      orderBy:  { academicYear: "desc" },
+      select: { academicYear: true },
+      orderBy: { academicYear: "desc" },
     });
     return rows.map((r) => r.academicYear);
   } catch {

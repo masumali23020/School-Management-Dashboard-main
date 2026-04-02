@@ -11,6 +11,7 @@ export type FormContainerProps = {
     | "parent"
     | "subject"
     | "class"
+    | "grade"
     | "lesson"
     | "exam"
     | "assignment"
@@ -156,6 +157,9 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "event":
         relatedData = { classes: await prisma.class.findMany({ select: { id: true, name: true } }) };
+        break;
+      case "grade":
+        relatedData = { grades: await prisma.grade.findMany({ select: { id: true, level: true } }) };
         break;
 
       case "announcement":

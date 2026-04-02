@@ -1,29 +1,33 @@
+import EventsSection from "@/components/hompage/Eventssection";
+import Footer from "@/components/hompage/Footer";
+import HeroSlider from "@/components/hompage/Heroslider";
+import NoticeBoard from "@/components/hompage/Noticeboard";
+import SchoolNavbar from "@/components/hompage/SchoolNavber";
+import StatsSection from "@/components/hompage/Statssection";
+import { getAnnouncements, getEvents, getSchoolSettings, getSliders } from "@/lib/getSchoolData";
 
-import Image from 'next/image';
-import Navbar from '../components/Navbar';
-import SignInPage from './sign-in/[[...sign-in]]/page';
-import SchoolResultSystem from './SchoolResultSystem';
+export default async function HomePage() {
+  const [settings, sliders, announcements, events] = await Promise.all([
+    getSchoolSettings(),
+    getSliders(),
+    getAnnouncements(),
+    getEvents(),
+  ]);
 
-
-const Homepage = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-blue-200">
-      {/* Navbar */}
-      <Navbar />
-      <SignInPage />
-
-      {/* Hero Section */}
-  
-      
-
-      {/* Footer */}
-      <footer className="bg-blue-800 text-white py-4 text-center mt-8 shadow-inner">
-        <div className="container mx-auto">
-          <p className="text-sm">&copy; {new Date().getFullYear()} Bright Future School. All rights reserved.</p>
+    <main className="min-h-screen bg-slate-50">
+      <SchoolNavbar settings={settings} />
+      <HeroSlider sliders={sliders} schoolName={settings?.schoolName ?? "Our School"} />
+      <StatsSection />
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2">
+          <EventsSection events={events} />
         </div>
-      </footer>
-    </div>
+        <div className="lg:col-span-1">
+          <NoticeBoard announcements={announcements} />
+        </div>
+      </section>
+      <Footer settings={settings} />
+    </main>
   );
-};
-
-export default Homepage;
+}

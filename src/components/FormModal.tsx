@@ -23,6 +23,7 @@ import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/
 import { deleteOneExamMark } from "@/Actions/ExamAction/Examactions";
 import { deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
 import ParentForm from "./forms/ParentForm";
+import { deleteGrade } from "@/Actions/GradeActions/GradeActions";
 // import AttendanceForm from "./forms/AttendanceForm";
 
 // USE LAZY LOADING
@@ -45,6 +46,9 @@ const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ClassForm = dynamic(() => import("./forms/ClassForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const GradeForm = dynamic(() => import("./forms/GradeForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -88,6 +92,7 @@ const deleteActionMap = {
   result: deleteResult,
   // attendance: deleteSubject,
   event: deleteEvent,
+  grade: deleteGrade,
   // announcement: deleteAnnouncement,
 };
 
@@ -109,6 +114,14 @@ const forms: {
   ),
   class: (setOpen, relatedData, type, data) => (
     <ClassForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  grade: (setOpen, relatedData, type, data) => (
+    <GradeForm
       type={type}
       data={data}
       setOpen={setOpen}

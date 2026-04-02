@@ -34,6 +34,36 @@ enum UserRole {
   TEACHER
   STAFF
 }
+// school information and settings 
+model SchoolSetting {
+  id              Int      @id @default(autoincrement())
+  schoolName      String
+  shortName       String?  
+  logoUrl         String?  
+  bannerUrl       String?  
+  
+
+  email           String?
+  phone           String?
+  address         String?
+  eiinNumber      String?  
+
+  website         String?
+  facebookPage    String?
+  
+
+  academicSession String   @default("2024") // কারেন্ট সেশন ট্র্যাক রাখার জন্য
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+// basic slider for homepage, can be used for announcements or promotions 
+model HomeSlider {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String   
+  title     String?  
+  order     Int      @default(0) 
+  isActive  Boolean  @default(true)
+}
 
 // --- CORE USER MODELS ---
 
@@ -135,6 +165,7 @@ model Class {
   feeStructures   ClassFeeStructure[]
   feePayments     FeePayment[]
   examPublish     ExamPublish[]
+  assignmentPublish AssignmentPublish[]
 }
 
 model Subject {
@@ -331,6 +362,22 @@ model ExamPublish {
 
   @@unique([examId, classId, session])
 }
+model AssignmentPublish {
+  id          Int       @id @default(autoincrement())
+  assignmentId Int      @unique
+  assignment  Assignment @relation(fields: [assignmentId], references: [id])
+  classId     Int
+  class       Class     @relation(fields: [classId], references: [id])
+  session     String
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  publishedBy String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+
+  @@unique([assignmentId, classId, session])
+}
 
 model Assignment {
   id        Int      @id @default(autoincrement())
@@ -340,6 +387,7 @@ model Assignment {
   lessonId  Int
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   results   Result[]
+  assignmentPublish AssignmentPublish?
 }
 
 model Result {
@@ -379,6 +427,7 @@ model Event {
   endTime     DateTime
   classId     Int?
   class       Class?   @relation(fields: [classId], references: [id])
+  isPublic    Boolean  @default(true)
 }
 
 model Announcement {
@@ -388,4 +437,5 @@ model Announcement {
   date        DateTime
   classId     Int?
   class       Class?   @relation(fields: [classId], references: [id])
+  isPublic    Boolean  @default(true)
 }

@@ -16,7 +16,7 @@ type PaymentRow = {
   id:             number;
   invoiceNumber:  string;
   teacherId:      string;
-  teacherName:    string;
+  employeeName:    string;
   teacherImg:     string | null;
   salaryTypeName: string;
   amountPaid:     number;
@@ -24,7 +24,7 @@ type PaymentRow = {
   academicYear:   string;
   monthLabel:     string | null;
   paidAt:         string;
-  collectedBy:    string;
+  processedBy:    string;
   remarks:        string | null;
 };
 
@@ -93,6 +93,8 @@ const fetchData = useCallback(async () => {
     paymentMethod: filterMethod || undefined,
     fromDate: filterFrom || undefined,
     toDate: filterTo || undefined,
+
+
   });
 
   if (res.success) {
@@ -132,6 +134,7 @@ const fetchData = useCallback(async () => {
   // ── Pagination slice ──────────────────────────────────────────────────────
   const perPage   = itemPerPage || 20;
   const pageSlice = displayPayments.slice((page - 1) * perPage, page * perPage);
+  console.log({ displayPayments, pageSlice });
 
   // ── Individual invoice PDF ────────────────────────────────────────────────
 const convertDecimalsToNumbers = (data: any): SalaryInvoiceData => {
@@ -171,7 +174,10 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
     try {
       const filterTypeName = salaryTypes.find(s => s.id === Number(filterTypeId))?.name;
       generateSalaryReportPDF({
-        payments: displayPayments.map(p => ({
+        payments: displayPayments.map(p => (
+          // console.log("Payment for PDF:", p), 
+          
+          {
           invoiceNumber:  p.invoiceNumber,
           teacherName:    p.teacherName,
           salaryTypeName: p.salaryTypeName,
@@ -240,8 +246,8 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">📊 Salary Payment Records</h1>
-          <p className="text-sm text-gray-500">All teacher salary disbursements</p>
+          <h1 className="text-xl font-bold text-gray-800">📊Employee Salary Payment Records</h1>
+          <p className="text-sm text-gray-500">All employee salary disbursements</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <a href="/list/salary/cashier"
@@ -504,7 +510,7 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
                     <td className="px-3 py-2.5">
                       <span className="font-mono text-xs text-emerald-600 whitespace-nowrap">{p.invoiceNumber}</span>
                     </td>
-                    <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{p.teacherName}</td>
+                    <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{p.employeeName}</td>
                     <td className="px-3 py-2.5 text-gray-700 whitespace-nowrap">{p.salaryTypeName}</td>
                     <td className="px-3 py-2.5">
                       {p.monthLabel
@@ -528,7 +534,7 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
                         {new Date(p.paidAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-gray-500">{p.collectedBy}</td>
+                    <td className="px-3 py-2.5 text-xs text-gray-500">{p.processedBy}</td>
                     <td className="px-3 py-2.5">
                       <button
                         onClick={() => handleDownloadInvoice(p)}

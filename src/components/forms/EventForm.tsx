@@ -71,7 +71,7 @@ const EventForm = ({
   }, [state, router, type, setOpen]);
 
   const { classes } = relatedData;
-  // console.log("Related Data in EventForm:", relatedData.classes);
+  console.log("Related Data in EventForm:", relatedData.classes);
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -124,23 +124,23 @@ const EventForm = ({
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Class</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("classId")}
-            defaultValue={data?.classId}
-          >
- 
-          {classes
-  ?.filter((item: ClassItem) => item?.class !== null)
-  .map((item: ClassItem) => (
-    <option
-      key={item.class!.id}
-      value={item.class!.id}
+         <select
+  className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+  {...register("classId")}
+  defaultValue={data?.classId}
+>
+  {/* একটি ডিফল্ট অপশন রাখা ভালো */}
+  <option value="">Select a class</option>
+
+  {classes?.map((item: any) => (
+    <option 
+      key={item.id} 
+      value={item.id}
     >
-      {item.class!.name}
+      {item.name}
     </option>
   ))}
-          </select>
+</select>
           {errors.classId?.message && (
             <p className="text-xs text-red-400">
               {errors.classId.message.toString()}

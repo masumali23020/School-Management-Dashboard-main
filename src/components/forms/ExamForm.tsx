@@ -3,15 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-
-import { examSchema, ExamSchema, SubjectSchema, subjectSchema } from "../../lib/FormValidationSchema";
-
+import { examSchema, ExamSchema } from "../../lib/FormValidationSchema";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { createExam, updateExam } from "@/Actions/ExamAction/Examactions";
-
 
 const ExamForm = ({
   type,
@@ -32,8 +29,6 @@ const ExamForm = ({
     resolver: zodResolver(examSchema),
   });
 
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
-
   const [state, formAction] = useFormState(
     type === "create" ? createExam : updateExam,
     {
@@ -43,7 +38,6 @@ const ExamForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    // console.log(data);
     formAction(data);
   });
 
@@ -51,10 +45,14 @@ const ExamForm = ({
 
   useEffect(() => {
     if (state.success) {
-      toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Exam has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }
+    if (state.error) {
+      toast.error("Something went wrong!");
+    }
+    // Dependency list ঠিক করা হয়েছে
   }, [state, router, type, setOpen]);
 
   const { lessons } = relatedData;
@@ -73,10 +71,12 @@ const ExamForm = ({
           register={register}
           error={errors?.title}
         />
+        
+        {/* Date fields format check: Ensure values are YYYY-MM-DDTHH:mm */}
         <InputField
           label="Start Date"
           name="startTime"
-          defaultValue={data?.startTime}
+          defaultValue={data?.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : ""}
           register={register}
           error={errors?.startTime}
           type="datetime-local"
@@ -84,11 +84,12 @@ const ExamForm = ({
         <InputField
           label="End Date"
           name="endTime"
-          defaultValue={data?.endTime}
+          defaultValue={data?.endTime ? new Date(data.endTime).toISOString().slice(0, 16) : ""}
           register={register}
           error={errors?.endTime}
           type="datetime-local"
         />
+
         {data && (
           <InputField
             label=""
@@ -99,14 +100,16 @@ const ExamForm = ({
             type="hidden"
           />
         )}
+
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Lesson</label>
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("lessonId")}
-            defaultValue={data?.teachers}
+            defaultValue={data?.lessonId} // এখানে data?.teachers এর বদলে data?.lessonId হবে
           >
-            {lessons.map((lesson: { id: number; name: string }) => (
+            <option value="">Select a lesson</option>
+            {lessons?.map((lesson: { id: number; name: string }) => (
               <option value={lesson.id} key={lesson.id}>
                 {lesson.name}
               </option>
@@ -119,9 +122,7 @@ const ExamForm = ({
           )}
         </div>
       </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
+      
       <button className="bg-blue-400 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
       </button>

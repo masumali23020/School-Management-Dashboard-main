@@ -9,8 +9,8 @@ import { redirect } from "next/navigation";
 
 export default async function FeeManagementPage() {
   const { role } = await getUserRole();
-  // Admin can edit; HisabRokhok can view; others are redirected
-  if (!["admin", "HisabRokhok"].includes(role)) redirect("/");
+  // Admin can edit; Cashier can view; others are redirected
+  if (!["admin", "cashier"].includes(role)) redirect("/");
 
   const [feeTypes, classes, structures] = await Promise.all([
     prisma.feeType.findMany({

@@ -1,30 +1,34 @@
 // src/lib/generateSalaryPDF.ts
 // Teacher salary receipt — same National University 2-copy style as student invoice
-// Install: npm install jspdf  (already installed)
 
 import jsPDF from "jspdf";
 
 export type SalaryInvoiceData = {
   invoiceNumber:  string;
-  teacherName:    string;
-  teacherId:      string;
-  teacherPhone?:  string | null;
+  employeeId:     string;
+  employeeName:   string;
+  employeePhone?: string | null;
+  employeeEmail?: string | null;
+  employeeImg?:   string | null;
   salaryTypeName: string;
-  isRecurring?:   boolean;
+  isRecurring:    boolean;
   amountPaid:     number;
   paymentMethod:  string;
   monthLabel?:    string | null;
   academicYear:   string;
   paidAt:         string;
-  collectedBy:    string;
+  processedBy:    string;  // This should contain the user's name
+  processedById:  string;  // This is the user ID (not shown in PDF)
   remarks?:       string | null;
-  schoolName?:    string;
-  schoolAddress?: string;
-  schoolPhone?:   string;
+  schoolName:     string;
+  schoolAddress:  string;
+  schoolPhone:    string;
 };
 
 const METHOD_LABEL: Record<string, string> = {
-  CASH: "Cash", MOBILE_BANKING: "Mobile Banking", BANK_TRANSFER: "Bank Transfer",
+  CASH: "Cash", 
+  MOBILE_BANKING: "Mobile Banking", 
+  BANK_TRANSFER: "Bank Transfer",
 };
 
 function amountInWords(n: number): string {
@@ -41,18 +45,32 @@ function amountInWords(n: number): string {
 }
 
 export function generateSalaryPDF(inv: SalaryInvoiceData): void {
+  const safeInv = {
+    ...inv,
+    employeeName: inv.employeeName?.trim() || "Unknown Teacher",
+    employeeId: inv.employeeId?.trim() || "N/A",
+    processedBy: inv.processedBy?.trim() || "System",  // Show user name, not ID
+    salaryTypeName: inv.salaryTypeName?.trim() || "Salary",
+    amountPaid: inv.amountPaid || 0,
+    paymentMethod: inv.paymentMethod || "CASH",
+    academicYear: inv.academicYear || "N/A",
+    monthLabel: inv.monthLabel || "N/A",
+    employeePhone: inv.employeePhone || "N/A",
+    employeeEmail: inv.employeeEmail || "N/A",
+  };
+  
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const PW = 210;
   const PH = 297;
 
-  const schoolName    = inv.schoolName    ?? "Your School Name";
-  const schoolAddress = inv.schoolAddress ?? "School Address, City";
-  const schoolPhone   = inv.schoolPhone   ?? "01XXXXXXXXX";
+  const schoolName    = safeInv.schoolName    ?? "Your School Name";
+  const schoolAddress = safeInv.schoolAddress ?? "School Address, City";
+  const schoolPhone   = safeInv.schoolPhone   ?? "01XXXXXXXXX";
 
-  const paidDate     = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const paidDateLong = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
-  const words        = amountInWords(Math.round(inv.amountPaid)) + " Taka Only";
-  const methodStr    = METHOD_LABEL[inv.paymentMethod] ?? inv.paymentMethod;
+  const paidDate     = new Date(safeInv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const paidDateLong = new Date(safeInv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const words        = amountInWords(Math.round(safeInv.amountPaid)) + " Taka Only";
+  const methodStr    = METHOD_LABEL[safeInv.paymentMethod] ?? safeInv.paymentMethod;
 
   const drawCopy = (yStart: number, copyLabel: string) => {
     const ML = 15; const MR = 15;
@@ -61,7 +79,6 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
     let y    = yStart + 6;
 
     // ── Header ──────────────────────────────────────────────────────────
-    // Left circle (logo placeholder)
     doc.setDrawColor(100, 160, 100);
     doc.setLineWidth(0.5);
     doc.circle(x + 10, y + 6, 10);
@@ -70,11 +87,9 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
     doc.setFont("helvetica", "bold");
     doc.text("LOGO", x + 10, y + 7, { align: "center" });
 
-    // Right circle
     doc.circle(x + CW - 10, y + 6, 10);
     doc.text("LOGO", x + CW - 10, y + 7, { align: "center" });
 
-    // School name
     doc.setFontSize(15);
     doc.setTextColor(20, 20, 20);
     doc.text(schoolName, PW / 2, y + 3, { align: "center" });
@@ -100,7 +115,7 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
 
     y += 5;
 
-    // Copy label header — green for teacher
+    // Copy label header
     const isTeacher = copyLabel === "Teacher's Copy";
     doc.setFillColor(isTeacher ? 22 : 16, isTeacher ? 163 : 128, isTeacher ? 74 : 50);
     doc.rect(x, y, CW, 7, "F");
@@ -148,18 +163,24 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
     };
 
     // ── Teacher info ─────────────────────────────────────────────────────
-    drawRow("Teacher Name:", inv.teacherName);
-    drawRow("Teacher ID:",   inv.teacherId);
-    if (inv.teacherPhone) drawRow("Phone:", inv.teacherPhone);
+    drawRow("Teacher Name:", safeInv.employeeName);
+    drawRow("Teacher ID:",   safeInv.employeeId);
+    if (safeInv.employeePhone && safeInv.employeePhone !== "N/A") {
+      drawRow("Phone:", safeInv.employeePhone);
+    }
 
     // ── Payment info ─────────────────────────────────────────────────────
-    drawRow("Invoice No:",    inv.invoiceNumber, "Date:", paidDate, true);
-    drawRow("Salary Type:",   inv.salaryTypeName, "Academic Year:", inv.academicYear, true);
-    if (inv.monthLabel) drawRow("Month:", inv.monthLabel, undefined, undefined, true);
-    drawRow("Amount:",        `${inv.amountPaid.toLocaleString()}/=`, "Method:", methodStr, true);
+    drawRow("Invoice No:",    safeInv.invoiceNumber, "Date:", paidDate, true);
+    drawRow("Salary Type:",   safeInv.salaryTypeName, "Academic Year:", safeInv.academicYear, true);
+    if (safeInv.monthLabel && safeInv.monthLabel !== "N/A") {
+      drawRow("Month:", safeInv.monthLabel, undefined, undefined, true);
+    }
+    drawRow("Amount:",        `${safeInv.amountPaid.toLocaleString()}/=`, "Method:", methodStr, true);
     drawRow("In Words:",      words, undefined, undefined, true);
-    if (inv.remarks) drawRow("Remarks:", inv.remarks);
-    drawRow("Paid By:",       inv.collectedBy, "Status:", "PAID ✓", true);
+    if (safeInv.remarks) drawRow("Remarks:", safeInv.remarks);
+    
+    // IMPORTANT: Show the user NAME, not the ID
+    drawRow("Paid By:",       safeInv.processedBy, "Status:", "PAID ✓", true);
 
     y += 4;
 
@@ -205,5 +226,5 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
   // ── School's Copy (bottom) ───────────────────────────────────────────
   drawCopy(midY + 4, "School's Copy");
 
-  doc.save(`${inv.invoiceNumber}.pdf`);
+  doc.save(`${safeInv.invoiceNumber}.pdf`);
 }

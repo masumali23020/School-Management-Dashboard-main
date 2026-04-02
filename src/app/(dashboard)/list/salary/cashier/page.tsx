@@ -36,7 +36,6 @@ export default async function SalaryCashierPage() {
 
   return (
     <SalaryCashierClient
-      role={normalizedRole}
       salaryTypes={salaryTypes.map((s) => ({
         id:          s.id,
         name:        s.name,

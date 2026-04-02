@@ -5,12 +5,12 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
+"scripts": {
+  "dev": "next dev",
+  "build": "next build --no-lint",
+  "start": "next start",
+  "lint": "next lint"
+},
   "dependencies": {
     "@clerk/elements": "^0.24.7",
     "@clerk/nextjs": "^6.37.3",
