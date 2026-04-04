@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 
 import { ExamSchema } from "../../lib/FormValidationSchema";
-import { getUserRole } from "../../lib/utlis";
+
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type CreateState = { success: boolean; error: boolean };
 const ITEMS_PER_PAGE = 10;
@@ -290,7 +291,9 @@ export const createExam = async (
   CreateState: CreateState,
   data: ExamSchema
 ) => {
-      const {role, userId} = await getUserRole()
+      // const {role, userId} = await getUserRole()
+        const { role,userId } = await getUserRoleAuth();
+
   try {
     if(role === "teacher"){
     const teacherLesson = await prisma.lesson.findFirst({
@@ -327,7 +330,7 @@ export const updateExam = async (
   CreateState: CreateState,
   data: ExamSchema
 ) => {
-      const {role, userId} = await getUserRole()
+      const { role,userId } = await getUserRoleAuth();
   try {
     if(role === "teacher"){
     const teacherLesson = await prisma.lesson.findFirst({

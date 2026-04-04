@@ -8,8 +8,8 @@ import { itemPerPage } from "../../../../lib/setting";
 import TableSearch from "../../../../components/TableSearch";
 import Table from "../../../../components/Table";
 import Pagination from "../../../../components/Pagination";
-import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 type AssignmentList = Assignment & {
@@ -26,7 +26,7 @@ const AssignmentListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
 
-const { role, userId:currentUserId } = await getUserRole();
+const { role, userId:currentUserId } = await getUserRoleAuth();
   
 
   

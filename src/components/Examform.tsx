@@ -48,7 +48,6 @@ const ExamForm = ({
   if (type === "update") {
     return <UpdateExamForm data={data} setOpen={setOpen} router={router} />;
   }
-console.log("Rendering CreateExamForm with relatedData:", relatedData);
   return (
     <CreateExamForm
       setOpen={setOpen}
@@ -76,7 +75,6 @@ function CreateExamForm({
     new Set(classes.map((c) => c.id))
   );
   const [submitting, setSubmitting] = useState(false);
-  console.log("Received classes for exam form:", classes);
 
   const {
     register,

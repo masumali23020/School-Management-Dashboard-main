@@ -3,11 +3,11 @@
 
 import SalaryStructureClient from "@/components/Salarystructureclient";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { redirect } from "next/navigation";
 
 export default async function SalaryManagementPage() {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   const normalizedRole = role.toUpperCase();
   if (!["ADMIN", "CASHIER"].includes(normalizedRole)) redirect("/");

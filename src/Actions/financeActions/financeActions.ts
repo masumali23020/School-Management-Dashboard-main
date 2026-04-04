@@ -3,11 +3,12 @@
 // src/Actions/FinanceActions/financeActions.ts
 
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
+
 
 // ── ROLE CHECK ─────────────────────────────────────────────
 async function requireRole(...roles: string[]) {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
   if (!roles.includes(role)) throw new Error("Unauthorized");
   return role;
 }

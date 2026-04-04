@@ -2,12 +2,13 @@
 
 import CashierClient from "@/components/Cashierclient";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
+
 import { redirect } from "next/navigation";
 
 
 export default async function CashierPage() {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
   if (!["admin", "cashier"].includes(role)) redirect("/");
 
   const classes = await prisma.class.findMany({

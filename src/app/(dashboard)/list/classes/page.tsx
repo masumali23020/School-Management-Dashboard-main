@@ -6,20 +6,21 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/db";
-import { Class, Prisma, Teacher, Subject, ClassSubjectTeacher } from "@prisma/client";
+import { Class, Prisma, Subject, ClassSubjectTeacher, Employee } from "@prisma/client";
 
 import FormContainer from "@/components/FormContainer";
-import { getUserRole } from "@/lib/utlis";
+
 import { itemPerPage } from "@/lib/setting";
 import ClassDetailModal from "@/components/Classdetailmodal";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 // Extended type with relations
 type ClassWithRelations = Class & { 
-  supervisor: Teacher | null;
+  supervisor: Employee | null;
   grade: { level: number };
   subjectTeachers: (ClassSubjectTeacher & {
     subject: Subject;
-    teacher: Teacher;
+    teacher: Employee;
   })[];
 };
 
@@ -27,7 +28,7 @@ type ClassWithRelations = Class & {
 
 const ClassListPage = async ({ searchParams }: { searchParams: { [key: string]: string | undefined } }) => {
   const { page, ...queryParams } = searchParams;
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   const p = page ? parseInt(page) : 1;
   const renderRow = (item: ClassWithRelations) => (

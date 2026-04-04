@@ -1,8 +1,9 @@
 // app/attendance/monthly/page.tsx
 import { Suspense } from "react";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+
 import MonthlyAttendanceClient from "./MonthlyAttendanceClient";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 export default async function MonthlyAttendancePage() {
@@ -42,7 +43,7 @@ export default async function MonthlyAttendancePage() {
     ],
   });
 
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

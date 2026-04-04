@@ -3,12 +3,12 @@
 
 import { getFinanceAcademicYears } from "../../../../Actions/financeActions/financeActions";
 import FinanceClient from "@/components/FinanceClient.tsx";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { redirect } from "next/navigation";
 ;
 
 export default async function FinancePage() {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
   if (!["admin", "cashier"].includes(role)) redirect("/");
 
   const academicYears = await getFinanceAcademicYears();

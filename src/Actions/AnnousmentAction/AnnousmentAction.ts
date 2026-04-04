@@ -4,7 +4,7 @@
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { AnnouncementSchema, AssignmentSchema, EventSchema,  ExamSchema } from "../../lib/FormValidationSchema";
-import { getUserRole } from "../../lib/utlis";
+
 type CreateState = { success: boolean; error: boolean; message?: string };
 
 // Result Schema Type

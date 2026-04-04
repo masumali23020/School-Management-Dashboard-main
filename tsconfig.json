@@ -1,12 +1,16 @@
 {
   "compilerOptions": {
+    
     "allowJs": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
     "types": [
-      "node"
+      "node",
+      "next-auth",
+      "next-auth/jwt"
+
     ],
     "target": "es5",
     "lib": [

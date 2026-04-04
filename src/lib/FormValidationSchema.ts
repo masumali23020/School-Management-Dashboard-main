@@ -66,34 +66,47 @@ export const classSchema = z.object({
 export type ClassSchema = z.infer<typeof classSchema>;
 
 
+
+
 export const teacherSchema = z.object({
   id: z.string().optional(),
+
+  // Auth
   username: z
     .string()
-    .min(3, { message: "Username must be at least 3 characters long!" })
-    .max(20, { message: "Username must be at most 20 characters long!" }),
+    .min(3, "Username must be at least 3 characters")
+    .max(30)
+    .regex(/^[a-z0-9_]+$/, "Lowercase letters, numbers, underscores only"),
+
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters long!" })
     .optional()
-    .or(z.literal("")),
-  name: z.string().min(1, { message: "First name is required!" }),
-  surname: z.string().min(1, { message: "Last name is required!" }),
-  email: z
-    .string()
-    .email({ message: "Invalid email address!" })
-    .optional()
-    .or(z.literal("")),
-  phone: z.string().optional(),
-  address: z.string(),
-  img: z.string().optional(),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
-  sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
-  subjects: z.array(z.string()).optional(), // subject ids
+    .refine(
+      (val) => !val || val.length >= 8,
+      "Password must be at least 8 characters"
+    ),
+
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+
+  // Personal
+  name:      z.string().min(1, "First name is required"),
+  surname:   z.string().min(1, "Last name is required"),
+  phone:     z.string().optional().or(z.literal("")),
+  address:   z.string().min(1, "Address is required"),
+  bloodType: z.string().min(1, "Blood type is required"),
+
+  // ★ string → Date transform: HTML input "YYYY-MM-DD" → Date object
+    birthday:  z.string().min(1, "Birthday is required"),
+
+  sex: z.enum(["MALE", "FEMALE"]),
+
+  // Relations
+  subjects: z.array(z.string()).optional(),
+  img:      z.string().optional().or(z.literal("")),
 });
 
 export type TeacherSchema = z.infer<typeof teacherSchema>;
+// TeacherSchema.birthday এখন Date — Prisma DateTime এর সাথে মিলবে
 
 export const staffSchema = z.object({
   id: z.string().optional(),
@@ -208,6 +221,12 @@ export const parentSchema = z.object({
 
 export type ParentSchema = z.infer<typeof parentSchema>;
 
+export const gradeSchema = z.object({
+  id: z.coerce.number().optional(),
+  level: z.coerce.number().min(1, { message: "Level is required!" }),
+});
+
+ export type GradeSchema = z.infer<typeof gradeSchema>;
 
 
 
@@ -233,7 +252,7 @@ export const studentSchema = z.object({
   address: z.string(),
   img: z.string().optional(),
   bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
+  birthday:  z.string().min(1, "Birthday is required"),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
@@ -383,3 +402,114 @@ export const BulkAttendanceSchema = z.object({
 
 export type AttendanceSchema = z.infer<typeof attendanceSchema>;
 export type BulkAttendanceSchema = z.infer<typeof BulkAttendanceSchema>;
+
+// sdfsdfsfsf   
+// ─── Plan duration map (days) ─────────────────────────────────────────────────
+export const PLAN_DURATIONS_DAYS: Record<string, number> = {
+  FREE:     30,
+  STANDARD: 180,
+  POPULAR:  365,
+};
+ 
+// ─── School Registration Schema ───────────────────────────────────────────────
+ 
+export const SchoolRegistrationSchema = z.object({
+  // School fields
+  schoolName: z
+    .string()
+    .min(3, "School name must be at least 3 characters")
+    .max(100, "School name must be under 100 characters")
+    .trim(),
+ 
+  shortName: z
+    .string()
+    .max(20, "Short name must be under 20 characters")
+    .trim()
+    .optional(),
+
+  slug: z
+    .string()
+    .min(3, "Slug must be at least 3 characters") // সর্বনিম্ন ৩ অক্ষর
+    .max(100, "Slug must be under 100 characters")
+    .trim()
+    .toLowerCase() // সব ছোট হাতের অক্ষর করে দিবে
+    .regex(/^[a-z0-9-]+$/, "Slug can only contain letters, numbers, and hyphens") // স্পেস বা স্পেশাল ক্যারেক্টার ব্লক করবে
+    .optional(),
+
+ 
+  eiinNumber: z
+    .string()
+    .regex(/^\d{6,10}$/, "EIIN must be 6–10 digits")
+    .optional()
+    .or(z.literal("")),
+ 
+  email: z
+    .string()
+    .email("Invalid school email address")
+    .optional()
+    .or(z.literal("")),
+ 
+  phone: z
+    .string()
+    .regex(/^(\+?880|0)1[3-9]\d{8}$/, "Invalid Bangladeshi phone number")
+    .optional()
+    .or(z.literal("")),
+ 
+  address: z.string().max(255).optional(),
+ 
+  planId: z
+    .number({ required_error: "Plan is required" })
+    .int()
+    .positive("Plan ID must be a positive integer"),
+ 
+  planType: z.enum(["FREE", "STANDARD", "POPULAR"], {
+    required_error: "Plan type is required",
+  }),
+ 
+  // Admin Employee fields
+  adminUsername: z
+    .string()
+    .min(4, "Username must be at least 4 characters")
+    .max(30, "Username must be under 30 characters")
+    .regex(
+      /^[a-z0-9_]+$/,
+      "Username can only contain lowercase letters, numbers, and underscores"
+    )
+    .trim(),
+ 
+  adminPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+ 
+  adminName: z
+    .string()
+    .min(2, "First name must be at least 2 characters")
+    .max(50)
+    .trim(),
+ 
+  adminSurname: z
+    .string()
+    .min(2, "Last name must be at least 2 characters")
+    .max(50)
+    .trim(),
+ 
+  adminEmail: z
+    .string()
+    .email("Invalid admin email address")
+    .optional()
+    .or(z.literal("")),
+ 
+  adminPhone: z
+    .string()
+    .regex(/^(\+?880|0)1[3-9]\d{8}$/, "Invalid phone number")
+    .optional()
+    .or(z.literal("")),
+});
+ 
+export type SchoolRegistrationInput = z.infer<typeof SchoolRegistrationSchema>;
+ 
+// ─── Inferred output type after transform ─────────────────────────────────────
+export type SchoolRegistrationParsed = SchoolRegistrationInput;
+ 

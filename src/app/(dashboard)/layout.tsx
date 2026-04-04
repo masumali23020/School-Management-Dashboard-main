@@ -4,13 +4,15 @@ import Link from "next/link";
 import Menu from "../../components/Menu";
 import Navbar from "../../components/Navbar";
 import { currentUser } from "@clerk/nextjs/server";
+import { requireSession } from "@/lib/get-session";
 
 export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-      const user = await currentUser()
+      // const user = await currentUser()
+        const user = await requireSession();
   return (
     <div className="h-screen flex">
       {/* LEFT */}

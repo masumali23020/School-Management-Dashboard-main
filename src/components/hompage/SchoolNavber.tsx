@@ -11,13 +11,13 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { label: "হোম", href: "/" },
-  { label: "আমাদের সম্পর্কে", href: "/about" },
-  { label: "একাডেমিক", href: "/academic" },
-  { label: "ভর্তি", href: "/admission" },
-  { label: "ইভেন্ট", href: "/events" },
-  { label: "যোগাযোগ", href: "/contact" },
-  { label: "নোটিশ", href: "/notice" },
+  { label: "হোম", href: "/bagulat-high-scholl/" },
+  { label: "আমাদের সম্পর্কে", href: "/bagulat-high-scholl/about" },
+  { label: "একাডেমিক", href: "/bagulat-high-scholl/academic" },
+  { label: "ভর্তি", href: "/bagulat-high-scholl/admission" },
+  { label: "ইভেন্ট", href: "/bagulat-high-scholl/events" },
+  { label: "যোগাযোগ", href: "/bagulat-high-scholl/contact" },
+  { label: "নোটিশ", href: "/bagulat-high-scholl/notice" },
 ];
 
 export default function SchoolNavbar({ settings }: NavbarProps) {

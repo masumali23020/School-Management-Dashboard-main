@@ -8,14 +8,14 @@ import { Prisma, Subject, Teacher } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
 import FormContainer from "../../../../components/FormContainer";
-import { getUserRole } from "../../../../lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 type SubjectType = Subject & { teachers: Teacher[]} 
 
 
 
 const SubjectListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const { page, ...queryParams } = searchParams;
-  const { role } = await getUserRole()
+  const { role } = await getUserRoleAuth()
 
   const p = page ? parseInt(page) : 1;
   const columns = [

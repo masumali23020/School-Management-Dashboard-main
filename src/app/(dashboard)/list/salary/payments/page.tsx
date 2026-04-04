@@ -10,11 +10,11 @@
 
 import SalaryPaymentListClient from "@/components/Salarypaymentlistclient";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { redirect } from "next/navigation";
 
 export default async function SalaryPaymentListPage() {
- const { role } = await getUserRole();
+ const { role } = await getUserRoleAuth();
   if (!["admin", "cashier"].includes(role)) redirect("/");
 
  

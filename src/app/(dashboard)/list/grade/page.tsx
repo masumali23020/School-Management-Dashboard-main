@@ -6,15 +6,16 @@ import TableSearch from "../../../../components/TableSearch";
 
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
-import { Class, Event, Grade, Prisma } from "@prisma/client";
-import { getUserRole } from "../../../../lib/utlis";
+import {  Grade, Prisma } from "@prisma/client";
+import { getUserRoleAuth } from "@/lib/logsessition";
+
 
 
 
 type EventList = Grade
 
 const renderRow = async(item: EventList) =>{ 
-  const { role } =await getUserRole();
+  const { role } =await getUserRoleAuth();
 
   return(
     <tr
@@ -42,7 +43,7 @@ const GradePage = async ({ searchParams }: { searchParams: { [key: string]: stri
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
-  const { role, userId: currentUserId } = await getUserRole()
+  const { role, userId: currentUserId } = await getUserRoleAuth()
 
   const columns = [
     {

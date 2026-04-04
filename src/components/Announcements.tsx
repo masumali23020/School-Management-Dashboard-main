@@ -1,28 +1,32 @@
+import { getUserRoleAuth } from "@/lib/logsessition";
 import prisma from "../lib/db";
 
-import { getUserRole } from "../lib/utlis";
 
 
-const Announcements = async() => {
-  const {role, userId} = await getUserRole();
+const Announcements = async () => {
+  const { role, userId } = await getUserRoleAuth();
 
- const roleConditions = {
-    teacher: { lessons: { some: { teacherId: userId! } } },
-    student: { students: { some: { id: userId! } } },
-    parent: { students: { some: { parentId: userId! } } },
+  const normalizedRole = role?.toLowerCase?.() || "";
+  const roleConditions = {
+    teacher: userId ? { lessons: { some: { teacherId: userId } } } : null,
+    student: userId ? { students: { some: { id: userId } } } : null,
+    parent: userId ? { students: { some: { parentId: userId } } } : null,
   };
+
+  const classCondition = roleConditions[normalizedRole as keyof typeof roleConditions];
+
+  const whereClause: any = {};
+  if (normalizedRole !== "admin") {
+    whereClause.OR = [{ classId: null }];
+    if (classCondition) {
+      whereClause.OR.push({ class: classCondition });
+    }
+  }
 
   const data = await prisma.announcement.findMany({
     take: 3,
     orderBy: { date: "desc" },
-    where: {
-      ...(role !== "admin" && {
-        OR: [
-          { classId: null },
-          { class: roleConditions[role as keyof typeof roleConditions] || {} },
-        ],
-      }),
-    },
+    where: whereClause,
   });
 
   return (

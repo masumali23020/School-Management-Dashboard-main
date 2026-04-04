@@ -5,20 +5,21 @@ import Announcements from "../../../../../components/Announcements";
 import BigCalendar from "../../../../../components/BigCalender";
 import Performance from "../../../../../components/Performance";
 import { notFound } from "next/navigation";
-import { getUserRole } from "../../../../../lib/utlis";
+
 import prisma from "../../../../../lib/db";
 import { Class, Student } from "@prisma/client";
 import FormContainer from "../../../../../components/FormContainer";
 import StudentAttendanceCard from "../../../../../components/StudentAttendanceCard";
 import { Suspense } from "react";
 import BigCalendarContainer from "../../../../../components/BigCalendarContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 const SingleStudentPage = async ({
   params: { id },
 }: {
   params: { id: string };
 }) => {
 
-  const { role} =await getUserRole(); 
+  const { role} =await getUserRoleAuth(); 
 
    const student:
     | (Student & {

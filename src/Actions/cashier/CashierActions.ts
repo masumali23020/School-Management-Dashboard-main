@@ -1,31 +1,40 @@
 "use server";
 
-import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "../../lib/db";
-import { CashierSchema, TeacherSchema } from "../../lib/FormValidationSchema";
+import { CashierSchema } from "../../lib/FormValidationSchema";
 import { UserRole } from "@prisma/client";
+import { getUserRoleAuth } from "@/lib/logsessition";
+import { nanoid } from "nanoid";
+import { revalidatePath } from "next/cache";
 
-type CreateState = { success: boolean; error: boolean };
+type CreateState = { 
+  success: boolean; 
+  error: boolean; 
+  message?: string 
+};
 
-export const createTeacher = async (
-  CreateState: CreateState,
+/**
+ * ১. ক্যাশিয়ার তৈরি করা
+ */
+export const createCashier = async (
+  prevState: CreateState,
   data: CashierSchema
 ) => {
   try {
-    const client = await clerkClient();
-    const user = await client.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata: { role: "STAFF" }
-    });
+    const { schoolId } = await getUserRoleAuth();
+
+    if (!schoolId) {
+      return { success: false, error: true, message: "স্কুল আইডি পাওয়া যায়নি।" };
+    }
 
     await prisma.employee.create({
       data: {
-        id: user.id,
+        // আইডি জেনারেট করা (Prefix: emp_cash_)
+        id: `emp_cash_${nanoid(10)}`,
+        schoolId: Number(schoolId),
         username: data.username,
-        role: UserRole.STAFF, // নিশ্চিত করা হলো সে একজন টিচার
+        password: data.password, // মনে রাখবেন: প্রোডাকশনে পাসওয়ার্ড হাশ (Hash) করা উচিত
+        role: UserRole.CASHIER,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -35,73 +44,90 @@ export const createTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-     
-      }
-    });
-
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
-
-export const updateTeacher = async (
-  CreateState: CreateState,
-  data: CashierSchema
-) => {
-  if (!data.id || data.id === "0") return { success: false, error: true };
-
-  try {
-    const client = await clerkClient();
-    await client.users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
-    });
-
-    await prisma.employee.update({
-      where: { id: data.id },
-      data: {
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-       
       },
     });
+
+    revalidatePath("/list/cashiers");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.error("Create Cashier Error:", err);
     return { success: false, error: true };
   }
 };
 
-export const deleteTeacher = async (
-  CreateState: CreateState,
-  data: FormData
+/**
+ * ২. ক্যাশিয়ার আপডেট করা
+ */
+export const updateCashier = async (
+  prevState: CreateState,
+  data: CashierSchema
 ) => {
-  const id = data.get("id") as string;
-  try {
-    const client = await clerkClient();
-    await client.users.deleteUser(id);
+  if (!data.id) return { success: false, error: true, message: "ID missing" };
 
-    await prisma.employee.delete({
-      where: { id: id },
+  try {
+    const { schoolId } = await getUserRoleAuth();
+
+    if (!schoolId) {
+      return { success: false, error: true };
+    }
+
+    await prisma.employee.update({
+      where: { 
+        id: data.id,
+        schoolId: Number(schoolId) // নিশ্চিত করা যে সে এই স্কুলেরই কর্মচারী
+      },
+      data: {
+        username: data.username,
+        ...(data.password && { password: data.password }), // যদি নতুন পাসওয়ার্ড দেয়
+        name: data.name,
+        surname: data.surname,
+        email: data.email || null,
+        phone: data.phone || null,
+        address: data.address,
+        img: data.img || null,
+        bloodType: data.bloodType,
+        sex: data.sex,
+        birthday: data.birthday,
+      },
     });
 
+    revalidatePath("/list/cashiers");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.error("Update Cashier Error:", err);
     return { success: false, error: true };
   }
 };
 
+/**
+ * ৩. ক্যাশিয়ার ডিলিট করা
+ */
+export const deleteCashier = async (
+  prevState: CreateState,
+  formData: FormData
+) => {
+  const id = formData.get("id") as string;
 
+  if (!id) return { success: false, error: true };
+
+  try {
+    const { schoolId } = await getUserRoleAuth();
+
+    if (!schoolId) {
+      return { success: false, error: true };
+    }
+
+    await prisma.employee.delete({
+      where: { 
+        id: id,
+        schoolId: Number(schoolId) // সিকিউরিটি চেক
+      },
+    });
+
+    revalidatePath("/list/cashiers");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Delete Cashier Error:", err);
+    return { success: false, error: true };
+  }
+};

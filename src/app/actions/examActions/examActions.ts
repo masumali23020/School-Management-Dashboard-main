@@ -38,13 +38,19 @@ export async function getExamList({
 
   switch (role) {
     case "teacher":
-      where.lesson.teacherId = currentUserId;
+      if (currentUserId) {
+        where.lesson.teacherId = currentUserId;
+      }
       break;
     case "student":
-      where.lesson.class = { students: { some: { id: currentUserId } } };
+      if (currentUserId) {
+        where.lesson.class = { students: { some: { id: currentUserId } } };
+      }
       break;
     case "parent":
-      where.lesson.class = { students: { some: { parentId: currentUserId } } };
+      if (currentUserId) {
+        where.lesson.class = { students: { some: { parentId: currentUserId } } };
+      }
       break;
   }
 

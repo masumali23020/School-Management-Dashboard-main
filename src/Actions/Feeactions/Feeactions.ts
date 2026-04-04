@@ -2,7 +2,8 @@
 
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getUserRole } from "@/lib/utlis";
+
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 // ── Helper: generate invoice number ──────────────────────────────────────────
 
@@ -18,7 +19,7 @@ async function generateInvoiceNumber(): Promise<string> {
 // ── Helper: check role ────────────────────────────────────────────────────────
 
 async function requireRole(...roles: string[]) {
-  const { role } = await getUserRole();
+   const { role } = await getUserRoleAuth();
   if (!roles.includes(role)) throw new Error("Unauthorized");
   return role;
 }
@@ -301,7 +302,7 @@ export async function recordPayment(data: {
   // ── 1. Auth + get cashier's userId ────────────────────────────────────
   let cashierId: string;
   try {
-    const result = await getUserRole() as { role: string; userId: string };
+    const result = await getUserRoleAuth() as { role: string; userId: string };
     const { role, userId } = result;
     if (!["admin", "cashier"].includes(role)) {
       return { success: false, error: "AUTH_FAILED: You do not have permission to record payments." };

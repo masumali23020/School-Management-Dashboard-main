@@ -10,6 +10,7 @@ import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
 import { Class, Lesson, Subject,Prisma, Employee } from "@prisma/client/edge";
 import prisma from "../../../../lib/db";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Employee;
@@ -19,7 +20,7 @@ type Lessontype = Lesson & { subject: Subject } & { class: Class } & {
 
 const LessonListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const { page, ...queryParams } = searchParams;
-  const {role, userId:currentUserId} = await getUserRole()
+  const {role, userId:currentUserId} = await getUserRoleAuth()
 
   const p = page ? parseInt(page) : 1;
   const columns = [

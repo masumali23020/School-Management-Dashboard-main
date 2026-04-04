@@ -1,19 +1,26 @@
-// Actions/ClassSubjectTeacherActions/index.ts
-
 "use server";
 
 import { ClassSubjectTeacherSchema } from "@/lib/FormValidationSchema";
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type CreateState = { success: boolean; error: boolean; message?: string };
 
+/**
+ * ১. ক্লাস, বিষয় এবং শিক্ষক এসাইন করা (Create)
+ */
 export const createClassSubjectTeacher = async (
-  CreateState: CreateState,
+  prevState: CreateState,
   data: ClassSubjectTeacherSchema
 ) => {
   try {
-    // Check if assignment already exists
+    const { schoolId } = await getUserRoleAuth();
+    if (!schoolId) return { success: false, error: true, message: "Unauthorized" };
+
+    const sId = Number(schoolId);
+
+    // ১. চেক করা: এই একাডেমিক বছরে এই ক্লাসে এই বিষয় ইতিমধ্যে এসাইন করা আছে কি না
     const existing = await prisma.classSubjectTeacher.findUnique({
       where: {
         classId_subjectId_academicYear: {
@@ -28,39 +35,19 @@ export const createClassSubjectTeacher = async (
       return { 
         success: false, 
         error: true, 
-        message: "This subject is already assigned to this class for this academic year" 
+        message: "এই ক্লাসে এই বিষয়টি ইতিমধ্যে এই বছরে এসাইন করা হয়েছে।" 
       };
     }
 
-    // Verify that class, subject, and teacher exist
+    // ২. ভেরিফাই করা: ক্লাস, বিষয় এবং টিচার এই নির্দিষ্ট স্কুলের কি না (Security Check)
     const [classExists, subjectExists, teacherExists] = await Promise.all([
-      prisma.class.findUnique({ where: { id: data.classId } }),
-      prisma.subject.findUnique({ where: { id: data.subjectId } }),
-      prisma.employee.findUnique({ where: { id: data.teacherId } }),
+      prisma.class.findUnique({ where: { id: data.classId, schoolId: sId } }),
+      prisma.subject.findUnique({ where: { id: data.subjectId, schoolId: sId } }),
+      prisma.employee.findUnique({ where: { id: data.teacherId, schoolId: sId } }),
     ]);
 
-    if (!classExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected class does not exist" 
-      };
-    }
-
-    if (!subjectExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected subject does not exist" 
-      };
-    }
-
-    if (!teacherExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected teacher does not exist" 
-      };
+    if (!classExists || !subjectExists || !teacherExists) {
+      return { success: false, error: true, message: "নির্বাচিত ডাটা আপনার স্কুলের সিস্টেমে নেই।" };
     }
 
     await prisma.classSubjectTeacher.create({
@@ -69,30 +56,33 @@ export const createClassSubjectTeacher = async (
         subjectId: data.subjectId,
         teacherId: data.teacherId,
         academicYear: data.academicYear,
+        // যদি আপনার মডেলে schoolId থাকে তবে এখানে যোগ করুন
+        schoolId: sId 
       },
     });
 
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
-    // revalidatePath("/teacher");
-    
-    return { success: true, error: false, message: "Assignment created successfully" };
+    revalidatePath("/list/class-subject-teacher"); // আপনার লিস্ট পেজ পাথ অনুযায়ী
+    return { success: true, error: false, message: "সফলভাবে এসাইন করা হয়েছে।" };
   } catch (err) {
-    // console.error("Error creating class subject teacher:", err);
-    return { success: false, error: true, message: "Failed to create assignment" };
+    console.error("Create Assignment Error:", err);
+    return { success: false, error: true, message: "প্রযুক্তিগত সমস্যা হয়েছে।" };
   }
 };
 
+/**
+ * ২. এসাইনমেন্ট আপডেট করা (Update)
+ */
 export const updateClassSubjectTeacher = async (
-  CreateState: CreateState,
+  prevState: CreateState,
   data: ClassSubjectTeacherSchema
 ) => {
-  if (!data.id || data.id === 0) {
-    return { success: false, error: true, message: "Invalid ID for update" };
-  }
+  if (!data.id) return { success: false, error: true, message: "ID missing" };
 
   try {
-    // Check for duplicate excluding current
+    const { schoolId } = await getUserRoleAuth();
+    const sId = Number(schoolId);
+
+    // ডুপ্লিকেট চেক (নিজেরটা বাদে)
     const existing = await prisma.classSubjectTeacher.findFirst({
       where: {
         classId: data.classId,
@@ -103,42 +93,7 @@ export const updateClassSubjectTeacher = async (
     });
 
     if (existing) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "This subject is already assigned to this class for this academic year" 
-      };
-    }
-
-    // Verify that class, subject, and teacher exist
-    const [classExists, subjectExists, teacherExists] = await Promise.all([
-      prisma.class.findUnique({ where: { id: data.classId } }),
-      prisma.subject.findUnique({ where: { id: data.subjectId } }),
-      prisma.employee.findUnique({ where: { id: data.teacherId } }),
-    ]);
-
-    if (!classExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected class does not exist" 
-      };
-    }
-
-    if (!subjectExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected subject does not exist" 
-      };
-    }
-
-    if (!teacherExists) {
-      return { 
-        success: false, 
-        error: true, 
-        message: "Selected teacher does not exist" 
-      };
+      return { success: false, error: true, message: "এই এসাইনমেন্ট ইতিমধ্যে বিদ্যমান।" };
     }
 
     await prisma.classSubjectTeacher.update({
@@ -151,129 +106,75 @@ export const updateClassSubjectTeacher = async (
       },
     });
 
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
-    // revalidatePath("/teacher");
-    
-    return { success: true, error: false, message: "Assignment updated successfully" };
+    revalidatePath("/list/class-subject-teacher");
+    return { success: true, error: false, message: "সফলভাবে আপডেট করা হয়েছে।" };
   } catch (err) {
-    // console.error("Error updating class subject teacher:", err);
-    return { success: false, error: true, message: "Failed to update assignment" };
+    return { success: false, error: true, message: "আপডেট ব্যর্থ হয়েছে।" };
   }
 };
 
+/**
+ * ৩. এসাইনমেন্ট ডিলিট করা (Delete)
+ */
 export const deleteClassSubjectTeacher = async (
-  CreateState: CreateState,
-  data: FormData
+  prevState: CreateState,
+  formData: FormData
 ) => {
-  const id = data.get("id") as string;
-  
-  if (!id) {
-    return { success: false, error: true, message: "ID is required" };
-  }
+  const idStr = formData.get("id") as string;
+  if (!idStr) return { success: false, error: true, message: "ID missing" };
 
   try {
-    const assignmentId = parseInt(id);
+    const id = parseInt(idStr);
 
-    // Check if assignment has related lessons
+    // চেক করা: এই এসাইনমেন্টের আন্ডারে কোনো 'Lesson' তৈরি করা আছে কি না
     const hasLessons = await prisma.lesson.findFirst({
-      where: { classSubjectTeacherId: assignmentId },
+      where: { classSubjectTeacherId: id },
     });
 
     if (hasLessons) {
       return { 
         success: false, 
         error: true, 
-        message: "Cannot delete assignment because it has related lessons. Delete the lessons first." 
+        message: "এই এসাইনমেন্ট ডিলিট করা যাবে না কারণ এর অধীনে লেসন/ক্লাস রেকর্ড আছে।" 
       };
     }
 
     await prisma.classSubjectTeacher.delete({
-      where: { id: assignmentId },
+      where: { id },
     });
 
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
-    // revalidatePath("/teacher");
-    
-    return { success: true, error: false, message: "Assignment deleted successfully" };
+    revalidatePath("/list/class-subject-teacher");
+    return { success: true, error: false, message: "সফলভাবে ডিলিট করা হয়েছে।" };
   } catch (err) {
-    // console.error("Error deleting class subject teacher:", err);
-    return { success: false, error: true, message: "Failed to delete assignment" };
+    return { success: false, error: true, message: "ডিলিট করা সম্ভব হয়নি।" };
   }
 };
 
-// Get all assignments with filters
-export const getClassSubjectTeachers = async (filters?: {
-  classId?: number;
-  subjectId?: number;
-  teacherId?: string;
-  academicYear?: string;
-}) => {
+/**
+ * ৪. লিস্ট নিয়ে আসা (Get All)
+ */
+export const getClassSubjectTeachers = async (filters?: any) => {
   try {
-    const where: any = {};
-
-    if (filters?.classId) where.classId = filters.classId;
-    if (filters?.subjectId) where.subjectId = filters.subjectId;
-    if (filters?.teacherId) where.teacherId = filters.teacherId;
-    if (filters?.academicYear) where.academicYear = filters.academicYear;
+    const { schoolId } = await getUserRoleAuth();
+    const sId = Number(schoolId);
 
     const assignments = await prisma.classSubjectTeacher.findMany({
-      where,
+      where: {
+        ...filters,
+        // নিশ্চিত করা শুধু নিজের স্কুলের ডাটা আসছে
+        class: { schoolId: sId } 
+      },
       include: {
-        class: {
-          include: {
-            grade: true,
-          },
-        },
+        class: { include: { grade: true } },
         subject: true,
         teacher: true,
-        lessons: true,
+        _count: { select: { lessons: true } }
       },
-      orderBy: [
-        { academicYear: 'desc' },
-        { class: { name: 'asc' } },
-        { subject: { name: 'asc' } },
-      ],
+      orderBy: { academicYear: 'desc' },
     });
 
     return { success: true, data: assignments };
   } catch (err) {
-    // console.error("Error fetching assignments:", err);
-    return { success: false, error: true, message: "Failed to fetch assignments" };
-  }
-};
-
-// Get single assignment by ID
-export const getClassSubjectTeacherById = async (id: number) => {
-  try {
-    const assignment = await prisma.classSubjectTeacher.findUnique({
-      where: { id },
-      include: {
-        class: {
-          include: {
-            grade: true,
-          },
-        },
-        subject: true,
-        teacher: true,
-        lessons: {
-          include: {
-            _count: {
-              select: {
-                exams: true,
-                assignments: true,
-                attendances: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return { success: true, data: assignment };
-  } catch (err) {
-    // console.error("Error fetching assignment:", err);
-    return { success: false, error: true, message: "Failed to fetch assignment" };
+    return { success: false, error: true, message: "ডাটা লোড করা সম্ভব হয়নি।" };
   }
 };

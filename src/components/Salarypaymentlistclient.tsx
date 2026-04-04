@@ -134,7 +134,6 @@ const fetchData = useCallback(async () => {
   // ── Pagination slice ──────────────────────────────────────────────────────
   const perPage   = itemPerPage || 20;
   const pageSlice = displayPayments.slice((page - 1) * perPage, page * perPage);
-  console.log({ displayPayments, pageSlice });
 
   // ── Individual invoice PDF ────────────────────────────────────────────────
 const convertDecimalsToNumbers = (data: any): SalaryInvoiceData => {

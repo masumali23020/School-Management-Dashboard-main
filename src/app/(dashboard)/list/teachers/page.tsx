@@ -8,8 +8,9 @@ import TableSearch from "../../../../components/TableSearch";
 
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
-import { getUserRole } from "../../../../lib/utlis";
+
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type TeacheType = Employee & { subjects: Subject[] } & { classes: Class[] }
 
@@ -25,7 +26,7 @@ const TeacherListPage = async ({
   const { page, ...queryParams } = searchParams;
   let p = page ? parseInt(page) : 1
 
-  const { role, userId:currentUserId } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   
 const columns = [

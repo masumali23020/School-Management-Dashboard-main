@@ -69,7 +69,6 @@ export function AssignmentMarksTable({
 
   // যখন results প্রপ্স পরিবর্তন হয়, তখন localResults আপডেট করি
   useEffect(() => {
-    console.log("📥 Results received from database:", results);
     if (results && Object.keys(results).length > 0) {
       setLocalResults(results);
       setDataLoaded(true);

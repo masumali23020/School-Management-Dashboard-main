@@ -7,9 +7,10 @@ import prisma from "@/lib/db";
 import { getUserRole } from "@/lib/utlis";
 import FormModal from "@/components/FormModal";
 import FormContainer from "@/components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 const SubjectDetailPage = async ({ params }: { params: { id: string } }) => {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
   const subjectId = parseInt(params.id);
 
   const subject = await prisma.subject.findUnique({

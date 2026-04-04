@@ -6,14 +6,14 @@ import prisma from "../../../../../lib/db";
 import FormContainer from "../../../../../components/FormContainer";
 import Announcements from "../../../../../components/Announcements";
 import Performance from "../../../../../components/Performance";
-import { getUserRole } from "../../../../../lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 const SingleParentPage = async ({
   params: { id },
 }: {
   params: { id: string };
 }) => {
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   const parent:
     | (Parent & {

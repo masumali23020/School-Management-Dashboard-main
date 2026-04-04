@@ -3,8 +3,9 @@
 
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import { getUserRole } from "@/lib/utlis";
+
 import ClassStudentClient from "@/components/Classstudentclient";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 type Props = {
@@ -40,7 +41,7 @@ export default async function ClassDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { academicYear: academicYearParam } = await searchParams;
 
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
   const isAdmin = role === "admin";
 
   const { byName, byId } = slugToClassName(slug);

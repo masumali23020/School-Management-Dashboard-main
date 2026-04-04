@@ -7,15 +7,16 @@ import TableSearch from "../../../../components/TableSearch";
 import { Class, Grade, Prisma, Student } from "@prisma/client";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
-import { getUserRole } from "../../../../lib/utlis";
+
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 type StudentListPageType = Student & { class: Class } & {grades: Grade[]};
 
 
 
 const StudentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const { page, ...queryParams } = searchParams;
-  const {role} = await getUserRole()
+  const {role} = await getUserRoleAuth()
 
   const p = page ? parseInt(page) : 1;
   

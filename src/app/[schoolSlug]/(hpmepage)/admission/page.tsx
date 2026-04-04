@@ -3,6 +3,7 @@ import Footer from "@/components/hompage/Footer";
 import SchoolNavbar from "@/components/hompage/SchoolNavber";
 import prisma from "@/lib/db";
 import { getSchoolSettings } from "@/lib/getSchoolData";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import Link from "next/link";
 
 export const metadata = { title: "ভর্তি তথ্য" };
@@ -94,9 +95,17 @@ const notices = [
 ];
 
 export default async function AdmissionPage() {
+    const { schoolId } = await getUserRoleAuth(); 
+  
+   
+    if (!schoolId) {
+      return <div>স্কুল তথ্য পাওয়া যায়নি। দয়া করে লগইন করুন।</div>;
+    }
+
   const [settings, classes] = await Promise.all([
     getSchoolSettings(),
     prisma.class.findMany({
+      where: { schoolId: schoolId },
       include: {
         grade: true,
         _count: { select: { students: true } },

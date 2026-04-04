@@ -7,14 +7,14 @@ import TableSearch from "../../../../components/TableSearch";
 import { itemPerPage } from "../../../../lib/setting";
 import prisma from "../../../../lib/db";
 import { Class, Event, Prisma } from "@prisma/client";
-import { getUserRole } from "../../../../lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 
 type EventList = Event & { class: Class[] | null }
 
 const renderRow = async(item: EventList) =>{ 
-  const { role } =await getUserRole();
+  const { role } =await getUserRoleAuth();
 
   return(
     <tr
@@ -59,7 +59,7 @@ const EventListPage = async ({ searchParams }: { searchParams: { [key: string]: 
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
-  const { role, userId: currentUserId } = await getUserRole()
+  const { role, userId: currentUserId } = await getUserRoleAuth()
 
   const columns = [
     {

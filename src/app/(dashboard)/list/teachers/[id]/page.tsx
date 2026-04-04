@@ -10,6 +10,7 @@ import Announcements from "../../../../../components/Announcements";
 import Performance from "../../../../../components/Performance";
 import { getUserRole } from "../../../../../lib/utlis";
 import BigCalendarContainer from "../../../../../components/BigCalendarContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 const SingleTeacherPage = async ({
   params: { id },
@@ -17,7 +18,7 @@ const SingleTeacherPage = async ({
   params: { id: string };
 }) => {
 
-  const { role} =await getUserRole(); 
+  const { role} =await getUserRoleAuth(); 
 
   const teacher:
     | (Teacher & {

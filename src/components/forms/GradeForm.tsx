@@ -1,23 +1,20 @@
+// components/forms/GradeForm.tsx
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
-
-
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { createGrade, updateGrade } from "@/Actions/GradeActions/GradeActions";
-
+import { gradeSchema, type GradeSchema } from "@/lib/FormValidationSchema";
 
 const GradeForm = ({
   type,
   data,
   setOpen,
-  relatedData,
 }: {
   type: "create" | "update";
   data?: any;
@@ -30,64 +27,82 @@ const GradeForm = ({
     formState: { errors },
   } = useForm<GradeSchema>({
     resolver: zodResolver(gradeSchema),
+    defaultValues: {
+      id: data?.id,
+      level: data?.level || "",
+    },
   });
-
-  const [img, setImg] = useState<any>();
 
   const [state, formAction] = useFormState(
     type === "create" ? createGrade : updateGrade,
     {
       success: false,
       error: false,
+      message: "",
     }
   );
 
-
-  const onSubmit = handleSubmit((data) => {
-    // console.log("hello");
-    // console.log(data);
-    // console.log(img.url);
-    formAction(data);
+  const onSubmit = handleSubmit((formData) => {
+    const payload: GradeSchema = {
+      level: formData.level,
+    };
+    
+    // Only add id for update
+    if (type === "update" && data?.id) {
+      payload.id = data.id;
+    }
+    
+    formAction(payload);
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Grade has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Grade has been ${type === "create" ? "created" : "updated"} successfully!`);
       setOpen(false);
       router.refresh();
     }
     if (state.error) {
-     toast(`Grade can not be ${type === "create" ? "created" : "updated"}!`);
+      toast.error(state.message || `Failed to ${type === "create" ? "create" : "update"} grade!`);
     }
   }, [state, router, type, setOpen]);
-
-//   const { grades, classes } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new Grade" : "Update the Grade"}
       </h1>
+      
       <span className="text-xs text-gray-400 font-medium">
-        Create Grade 
+        Grade Information
       </span>
+      
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="level"
+          label="Grade Level"
           name="level"
           defaultValue={data?.level}
           register={register}
           error={errors?.level}
+       
         />
         
+        {/* Hidden ID field for update */}
+        {type === "update" && data?.id && (
+          <input type="hidden" {...register("id")} value={data.id} />
+        )}
       </div>
+      
       {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
+        <span className="text-red-500 text-sm">{state.message}</span>
       )}
-      <button type="submit" className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      
+      <button 
+        type="submit" 
+        className="bg-blue-400 text-white p-2 rounded-md hover:bg-blue-500 transition-colors"
+      >
+        {type === "create" ? "Create Grade" : "Update Grade"}
       </button>
     </form>
   );

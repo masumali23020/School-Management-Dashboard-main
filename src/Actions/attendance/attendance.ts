@@ -1,11 +1,18 @@
 "use server";
 
-import prisma from "../../lib/db"; // আপনার prisma ক্লায়েন্ট পাথ চেক করে নিন
+import prisma from "../../lib/db";
 import { revalidatePath } from "next/cache";
-
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 export const bulkAttendance = async (prevState: any, formData: FormData) => {
   try {
+    // ১. বর্তমান ইউজারের schoolId এবং অথরাইজেশন চেক
+    const { schoolId } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { success: false, error: true, message: "Unauthorized: School ID not found." };
+    }
+
     const rawData = formData.get("attendances");
     
     if (!rawData) {
@@ -18,41 +25,45 @@ export const bulkAttendance = async (prevState: any, formData: FormData) => {
       return { success: false, error: true, message: "No changes to save" };
     }
 
-    // Transaction ব্যবহার করে সব ডাটা একসাথে সেভ করা
+    // ২. ট্রানজেকশন অপারেশনগুলো তৈরি করা
     const operations = attendances.map((item: any) => {
+      // টাইমজোন ইস্যু এড়াতে তারিখের সময় জিরো করে দেওয়া ভালো
       const dateObj = new Date(item.date);
-      // প্রয়োজনে টাইমজোন ঠিক করতে হতে পারে, তবে ISO string সাধারণত কাজ করে
+      dateObj.setHours(0, 0, 0, 0); 
       
       return prisma.attendance.upsert({
-        // যেহেতু আপনার মডেলে @@unique([date, studentId]) আছে
         where: {
+          // আপনার মডেলে থাকা ইউনিক ইনডেক্স অনুযায়ী
           date_studentId: {
             date: dateObj,
             studentId: item.studentId,
           },
         },
-        // যদি ডাটা না থাকে তবে তৈরি করবে
         create: {
           studentId: item.studentId,
           date: dateObj,
           present: item.present,
-          lessonId: item.lessonId || null, // যদি lessonId থাকে
+          // লজিক: উপস্থিত না থাকলে (False) অনুপস্থিত (Absent) হিসেবে গণ্য হবে
+          // যদি আপনার মডেলে schoolId থাকে তবে এখানে যোগ করুন
+          // schoolId: Number(schoolId), 
         },
-        // যদি ডাটা থাকে তবে আপডেট করবে
         update: {
           present: item.present,
         },
       });
     });
 
+    // ৩. সব অপারেশন একসাথে ডাটাবেজে পাঠানো
     await prisma.$transaction(operations);
 
-    revalidatePath("/attendance/monthly"); // পেজ রিফ্রেশ করে নতুন ডাটা দেখাবে
+    // ৪. পাথ রিভ্যালিডেট করা (আপনার রাউট অনুযায়ী পাথটি চেক করুন)
+    revalidatePath("/attendance/monthly"); 
+    revalidatePath("/list/attendance");
 
     return { 
       success: true, 
       error: false, 
-      message: `Successfully saved ${attendances.length} attendance records.` 
+      message: `Successfully saved ${attendances.length} records.` 
     };
     
   } catch (error: any) {
@@ -60,7 +71,7 @@ export const bulkAttendance = async (prevState: any, formData: FormData) => {
     return { 
       success: false, 
       error: true, 
-      message: error.message || "Database error occurred" 
+      message: "ডাটাসেইভ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।" 
     };
   }
 };

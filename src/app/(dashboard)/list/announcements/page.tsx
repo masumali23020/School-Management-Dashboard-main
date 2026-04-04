@@ -8,8 +8,9 @@ import TableSearch from "../../../../components/TableSearch";
 import prisma from "../../../../lib/db";
 import { Announcement, Class, Prisma } from "@prisma/client";
 import { itemPerPage } from "../../../../lib/setting";
-import { getUserRole } from "../../../../lib/utlis";
+
 import FormContainer from "../../../../components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 
@@ -19,7 +20,7 @@ type AnnouncementType = Announcement & {class: Class[]}
 
 const AnnouncementListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const { page, ...queryParams } = searchParams;
-  const {role, userId:currentUserId} = await getUserRole()
+  const {role, userId:currentUserId} = await getUserRoleAuth()
 
 
   const p = page ? parseInt(page) : 1;

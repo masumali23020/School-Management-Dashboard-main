@@ -2,30 +2,48 @@
 
 import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "../../lib/db";
-import { StaffSchema, TeacherSchema } from "../../lib/FormValidationSchema";
+import { StaffSchema } from "../../lib/FormValidationSchema";
 import { UserRole } from "@prisma/client";
+import { getUserRoleAuth } from "@/lib/logsessition";
+import { revalidatePath } from "next/cache";
 
-type CreateState = { success: boolean; error: boolean };
+type CreateState = { success: boolean; error: boolean; message?: string };
 
-export const createTeacher = async (
-  CreateState: CreateState,
+/**
+ * ১. স্টাফ তৈরি করা (Create Staff)
+ */
+export const createStaff = async (
+  prevState: CreateState,
   data: StaffSchema
 ) => {
   try {
+    const { schoolId } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { success: false, error: true, message: "স্কুল আইডি পাওয়া যায়নি।" };
+    }
+
     const client = await clerkClient();
+    
+    // Clerk-এ ইউজার তৈরি করা
     const user = await client.users.createUser({
       username: data.username,
       password: data.password,
       firstName: data.name,
       lastName: data.surname,
-      publicMetadata: { role: "STAFF" }
+      publicMetadata: { 
+        role: "STAFF",
+        schoolId: schoolId 
+      }
     });
 
+    // Prisma ডাটাবেজে ডাটা সেভ করা
     await prisma.employee.create({
       data: {
         id: user.id,
+        schoolId: Number(schoolId),
         username: data.username,
-        role: UserRole.STAFF, // নিশ্চিত করা হলো সে একজন টিচার
+        role: UserRole.STAFF, 
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -35,34 +53,48 @@ export const createTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-     
       }
     });
 
+    revalidatePath("/list/staffs");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Staff Creation Error:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.errors?.[0]?.message || "স্টাফ তৈরি করতে সমস্যা হয়েছে।" 
+    };
   }
 };
 
-export const updateTeacher = async (
-  CreateState: CreateState,
+/**
+ * ২. স্টাফ আপডেট করা (Update Staff)
+ */
+export const updateStaff = async (
+  prevState: CreateState,
   data: StaffSchema
 ) => {
-  if (!data.id || data.id === "0") return { success: false, error: true };
+  if (!data.id) return { success: false, error: true };
 
   try {
+    const { schoolId } = await getUserRoleAuth();
     const client = await clerkClient();
+
+    // Clerk আপডেট
     await client.users.updateUser(data.id, {
       username: data.username,
-      ...(data.password !== "" && { password: data.password }),
+      ...(data.password && { password: data.password }),
       firstName: data.name,
       lastName: data.surname,
     });
 
+    // Prisma আপডেট
     await prisma.employee.update({
-      where: { id: data.id },
+      where: { 
+        id: data.id,
+        schoolId: Number(schoolId) 
+      },
       data: {
         username: data.username,
         name: data.name,
@@ -74,34 +106,46 @@ export const updateTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-       
       },
     });
+
+    revalidatePath("/list/staffs");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.error("Staff Update Error:", err);
     return { success: false, error: true };
   }
 };
 
-export const deleteTeacher = async (
-  CreateState: CreateState,
-  data: FormData
+/**
+ * ৩. স্টাফ ডিলিট করা (Delete Staff)
+ */
+export const deleteStaff = async (
+  prevState: CreateState,
+  formData: FormData
 ) => {
-  const id = data.get("id") as string;
+  const id = formData.get("id") as string;
+  if (!id) return { success: false, error: true };
+
   try {
+    const { schoolId } = await getUserRoleAuth();
     const client = await clerkClient();
+
+    // Clerk থেকে রিমুভ করা
     await client.users.deleteUser(id);
 
+    // ডাটাবেজ থেকে রিমুভ করা
     await prisma.employee.delete({
-      where: { id: id },
+      where: { 
+        id: id,
+        schoolId: Number(schoolId) 
+      },
     });
 
+    revalidatePath("/list/staffs");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.error("Staff Delete Error:", err);
     return { success: false, error: true };
   }
 };
-
-

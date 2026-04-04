@@ -1,55 +1,55 @@
+// components/Menu.tsx
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/db";
 import ClassesSubMenu from "./Classessubmen";
 import ResultsSubMenu from "./Resultssubmenu ";
 
-
+// Define menu items with role visibility
 const menuItems = [
   {
     title: "MENU",
     items: [
-      { icon: "/home.png", label: "Home", href: "/", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/teacher.png", label: "Teachers", href: "/list/teachers", visible: ["admin", "teacher"] },
-      { icon: "/student.png", label: "Students", href: "/list/students", visible: ["admin", "teacher"] },
-      { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["admin", "teacher"] },
-      { icon: "/cashier.png", label: "Acounting", href: "/list/fees/cashier", visible: ["admin", "cashier"] },
-      { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: ["admin", "cashier"] },
-      { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: ["admin", "cashier"] },
-      { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: ["admin", "cashier"] },
-      { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["admin", "cashier"] },
-    { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["admin", "cashier"] },
-      { icon: "/subject.png", label: "Subjects", href: "/list/subjects", visible: ["admin"] },
-      // "Classes" removed → ClassesSubMenu injected before "Lessons"
-      { icon: "/lesson.png", label: "Grade", href: "/list/grade", visible: ["admin", "teacher"] },
-      { icon: "/lesson.png", label: "Lessons", href: "/list/lessons", visible: ["admin", "teacher"] },
-      { icon: "/exam.png", label: "Exams", href: "/list/exams", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/assignment.png", label: "Assignments", href: "/list/assignments", visible: ["admin", "teacher", "student", "parent"] },
-      // "Results" removed → ResultsSubMenu injected before "Attendance"
-      { icon: "/attendance.png", label: "Attendance", href: "/list/attendance", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/calendar.png", label: "Events", href: "/list/events", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/message.png", label: "Messages", href: "/list/messages", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/announcement.png", label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/results.png", label: "Results", href: "/result", visible: ["admin", "teacher", "cashier"] },
+      { icon: "/home.png", label: "Home", href: "/", visible: ["ADMIN", "TEACHER", "STAFF", "CASHIER"] },
+      { icon: "/teacher.png", label: "Teachers", href: "/list/teachers", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/student.png", label: "Students", href: "/list/students", visible: ["ADMIN", "TEACHER", "STAFF"] },
+      { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/cashier.png", label: "Accounting", href: "/list/fees/cashier", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/subject.png", label: "Subjects", href: "/list/subjects", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/lesson.png", label: "Grade", href: "/list/grade", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/lesson.png", label: "Lessons", href: "/list/lessons", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/exam.png", label: "Exams", href: "/list/exams", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
+      { icon: "/assignment.png", label: "Assignments", href: "/list/assignments", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
+      { icon: "/attendance.png", label: "Attendance", href: "/list/attendance", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
+      { icon: "/calendar.png", label: "Events", href: "/list/events", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
+      { icon: "/message.png", label: "Messages", href: "/list/messages", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
+      { icon: "/announcement.png", label: "Announcements", href: "/list/announcements", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
+      { icon: "/results.png", label: "Results", href: "/result", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
     ],
   },
   {
     title: "OTHER",
     items: [
-      { icon: "/profile.png", label: "Profile", href: "/profile", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/setting.png", label: "Settings", href: "/settings", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/logout.png", label: "Logout", href: "/logout", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: "/profile.png", label: "Profile", href: "/profile", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT", "CASHIER"] },
+      { icon: "/setting.png", label: "Settings", href: "/settings", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT", "CASHIER"] },
+      { icon: "/logout.png", label: "Logout", href: "/logout", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT", "CASHIER"] },
     ],
   },
 ];
 
-const CLASSES_VISIBLE = ["admin", "teacher"];
-const RESULTS_VISIBLE = ["admin", "teacher", "cashier", ];
+const CLASSES_VISIBLE = ["ADMIN", "TEACHER"];
+const RESULTS_VISIBLE = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
 
 const Menu = async ({ user }: { user: any }) => {
-  const role = (user?.publicMetadata?.role as string) || "student";
-
-  // Only fetch classes — Results submenu is now fully static
+  // Extract role from user object (from your auth system)
+  const role = user?.role || "STUDENT";
+  
+  // Only fetch classes if user has permission
   const classes = CLASSES_VISIBLE.includes(role)
     ? await prisma.class
         .findMany({
@@ -63,17 +63,23 @@ const Menu = async ({ user }: { user: any }) => {
 
   return (
     <div className="mt-4 text-sm">
-      {menuItems.map((section) => (
-        <div className="flex flex-col gap-2" key={section.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
-            {section.title}
-          </span>
+      {menuItems.map((section) => {
+        // Filter items that are visible for this role
+        const visibleItems = section.items.filter((item) =>
+          item.visible.includes(role)
+        );
+        
+        // Skip section if no visible items
+        if (visibleItems.length === 0) return null;
+        
+        return (
+          <div className="flex flex-col gap-2" key={section.title}>
+            <span className="hidden lg:block text-gray-400 font-light my-4">
+              {section.title}
+            </span>
 
-          {section.items.map((item) => {
-            if (!item.visible.includes(role)) return null;
-
-            return (
-              <>
+            {visibleItems.map((item) => (
+              <div key={item.label}>
                 {/* Inject Classes submenu just before Lessons */}
                 {item.label === "Lessons" && CLASSES_VISIBLE.includes(role) && (
                   <ClassesSubMenu key="classes-submenu" classes={classes} />
@@ -81,15 +87,15 @@ const Menu = async ({ user }: { user: any }) => {
 
                 {/* Inject Results submenu just before Attendance */}
                 {item.label === "Attendance" && RESULTS_VISIBLE.includes(role) && (
-                  <ResultsSubMenu key="results-submenu"  />
+                  <ResultsSubMenu key="results-submenu" />
                 )}
 
-                <MenuLink key={item.label} item={item} />
-              </>
-            );
-          })}
-        </div>
-      ))}
+                <MenuLink item={item} />
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -34,42 +34,98 @@ enum UserRole {
   TEACHER
   STAFF
 }
-// school information and settings 
-model SchoolSetting {
-  id              Int      @id @default(autoincrement())
-  schoolName      String
-  shortName       String?  
-  logoUrl         String?  
-  bannerUrl       String?  
-  
 
+enum PlanType {
+  FREE
+  STANDARD
+  POPULAR
+}
+
+enum SMSStatus {
+  SENT
+  FAILED
+  PENDING
+}
+
+// --- SAAS SUPER ADMIN & SUBSCRIPTION ---
+
+model SuperAdmin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model SubscriptionPlan {
+  id           Int      @id @default(autoincrement())
+  name         PlanType @unique // FREE, STANDARD, POPULAR
+  price        Decimal  @db.Decimal(10, 2)
+  maxStudents  Int      @default(50)
+  maxEmployees Int      @default(5)
+  hasSMS       Boolean  @default(false)
+  hasAnalytics Boolean  @default(false)
+  schools      School[]
+}
+
+// --- CORE SCHOOL MODEL (TENANT) ---
+
+model School {
+  id              Int     @id @default(autoincrement())
+  schoolName      String
+  shortName       String?
+  slug            String @unique // উদাহরণ: "thana-para-school"
+  logoUrl         String?
+  bannerUrl       String?
   email           String?
   phone           String?
   address         String?
-  eiinNumber      String?  
+  eiinNumber      String? @unique
+  academicSession String  @default("2026")
 
-  website         String?
-  facebookPage    String?
-  
+  // Subscription Controls
+  planId     Int
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id])
+  isActive   Boolean          @default(true)
+  smsBalance Int              @default(0)
+  expiredAt  DateTime?
 
-  academicSession String   @default("2024") // কারেন্ট সেশন ট্র্যাক রাখার জন্য
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Relations
+  employees     Employee[]
+  students      Student[]
+  parents       Parent[]
+  grades        Grade[]
+  classes       Class[]
+  subjects      Subject[]
+  homeSliders   HomeSlider[]
+  feeTypes      FeeType[]
+  salaryTypes   SalaryType[]
+  smsLogs       SMSLog[]
+  events        Event[]
+  announcements Announcement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-// basic slider for homepage, can be used for announcements or promotions 
+
 model HomeSlider {
-  id        Int      @id @default(autoincrement())
-  imageUrl  String   
-  title     String?  
-  order     Int      @default(0) 
-  isActive  Boolean  @default(true)
+  id       Int     @id @default(autoincrement())
+  schoolId Int
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  imageUrl String
+  title    String?
+  order    Int     @default(0)
+  isActive Boolean @default(true)
 }
 
 // --- CORE USER MODELS ---
 
 model Employee {
   id          String   @id
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   username    String   @unique
+  password   String?
   role        UserRole @default(STAFF)
   name        String
   surname     String
@@ -80,28 +136,28 @@ model Employee {
   bloodType   String
   sex         UserSex
   birthday    DateTime
-  designation String? // যেমন: "Senior Teacher", "Head Accountant", "Security Guard"
+  designation String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // --- Relations for Teachers ---
-  subjects      Subject[]
-  lessons       Lesson[]
-  classes       Class[]               @relation("ClassSupervisor")
-  classSubjects ClassSubjectTeacher[]
+  subjects          Subject[]
+  lessons           Lesson[]
+  classes           Class[]                   @relation("ClassSupervisor")
+  classSubjects     ClassSubjectTeacher[]
+  salaryStructures  EmployeeSalaryStructure[]
+  salaryPayments    EmployeeSalaryPayment[]
+  collectedFees     FeePayment[]              @relation("FeeCollector")
+  processedSalaries EmployeeSalaryPayment[]   @relation("SalaryProcessor")
 
-  // --- Salary System (Common for all employees) ---
-  salaryStructures EmployeeSalaryStructure[]
-  salaryPayments   EmployeeSalaryPayment[]
-
-  // --- Relations for Admin/Cashier (Transaction Tracking) ---
- collectedFees     FeePayment[]             @relation("FeeCollector")
-  processedSalaries EmployeeSalaryPayment[] @relation("SalaryProcessor")
+  @@index([schoolId])
 }
 
 model Student {
   id        String   @id
+  schoolId  Int
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   username  String   @unique
+  password   String?
   name      String
   surname   String
   email     String?  @unique
@@ -124,62 +180,83 @@ model Student {
   results      Result[]
   classHistory StudentClassHistory[]
   feePayments  FeePayment[]
+
+  @@index([schoolId])
 }
 
 model Parent {
   id        String    @id
+  schoolId  Int
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   username  String    @unique
   surname   String
+  password   String?
   name      String
   email     String?   @unique
   phone     String    @unique
   address   String
   createdAt DateTime  @default(now())
   students  Student[]
+
+  @@index([schoolId])
 }
 
 // --- ACADEMIC STRUCTURE ---
 
 model Grade {
   id           Int                   @id @default(autoincrement())
-  level        Int                   @unique
+  schoolId     Int
+  school       School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  level        Int
   students     Student[]
   classess     Class[]
   classHistory StudentClassHistory[]
+
+  @@unique([schoolId, level])
 }
 
 model Class {
-  id              Int                   @id @default(autoincrement())
-  name            String                @unique
-  capacity        Int
-  supervisorId    String?
-  supervisor      Employee?             @relation("ClassSupervisor", fields: [supervisorId], references: [id])
-  lessons         Lesson[]
-  students        Student[]
-  gradeId         Int
-  grade           Grade                 @relation(fields: [gradeId], references: [id])
-  events          Event[]
-  announcements   Announcement[]
-  subjectTeachers ClassSubjectTeacher[]
-  classHistory    StudentClassHistory[]
-  feeStructures   ClassFeeStructure[]
-  feePayments     FeePayment[]
-  examPublish     ExamPublish[]
+  id           Int       @id @default(autoincrement())
+  schoolId     Int
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name         String
+  capacity     Int
+  supervisorId String?
+  supervisor   Employee? @relation("ClassSupervisor", fields: [supervisorId], references: [id])
+  gradeId      Int
+  grade        Grade     @relation(fields: [gradeId], references: [id])
+
+  lessons           Lesson[]
+  students          Student[]
+  events            Event[]
+  announcements     Announcement[]
+  subjectTeachers   ClassSubjectTeacher[]
+  classHistory      StudentClassHistory[]
+  feeStructures     ClassFeeStructure[]
+  feePayments       FeePayment[]
+  examPublish       ExamPublish[]
   assignmentPublish AssignmentPublish[]
+
+  @@unique([schoolId, name])
 }
 
 model Subject {
   id            Int                   @id @default(autoincrement())
-  name          String                @unique
+  schoolId      Int
+  school        School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name          String
   teachers      Employee[]
   lessons       Lesson[]
   classTeachers ClassSubjectTeacher[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
+
+  @@unique([schoolId, name])
 }
 
 model ClassSubjectTeacher {
   id           Int      @id @default(autoincrement())
+  schoolId     Int
   classId      Int
   class        Class    @relation(fields: [classId], references: [id])
   subjectId    Int
@@ -187,7 +264,7 @@ model ClassSubjectTeacher {
   teacherId    String
   teacher      Employee @relation(fields: [teacherId], references: [id])
   lessons      Lesson[]
-  academicYear String   @default("2024")
+  academicYear String   @default("2026")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -196,6 +273,7 @@ model ClassSubjectTeacher {
 
 model Lesson {
   id                    Int                 @id @default(autoincrement())
+  schoolId              Int
   name                  String
   day                   Day
   startTime             DateTime
@@ -213,11 +291,13 @@ model Lesson {
   classSubjectTeacher   ClassSubjectTeacher @relation(fields: [classSubjectTeacherId], references: [id])
 }
 
-// --- SALARY MANAGEMENT SYSTEM ---
+// --- SALARY MANAGEMENT ---
 
 model SalaryType {
   id          Int                       @id @default(autoincrement())
-  name        String                    @unique // e.g., Basic, Bonus, Medical
+  schoolId    Int
+  school      School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
   description String?
   isRecurring Boolean                   @default(false)
   isActive    Boolean                   @default(true)
@@ -225,16 +305,19 @@ model SalaryType {
   payments    EmployeeSalaryPayment[]
   createdAt   DateTime                  @default(now())
   updatedAt   DateTime                  @updatedAt
+
+  @@unique([schoolId, name])
 }
 
 model EmployeeSalaryStructure {
-  id           Int                     @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   employeeId   String
-  employee     Employee                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   salaryTypeId Int
-  salaryType   SalaryType              @relation(fields: [salaryTypeId], references: [id], onDelete: Cascade)
-  amount       Decimal                 @db.Decimal(10, 2)
-  payments     EmployeeSalaryPayment[]
+  salaryType   SalaryType @relation(fields: [salaryTypeId], references: [id], onDelete: Cascade)
+  amount       Decimal    @db.Decimal(10, 2)
+
+  payments EmployeeSalaryPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -243,37 +326,45 @@ model EmployeeSalaryStructure {
 }
 
 model EmployeeSalaryPayment {
-  id                Int                      @id @default(autoincrement())
-  invoiceNumber     String                   @unique
-  employeeId        String
-  employee          Employee                 @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  salaryTypeId      Int
-  salaryType        SalaryType               @relation(fields: [salaryTypeId], references: [id], onDelete: Restrict)
+  id            Int    @id @default(autoincrement())
+  schoolId      Int
+  invoiceNumber String @unique
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  salaryTypeId Int
+  salaryType   SalaryType @relation(fields: [salaryTypeId], references: [id])
+
+  // 🔥 ADD THIS PART
   salaryStructureId Int?
-  salaryStructure   EmployeeSalaryStructure? @relation(fields: [salaryStructureId], references: [id], onDelete: SetNull)
-  amountPaid        Decimal                  @db.Decimal(10, 2)
-  paymentMethod     PaymentMethod
-  academicYear      String
-  monthLabel        String? // e.g., "January"
-  remarks           String?
+  salaryStructure   EmployeeSalaryStructure? @relation(fields: [salaryStructureId], references: [id])
 
- processedById     String
-  processedBy       Employee                @relation("SalaryProcessor", fields: [processedById], references: [id])
+  amountPaid    Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  academicYear  String
+  monthLabel    String?
 
-  paidAt    DateTime @default(now())
-  createdAt DateTime @default(now())
+  processedById String
+  processedBy   Employee @relation("SalaryProcessor", fields: [processedById], references: [id])
+
+  paidAt DateTime @default(now())
 }
 
-// --- FEE MANAGEMENT SYSTEM ---
+// --- FEE MANAGEMENT ---
 
 model FeeType {
   id              Int                 @id @default(autoincrement())
-  name            String              @unique
+  schoolId        Int
+  school          School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name            String
   description     String?
   isActive        Boolean             @default(true)
   classStructures ClassFeeStructure[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+
+  @@unique([schoolId, name])
 }
 
 model ClassFeeStructure {
@@ -285,36 +376,41 @@ model ClassFeeStructure {
   amount    Float
   payments  FeePayment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
   @@unique([classId, feeTypeId])
 }
 
 model FeePayment {
   id                  Int               @id @default(autoincrement())
+  schoolId            Int
   invoiceNumber       String            @unique
   studentId           String
-  student             Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  student             Student           @relation(fields: [studentId], references: [id])
   classId             Int
-  class               Class             @relation(fields: [classId], references: [id], onDelete: Restrict)
+  class               Class             @relation(fields: [classId], references: [id])
   classFeeStructureId Int
-  classFeeStructure   ClassFeeStructure @relation(fields: [classFeeStructureId], references: [id], onDelete: Restrict)
+  classFeeStructure   ClassFeeStructure @relation(fields: [classFeeStructureId], references: [id])
   amountPaid          Float
   paymentMethod       PaymentMethod
   academicYear        String
   monthLabel          String?
-  remarks             String?
-
-  // কে ফি গ্রহণ করলো (Cashier/Admin)
   collectedById       String
   collectedBy         Employee          @relation("FeeCollector", fields: [collectedById], references: [id])
-
-  paidAt    DateTime @default(now())
-  createdAt DateTime @default(now())
+  paidAt              DateTime          @default(now())
 }
 
-// --- EXAM & ACADEMIC RECORDS ---
+// --- SMS SYSTEM (POPULAR PLAN) ---
+
+model SMSLog {
+  id         Int       @id @default(autoincrement())
+  schoolId   Int
+  school     School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  receiverNo String
+  message    String
+  status     SMSStatus @default(PENDING)
+  sentAt     DateTime  @default(now())
+}
+
+// --- ACADEMIC RECORDS ---
 
 model StudentClassHistory {
   id           Int      @id @default(autoincrement())
@@ -329,80 +425,60 @@ model StudentClassHistory {
   promotedAt   DateTime @default(now())
 
   @@unique([studentId, academicYear])
-  @@unique([classId, academicYear, rollNumber])
 }
 
 model Exam {
-  id             Int           @id @default(autoincrement())
-  title          String
-  startTime      DateTime
-  endTime        DateTime
-  totalMarks     Int           @default(100)
-  mcqMarks       Int?
-  writtenMarks   Int?
-  practicalMarks Int?
-  examPublish    ExamPublish[]
-  lessonId       Int
-  lesson         Lesson        @relation(fields: [lessonId], references: [id])
-  results        Result[]
+  id          Int           @id @default(autoincrement())
+  title       String
+  startTime   DateTime
+  endTime     DateTime
+  totalMarks  Int           @default(100)
+  lessonId    Int
+  lesson      Lesson        @relation(fields: [lessonId], references: [id])
+  results     Result[]
+  examPublish ExamPublish[]
 }
 
 model ExamPublish {
-  id          Int       @id @default(autoincrement())
-  examId      Int       @unique
-  exam        Exam      @relation(fields: [examId], references: [id])
+  id          Int     @id @default(autoincrement())
+  examId      Int     @unique
+  exam        Exam    @relation(fields: [examId], references: [id])
   classId     Int
-  class       Class     @relation(fields: [classId], references: [id])
+  class       Class   @relation(fields: [classId], references: [id])
   session     String
-  isPublished Boolean   @default(false)
-  publishedAt DateTime?
-  publishedBy String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@unique([examId, classId, session])
-}
-model AssignmentPublish {
-  id          Int       @id @default(autoincrement())
-  assignmentId Int      @unique
-  assignment  Assignment @relation(fields: [assignmentId], references: [id])
-  classId     Int
-  class       Class     @relation(fields: [classId], references: [id])
-  session     String
-  isPublished Boolean   @default(false)
-  publishedAt DateTime?
-  publishedBy String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-
-  @@unique([assignmentId, classId, session])
+  isPublished Boolean @default(false)
 }
 
 model Assignment {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startDate DateTime
-  dueDate   DateTime
-  lessonId  Int
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-  results   Result[]
+  id                Int                @id @default(autoincrement())
+  title             String
+  dueDate           DateTime
+  lessonId          Int
+  lesson            Lesson             @relation(fields: [lessonId], references: [id])
+  results           Result[]
   assignmentPublish AssignmentPublish?
 }
 
+model AssignmentPublish {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int        @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  classId      Int
+  class        Class      @relation(fields: [classId], references: [id])
+  session      String
+  isPublished  Boolean    @default(false)
+}
+
 model Result {
-  id             Int         @id @default(autoincrement())
-  score          Int
-  mcqScore       Int?
-  writtenScore   Int?
-  practicalScore Int?
-  totalScore     Int
-  examId         Int?
-  exam           Exam?       @relation(fields: [examId], references: [id])
-  assignmentId   Int?
-  assignment     Assignment? @relation(fields: [assignmentId], references: [id])
-  studentId      String
-  student        Student     @relation(fields: [studentId], references: [id])
+  id           Int         @id @default(autoincrement())
+  score        Int
+  totalScore   Int
+  examId       Int?
+  exam         Exam?       @relation(fields: [examId], references: [id])
+  assignmentId Int?
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  studentId    String
+  student      Student     @relation(fields: [studentId], references: [id])
 }
 
 model Attendance {
@@ -421,6 +497,8 @@ model Attendance {
 
 model Event {
   id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   title       String
   description String
   startTime   DateTime
@@ -432,6 +510,8 @@ model Event {
 
 model Announcement {
   id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   title       String
   description String
   date        DateTime

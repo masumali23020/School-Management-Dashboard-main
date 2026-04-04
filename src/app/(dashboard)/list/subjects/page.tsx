@@ -6,18 +6,18 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/db";
-import { Prisma, Subject, Teacher, ClassSubjectTeacher, Class } from "@prisma/client";
+import { Prisma, Subject, ClassSubjectTeacher, Class, Employee } from "@prisma/client";
 import { itemPerPage } from "@/lib/setting";
-import { getUserRole } from "@/lib/utlis";
 import Link from "next/link";
 import FormContainer from "@/components/FormContainer";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 // Extended type with relations
 type SubjectWithRelations = Subject & {
-  teachers: Teacher[];
+  teachers: Employee[];
   classTeachers: (ClassSubjectTeacher & {
     class: Class;
-    teacher: Teacher;
+    teacher: Employee;
   })[];
   _count?: {
     lessons: number;
@@ -31,7 +31,7 @@ const SubjectListPage = async ({
   searchParams: { [key: string]: string | undefined } 
 }) => {
   const { page, ...queryParams } = searchParams;
-  const { role } = await getUserRole();
+  const { role } = await getUserRoleAuth();
 
   const p = page ? parseInt(page) : 1;
 

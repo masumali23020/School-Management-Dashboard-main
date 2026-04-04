@@ -1,12 +1,12 @@
+import { getUserRoleAuth } from "@/lib/logsessition";
 import Announcements from "../../../components/Announcements";
 import BigCalendarContainer from "../../../components/BigCalendarContainer";
 
 
 
-import { getUserRole } from "../../../lib/utlis";
 
 const TeacherPage = async() => {
-  const { userId } = await getUserRole();
+  const { userId } = await getUserRoleAuth();
   return (
     <div className="flex-1 p-4 flex gap-4 flex-col xl:flex-row">
       {/* LEFT */}

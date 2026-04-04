@@ -201,6 +201,7 @@ const ParentForm = ({
           register={register}
           error={errors.name}
         />
+
         <InputField
           label="Mother Name"
           name="surname"

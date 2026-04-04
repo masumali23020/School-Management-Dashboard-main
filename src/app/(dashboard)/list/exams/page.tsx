@@ -1,7 +1,8 @@
-import { getUserRole } from "@/lib/utlis";
+
 import ExamPageClient from "./Exampageclient";
 import { getAllClasses } from "@/Actions/AnnousmentAction/Assignmet/Assignmentactions";
 import { getExamList } from "@/app/actions/examActions/examActions";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
 };
 
 export default async function ExamListPage({ searchParams }: Props) {
-  const { role, userId: currentUserId } = await getUserRole();
+  const { role, userId: currentUserId } = await getUserRoleAuth();
 
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const search = searchParams.search ?? "";

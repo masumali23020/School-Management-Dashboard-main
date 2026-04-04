@@ -2,6 +2,7 @@ import FormModal from "./FormModal";
 import prisma from "../lib/db";
 import { getUserRole } from "../lib/utlis";
 import { UserRole } from "@prisma/client";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 export type FormContainerProps = {
   table:
@@ -26,7 +27,8 @@ export type FormContainerProps = {
 };
 
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
-  const { role, userId: currentUserId } = await getUserRole();
+  // const { role, userId: currentUserId } = await getUserRole();
+    const { role,userId: currentUserId } = await getUserRoleAuth();
   let relatedData = {};
 
   if (type !== "delete") {
