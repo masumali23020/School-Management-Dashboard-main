@@ -368,6 +368,7 @@ model EmployeeSalaryPayment {
   paymentMethod PaymentMethod
   academicYear  String
   monthLabel    String?
+  remarks       String?
   processedById String
   processedBy   Employee @relation("SalaryProcessor", fields: [processedById], references: [id])
   paidAt        DateTime @default(now())

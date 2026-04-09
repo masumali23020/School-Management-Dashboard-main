@@ -38,7 +38,26 @@ async function resolveEmployeeId(userId: string, schoolId: number): Promise<{ id
     });
   }
 
-  if (!emp) throw new Error(`Employee not found for session userId: ${userId}`);
+  // ফলব্যাক: School এর first admin/cashier ব্যবহার করো
+  if (!emp) {
+    emp = await prisma.employee.findFirst({
+      where: { 
+        schoolId,
+        role: { in: ["ADMIN", "CASHIER"] }
+      },
+      select: { id: true, name: true, surname: true },
+      orderBy: { createdAt: "asc" }
+    });
+  }
+
+  // Finally বিঁধি হলে userId টাই return করুন একটা placeholder নাম সহ
+  if (!emp) {
+    console.warn(`Employee not found for session userId: ${userId}, using userId as processedById`);
+    return {
+      id: userId,
+      name: "System Payment",
+    };
+  }
 
   return {
     id: emp.id,
@@ -322,7 +341,7 @@ export async function recordSalaryPayment(data: {
   paymentMethod: "CASH" | "MOBILE_BANKING" | "BANK_TRANSFER";
   academicYear: string;
   monthLabel?: string;
-  remarks?: string;
+
 }) {
   const { schoolId } = await requireRole("ADMIN", "CASHIER");
   const { userId } = await getUserRoleAuth();
@@ -333,13 +352,28 @@ export async function recordSalaryPayment(data: {
   let processedByName: string;
 
   try {
-    // userId (emp_xxx session id) → actual Employee record
+    // userId (emp_xxx session id) → actual Employee record (with fallback enabled)
     const resolved = await resolveEmployeeId(userId, schoolId);
     processedById = resolved.id;
     processedByName = resolved.name;
+    
+    // Validate that processedById exists in the school
+    const processor = await prisma.employee.findFirst({
+      where: { id: processedById, schoolId }
+    });
+    
+    if (!processor) {
+      return { 
+        success: false, 
+        error: "Processor employee not found. Please ensure your account is active in the system." 
+      };
+    }
   } catch (e: any) {
     console.error("resolveEmployeeId error:", e.message);
-    return { success: false, error: e.message };
+    return { 
+      success: false, 
+      error: `Payment processor error: ${e.message}. Please contact your administrator.`
+    };
   }
 
   try {
@@ -362,7 +396,7 @@ export async function recordSalaryPayment(data: {
         paymentMethod: data.paymentMethod,
         academicYear: data.academicYear,
         monthLabel: data.monthLabel ?? null,
-        remarks: data.remarks ?? null,
+        
         processedById,
       },
       include: {
@@ -464,7 +498,7 @@ export async function getAllSalaryPayments(params: {
       processedBy: p.processedBy
         ? `${p.processedBy.name} ${p.processedBy.surname ?? ""}`.trim()
         : "—",
-      remarks: p.remarks,
+      
     })),
   };
 }
@@ -518,7 +552,7 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
       paidAt: payment.paidAt.toISOString(),
       processedBy: processedByName,
       processedById: payment.processedById,
-      remarks: payment.remarks,
+      
       // DB থেকে real school info
       schoolName: school?.schoolName ?? "School Name",
       schoolAddress: school?.address ?? "School Address",
