@@ -36,7 +36,7 @@ export const createClass = async (
       },
     });
 
-    revalidatePath("/list/classes");
+    // revalidatePath("/list/classes");
     return { success: true, error: false };
   } catch (err) {
     console.error("Create Class Error:", err);
@@ -76,7 +76,7 @@ export const updateClass = async (
       },
     });
 
-    revalidatePath("/list/classes");
+    // revalidatePath("/list/classes");
     return { success: true, error: false };
   } catch (err) {
     console.error("Update Class Error:", err);
@@ -110,7 +110,7 @@ export const deleteClass = async (
       },
     });
 
-    revalidatePath("/list/classes");
+    // revalidatePath("/list/classes");
     return { success: true, error: false };
   } catch (err) {
     console.error("Delete Class Error:", err);

@@ -1,4 +1,3 @@
-
 import Footer from "@/components/hompage/Footer";
 import SchoolNavbar from "@/components/hompage/SchoolNavber";
 import prisma from "@/lib/db";
@@ -23,14 +22,26 @@ const colors = [
 ];
 
 export default async function EventsPage() {
-  const [settings, upcoming, past] = await Promise.all([
-    getSchoolSettings(),
+  const settings = await getSchoolSettings();
+  const schoolId = settings?.id;
+
+  const [upcoming, past] = await Promise.all([
     prisma.event.findMany({
-      where: { isPublic: true, endTime: { gte: new Date() } },
+      where: { 
+        schoolId: schoolId, // School ID wise filter
+        isPublic: true, 
+        endTime: { gte: new Date() } 
+      },
+      include: { class: true }, // Class data include
       orderBy: { startTime: "asc" },
     }),
     prisma.event.findMany({
-      where: { isPublic: true, endTime: { lt: new Date() } },
+      where: { 
+        schoolId: schoolId, // School ID wise filter
+        isPublic: true, 
+        endTime: { lt: new Date() } 
+      },
+      include: { class: true }, // Class data include
       orderBy: { startTime: "desc" },
       take: 6,
     }),
@@ -79,7 +90,6 @@ export default async function EventsPage() {
                     <div className={`h-1.5 ${c.bar}`} />
                     <div className="p-5">
                       <div className="flex items-start gap-4">
-                        {/* Date badge */}
                         <div className={`flex-shrink-0 ${c.badge} text-white rounded-xl p-2 w-14 text-center`}>
                           <p className="text-[10px] font-bold uppercase tracking-wide opacity-80">
                             {new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(event.startTime))}
@@ -110,8 +120,8 @@ export default async function EventsPage() {
                           </svg>
                           {formatTime(event.startTime)} — {formatTime(event.endTime)}
                         </span>
-                        <span className={`ml-auto px-2 py-0.5 rounded-full font-semibold ${event.classId ? "bg-amber-50 text-amber-600" : "bg-sky-50 text-sky-600"}`}>
-                          {event.classId ? "শ্রেণি-নির্দিষ্ট" : "সার্বজনীন"}
+                        <span className={`ml-auto px-2 py-0.5 rounded-full font-semibold ${event.class ? "bg-amber-50 text-amber-600" : "bg-sky-50 text-sky-600"}`}>
+                          {event.class ? `শ্রেণি: ${event.class.name}` : "সার্বজনীন"}
                         </span>
                       </div>
                     </div>
@@ -147,7 +157,9 @@ export default async function EventsPage() {
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-600 text-sm line-clamp-2">{event.title}</h3>
-                          <p className="text-gray-400 text-xs mt-1">{formatDate(event.startTime)}</p>
+                          <p className="text-gray-400 text-xs mt-1">
+                            {formatDate(event.startTime)} {event.class && ` • ${event.class.name}`}
+                          </p>
                         </div>
                       </div>
                     </div>

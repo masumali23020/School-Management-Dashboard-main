@@ -1,13 +1,20 @@
+// components/Classdetailmodal.tsx
 "use client";
 
 import { useState } from "react";
 
 type Subject = { id: number; name: string };
-type Teacher = { id: number; name: string; surname: string };
+type Employee = { 
+  id: string; 
+  name: string; 
+  surname: string | null;
+  email?: string | null;
+  phone?: string | null;
+};
 type ClassSubjectTeacher = {
   id: number;
   subject: Subject;
-  teacher: Teacher;
+  teacher: Employee;
   academicYear: string;
 };
 type Grade = { level: number };
@@ -16,7 +23,7 @@ type ClassWithRelations = {
   id: number;
   name: string;
   capacity: number;
-  supervisor: Teacher | null;
+  supervisor: Employee | null;
   grade: Grade;
   subjectTeachers: ClassSubjectTeacher[];
 };
@@ -93,6 +100,9 @@ export default function ClassDetailModal({ item }: { item: ClassWithRelations })
                       ? `${item.supervisor.name} ${item.supervisor.surname || ""}`
                       : "No supervisor assigned"}
                   </p>
+                  {item.supervisor?.email && (
+                    <p className="text-xs text-gray-400 mt-0.5">{item.supervisor.email}</p>
+                  )}
                 </div>
               </div>
 
@@ -134,7 +144,7 @@ export default function ClassDetailModal({ item }: { item: ClassWithRelations })
                               </span>
                             </td>
                             <td className="px-4 py-3 text-gray-600">
-                              {st.teacher.name} {st.teacher.surname}
+                              {st.teacher.name} {st.teacher.surname || ""}
                             </td>
                             <td className="px-4 py-3">
                               <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-medium">

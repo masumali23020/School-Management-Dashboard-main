@@ -1,6 +1,7 @@
+// components/Classessubmen.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -14,21 +15,39 @@ type ClassItem = {
 
 type Props = {
   classes: ClassItem[];
+  schoolId?: number; // Add schoolId prop
 };
 
-export default function ClassesSubMenu({ classes }: Props) {
+export default function ClassesSubMenu({ classes, schoolId }: Props) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [filteredClasses, setFilteredClasses] = useState<ClassItem[]>(classes);
+
+  // Filter classes based on schoolId if needed
+  useEffect(() => {
+    if (schoolId && classes.length > 0) {
+      // If you need to fetch classes dynamically based on schoolId
+      // Otherwise just use the passed classes
+      setFilteredClasses(classes);
+    } else {
+      setFilteredClasses(classes);
+    }
+  }, [classes, schoolId]);
 
   const isParentActive =
     pathname === "/list/classes" || pathname.startsWith("/list/classes/");
+
+  // Don't render if no classes
+  if (filteredClasses.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col">
       {/* ── Parent "Classes" row ── */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md transition-colors
+        className={`flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md transition-colors w-full
           ${
             isParentActive
               ? "bg-lamaSky text-blue-700 font-semibold"
@@ -39,7 +58,7 @@ export default function ClassesSubMenu({ classes }: Props) {
 
         {/* Label + chevron — only visible on large screens */}
         <span className="hidden lg:flex items-center justify-between flex-1">
-          <span>Classes</span>
+          <span>Classes ({filteredClasses.length})</span>
           {isOpen ? (
             <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
           ) : (
@@ -59,7 +78,7 @@ export default function ClassesSubMenu({ classes }: Props) {
           />
 
           {/* One link per class from DB */}
-          {classes.map((cls) => (
+          {filteredClasses.map((cls) => (
             <ClassLink
               key={cls.id}
               href={`/list/classes/${cls.id}`}

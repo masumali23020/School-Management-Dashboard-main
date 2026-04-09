@@ -1,27 +1,49 @@
-// app/(admin)/admin/layout.tsx (or wherever your dashboard layout is)
+// app/(admin)/admin/layout.tsx
 import Image from "next/image";
 import Link from "next/link";
 import Menu from "../../components/Menu";
 import { requireSession } from "@/lib/get-session";
+import prisma from "@/lib/db";
 
 export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Use your existing requireSession function
-  const user = await requireSession();
+    const user = await requireSession();
+  
+  // DEBUG: console log করে দেখুন user-এ কি আছে
+  console.log("Full user object:", JSON.stringify(user, null, 2));
+  console.log("User schoolId:", user?.schoolId);
+  
+  let schoolName = "AmarS";
+  
+  if (user?.schoolId) {
+    console.log("Fetching school for ID:", user.schoolId);
+    
+    const school = await prisma.school.findUnique({
+      where: { id: user.schoolId },
+      select: { schoolName: true, shortName: true }
+    });
+    
+    console.log("Found school:", school);
+    
+    schoolName = school?.schoolName || school?.shortName || "AmarSchooldd";
+  } else {
+    console.log("No schoolId found in user object");
+  }
   
   return (
-    <div className="h-screen flex dash">
+    <div className="flex dash">
       {/* LEFT */}
+      
       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
         <Link
           href="/"
           className="flex items-center justify-center lg:justify-start gap-2"
         >
           <Image src="/logo.png" alt="logo" width={32} height={32} />
-          <span className="hidden lg:block font-bold">AmarSchool</span>
+          <span className="hidden lg:block font-bold">{schoolName}</span>
         </Link>
         <Menu user={user} />
       </div>

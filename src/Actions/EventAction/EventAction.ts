@@ -2,6 +2,7 @@
 "use server";
 
 
+import { getUserRoleAuth } from "@/lib/logsessition";
 import prisma from "../../lib/db";
 import { EventSchema } from "../../lib/FormValidationSchema";
 
@@ -12,26 +13,46 @@ export const createEvent = async (
   currentState: CreateState,
   data: EventSchema
 ) => {
-
   try {
-   
+    const { schoolId } = await getUserRoleAuth();
 
+    if (!schoolId) {
+      return { success: false, error: true, message: "Unauthorized!" };
+    }
+
+    // ১. ভ্যালিডেশন: যদি classId দেওয়া থাকে, তবে চেক করা যে ওই ক্লাসটি এই স্কুলের কিনা
+    if (data.classId) {
+      const classExists = await prisma.class.findFirst({
+        where: {
+          id: data.classId,
+          schoolId: Number(schoolId),
+        },
+      });
+
+      if (!classExists) {
+        return { success: false, error: true, message: "এই ক্লাসটি আপনার স্কুলের নয়।" };
+      }
+    }
+
+    // ২. ইভেন্ট তৈরি
     await prisma.event.create({
       data: {
-        // id: data?.id,
-        title: data?.title,
-        description: data?.description,
-        startTime: data?.startTime,
-        endTime: data?.endTime,
-        classId: data?.classId,
+        title: data.title,
+        description: data.description,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        classId: data.classId || null,
+        schoolId: Number(schoolId),
+        // আপনি যদি পাবলিক ইভেন্ট হিসেবে দেখাতে চান তবে এটি যোগ করুন
+        isPublic: true, 
       },
     });
 
     // revalidatePath("/list/events");
-    return { success: true, error: false };
+    return { success: true, error: false, message: "ইভেন্ট তৈরি হয়েছে।" };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error(err);
+    return { success: false, error: true, message: "কিছু ভুল হয়েছে।" };
   }
 };
 

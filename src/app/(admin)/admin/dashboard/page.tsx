@@ -42,7 +42,7 @@ export default async function AdminDashboard() {
     }),
     // Recent 5 fee payments
     prisma.feePayment.findMany({
-      where:   { schoolId },
+      // where:   { schoolId },
       take:    5,
       orderBy: { paidAt: "desc" },
       include: {
@@ -56,33 +56,13 @@ export default async function AdminDashboard() {
 
   const currentMonth = new Date().toLocaleString("en-BD", { month: "long", year: "numeric" });
 
+  console.log("Dashboard data:",school )
+
   return (
     <div className="dash">
 
       {/* ── Topbar ── */}
-      <header className="topbar">
-        <div className="topbar-left">
-          <div className="school-logo">
-            {school?.schoolName?.[0] ?? "S"}
-          </div>
-          <div>
-            <p className="school-name">{school?.schoolName}</p>
-            <p className="school-meta">
-              ID: {schoolId} &nbsp;·&nbsp; Session: {school?.academicSession}
-            </p>
-          </div>
-        </div>
-        <div className="topbar-right">
-          <PlanBadge plan={planType} />
-          <span className="user-name">👤 {name}</span>
-          <form action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}>
-            <button className="logout-btn" type="submit">Sign Out</button>
-          </form>
-        </div>
-      </header>
+    
 
       <main className="main">
 
@@ -369,7 +349,7 @@ export default async function AdminDashboard() {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
-function StatCard({
+export function StatCard({
   label, value, icon, color, href,
 }: {
   label: string; value: number; icon: string; color: string; href: string;
@@ -386,7 +366,7 @@ function StatCard({
   );
 }
 
-function PlanBadge({ plan }: { plan: string }) {
+export function PlanBadge({ plan }: { plan: string }) {
   const map: Record<string, string> = {
     FREE:     "background:#1c1c2e;color:#818cf8;border:1px solid #312e81",
     STANDARD: "background:#0c2340;color:#60a5fa;border:1px solid #1e3a5f",

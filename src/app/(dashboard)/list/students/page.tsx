@@ -16,9 +16,13 @@ type StudentListPageType = Student & { class: Class } & {grades: Grade[]};
 
 const StudentListPage = async({searchParams}: {searchParams: {[key: string]: string | undefined}}) => {
   const { page, ...queryParams } = searchParams;
-  const {role} = await getUserRoleAuth()
+
 
   const p = page ? parseInt(page) : 1;
+   // Get the logged-in user with their school information
+  const { role, schoolId } = await getUserRoleAuth();
+
+  console.log("Current user schoolId:", schoolId); // Debug log
   
 const columns = [
   {
@@ -88,7 +92,10 @@ const columns = [
 
 // url params conditions 
 
-  const query: Prisma.StudentWhereInput = {};
+  const query: Prisma.StudentWhereInput = {
+    
+     schoolId: Number(schoolId),
+  };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
@@ -111,6 +118,18 @@ const columns = [
         }
       }
     }
+  }
+
+    // If no schoolId, return empty or error
+  if (!schoolId) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="text-center text-red-500">
+          <p>Error: No school associated with this account.</p>
+          <p>Please contact administrator.</p>
+        </div>
+      </div>
+    );
   }
 
 

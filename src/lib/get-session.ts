@@ -2,37 +2,63 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@/types/auth";
+import prisma from "@/lib/db";
 
-/**
- * Returns the current session user or null.
- * Use inside Server Components / Route Handlers.
- */
-export async function getSessionUser(): Promise<SessionUser | null> {
-  const session = await auth();
-  return (session?.user as SessionUser) ?? null;
-}
-
-/**
- * Asserts that a valid session exists, redirecting to /login if not.
- * Optionally asserts that the user has one of the allowed roles.
- *
- * Usage:
- *   const user = await requireSession(["ADMIN", "TEACHER"]);
- */
 export async function requireSession(
   allowedRoles?: SessionUser["role"][]
 ): Promise<SessionUser> {
   const session = await auth();
-  const user = session?.user as SessionUser | undefined;
+  let user = session?.user as SessionUser | undefined;
+
+  console.log("Session user:", user);
 
   if (!user) {
     redirect("/login");
   }
 
+  // যদি user-এ schoolId না থাকে, তাহলে ডাটাবেস থেকে fetch করুন
+  if (!user.schoolId && (user.email || user.username)) {
+    const email = user.email || user.username;
+    
+    if (!email) {
+      console.error("No email or username found in session");
+      return user;
+    }
+    
+    const dbUser = await prisma.employee.findUnique({
+      where: { email: email },
+      include: {
+        school: {
+          include: {
+            plan: true
+          }
+        }
+      }
+    });
+
+    if (dbUser && dbUser.school) {
+      // Create a new user object with all properties
+      const enhancedUser: SessionUser = {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email || email,
+        role: dbUser.role,
+        schoolId: dbUser.schoolId,
+        schoolName: dbUser.school.shortName || dbUser.school.schoolName,
+        schoolLogo: dbUser.school.logoUrl || undefined,
+        planType: dbUser.school.plan?.name,
+        academicSession: dbUser.school.academicSession,
+      };
+      
+      user = enhancedUser;
+    } else {
+      console.log("No employee found with email:", email);
+    }
+  }
+
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = user.role;
     if (!allowedRoles.includes(userRole)) {
-      // Authenticated but wrong role — redirect to their own dashboard
       const dashboards: Record<string, string> = {
         ADMIN: "/admin/dashboard",
         TEACHER: "/teacher/dashboard",

@@ -6,7 +6,6 @@ import TableSearch from "../../../../components/TableSearch";
 
 
 import { itemPerPage } from "../../../../lib/setting";
-import { getUserRole } from "../../../../lib/utlis";
 import FormContainer from "../../../../components/FormContainer";
 import { Class, Lesson, Subject,Prisma, Employee } from "@prisma/client/edge";
 import prisma from "../../../../lib/db";

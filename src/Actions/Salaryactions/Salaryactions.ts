@@ -1,100 +1,71 @@
 "use server";
 
-// src/Actions/SalaryActions/salaryActions.ts
-
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getUserRole } from "@/lib/utlis";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 async function requireRole(...roles: string[]) {
-  const { role } = await getUserRole();
+  const { role, schoolId } = await getUserRoleAuth();
   const hasAccess = roles.some((r) => r.toUpperCase() === role?.toUpperCase());
   if (!hasAccess) throw new Error("Unauthorized");
-  return role;
+  if (!schoolId) throw new Error("School not assigned to this user.");
+  return { role, schoolId: Number(schoolId) };
 }
 
-/**
- * Gets the current logged-in employee's DB `id` for use as processedById FK.
- */
-async function getProcessorId(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized: Not logged in.");
-
-  const employee = await prisma.employee.findUnique({
-    where: { id: userId },
-    select: { id: true },
+// Session userId (emp_xxx) → Employee DB id খোঁজে বের করে
+async function resolveEmployeeId(userId: string, schoolId: number): Promise<{ id: string; name: string }> {
+  // প্রথমে direct id দিয়ে চেষ্টা
+  let emp = await prisma.employee.findFirst({
+    where: { id: userId, schoolId },
+    select: { id: true, name: true, surname: true },
   });
 
-  if (!employee) {
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(userId);
-    const uname = clerkUser.username;
-
-    if (uname) {
-      const byUsername = await prisma.employee.findUnique({
-        where: { username: uname },
-        select: { id: true },
-      });
-      if (byUsername) return byUsername.id;
-    }
-
-    throw new Error(
-      `কোনো Employee record পাওয়া যায়নি।\n` +
-      `Clerk userId: "${userId}", username: "${clerkUser.username ?? "N/A"}"\n` +
-      `সমাধান: এই user টি Delete করে app এর form দিয়ে আবার তৈরি করুন।`
-    );
+  // না পেলে username দিয়ে চেষ্টা (session userId হয়তো username হিসেবে store)
+  if (!emp) {
+    emp = await prisma.employee.findFirst({
+      where: { username: userId, schoolId },
+      select: { id: true, name: true, surname: true },
+    });
   }
 
-  return employee.id;
+  // যেকোনো school এ খোঁজো (schoolId match না হলেও)
+  if (!emp) {
+    emp = await prisma.employee.findFirst({
+      where: { OR: [{ id: userId }, { username: userId }] },
+      select: { id: true, name: true, surname: true },
+    });
+  }
+
+  if (!emp) throw new Error(`Employee not found for session userId: ${userId}`);
+
+  return {
+    id: emp.id,
+    name: `${emp.name} ${(emp as any).surname ?? ""}`.trim(),
+  };
 }
 
-async function generateSalaryInvoice(): Promise<string> {
+async function generateSalaryInvoice(schoolId: number): Promise<string> {
   const year = new Date().getFullYear();
   const count = await prisma.employeeSalaryPayment.count({
-    where: { invoiceNumber: { startsWith: `SAL-${year}-` } },
+    where: {
+      schoolId,
+      invoiceNumber: { startsWith: `SAL-${year}-` },
+    },
   });
   return `SAL-${year}-${String(count + 1).padStart(5, "0")}`;
 }
 
-// Helper function to get processed by details
-async function getProcessedByDetails(processedById: string) {
+async function getProcessedByDetails(processedById: string): Promise<string> {
   try {
-    const employee = await prisma.employee.findUnique({
+    const emp = await prisma.employee.findUnique({
       where: { id: processedById },
-      select: { name: true, surname: true, username: true }
+      select: { name: true, surname: true, username: true },
     });
-    
-    if (employee) {
-      return `${employee.name} ${employee.surname}`.trim() || employee.username || "Unknown";
-    }
-    
-    const admin = await prisma.admin.findUnique({
-      where: { id: processedById },
-      select: { username: true, name: true }
-    });
-    
-    if (admin) {
-      return admin.name || admin.username || "Unknown";
-    }
-    
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    try {
-      const clerkUser = await clerkClient.users.getUser(processedById);
-      const firstName = clerkUser.firstName || "";
-      const lastName = clerkUser.lastName || "";
-      const fullName = `${firstName} ${lastName}`.trim();
-      if (fullName) return fullName;
-      if (clerkUser.username) return clerkUser.username;
-    } catch (err) {
-      // Clerk user not found
-    }
-    
+    if (emp) return `${emp.name} ${emp.surname ?? ""}`.trim() || emp.username || "Unknown";
     return "Unknown";
-  } catch (error) {
-    console.error("Error fetching processed by details:", error);
+  } catch {
     return "Unknown";
   }
 }
@@ -108,9 +79,11 @@ export async function createSalaryType(data: {
   description?: string;
   isRecurring?: boolean;
 }) {
-  await requireRole("ADMIN");
+  const { schoolId } = await requireRole("ADMIN");
   try {
-    const st = await prisma.salaryType.create({ data });
+    const st = await prisma.salaryType.create({
+      data: { ...data, schoolId },
+    });
     revalidatePath("/list/salary");
     return { success: true, data: st };
   } catch (e: any) {
@@ -123,8 +96,11 @@ export async function updateSalaryType(
   id: number,
   data: { name?: string; description?: string; isActive?: boolean; isRecurring?: boolean }
 ) {
-  await requireRole("ADMIN");
+  const { schoolId } = await requireRole("ADMIN");
   try {
+    const existing = await prisma.salaryType.findFirst({ where: { id, schoolId } });
+    if (!existing) return { success: false, error: "Not found or access denied." };
+
     const st = await prisma.salaryType.update({ where: { id }, data });
     revalidatePath("/list/salary");
     return { success: true, data: st };
@@ -135,8 +111,11 @@ export async function updateSalaryType(
 }
 
 export async function deleteSalaryType(id: number) {
-  await requireRole("ADMIN");
+  const { schoolId } = await requireRole("ADMIN");
   try {
+    const existing = await prisma.salaryType.findFirst({ where: { id, schoolId } });
+    if (!existing) return { success: false, error: "Not found or access denied." };
+
     await prisma.salaryType.delete({ where: { id } });
     revalidatePath("/list/salary");
     return { success: true };
@@ -148,7 +127,7 @@ export async function deleteSalaryType(id: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// EMPLOYEE SALARY STRUCTURE CRUD (Admin only)
+// EMPLOYEE SALARY STRUCTURE CRUD
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function upsertEmployeeSalaryStructure(data: {
@@ -156,8 +135,13 @@ export async function upsertEmployeeSalaryStructure(data: {
   salaryTypeId: number;
   amount: number;
 }) {
-  await requireRole("ADMIN");
+  const { schoolId } = await requireRole("ADMIN");
   try {
+    const employee = await prisma.employee.findFirst({
+      where: { id: data.employeeId, schoolId },
+    });
+    if (!employee) return { success: false, error: "Employee not found in your school." };
+
     const record = await prisma.employeeSalaryStructure.upsert({
       where: {
         employeeId_salaryTypeId: {
@@ -170,6 +154,7 @@ export async function upsertEmployeeSalaryStructure(data: {
         employeeId: data.employeeId,
         salaryTypeId: data.salaryTypeId,
         amount: data.amount,
+        schoolId, // ← schema তে আছে কিন্তু relation নেই, direct value দিন
       },
     });
     revalidatePath("/list/salary");
@@ -181,8 +166,13 @@ export async function upsertEmployeeSalaryStructure(data: {
 }
 
 export async function deleteEmployeeSalaryStructure(id: number) {
-  await requireRole("ADMIN");
+  const { schoolId } = await requireRole("ADMIN");
   try {
+    const structure = await prisma.employeeSalaryStructure.findFirst({
+      where: { id, schoolId },
+    });
+    if (!structure) return { success: false, error: "Not found or access denied." };
+
     await prisma.employeeSalaryStructure.delete({ where: { id } });
     revalidatePath("/list/salary");
     return { success: true };
@@ -194,7 +184,7 @@ export async function deleteEmployeeSalaryStructure(id: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// EMPLOYEE SEARCH (Admin + Cashier)
+// EMPLOYEE SEARCH
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function searchEmployees(params: {
@@ -202,10 +192,11 @@ export async function searchEmployees(params: {
   employeeId?: string;
   subjectId?: number;
 }) {
-  await requireRole("ADMIN", "CASHIER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER");
   try {
     const employees = await prisma.employee.findMany({
       where: {
+        schoolId,
         AND: [
           params.name
             ? {
@@ -225,7 +216,10 @@ export async function searchEmployees(params: {
       },
       include: {
         subjects: { select: { id: true, name: true } },
-        salaryStructures: { include: { salaryType: true } },
+        salaryStructures: {
+          where: { schoolId },
+          include: { salaryType: true },
+        },
       },
       orderBy: { name: "asc" },
       take: 30,
@@ -254,18 +248,21 @@ export async function searchEmployees(params: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// GET EMPLOYEE SALARY STATUS (Admin + Cashier)
+// GET EMPLOYEE SALARY STATUS
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getEmployeeSalaryStatus(employeeId: string, academicYear: string) {
-  await requireRole("ADMIN", "CASHIER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER");
   try {
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, schoolId },
       include: {
-        salaryStructures: { include: { salaryType: true } },
+        salaryStructures: {
+          where: { schoolId },
+          include: { salaryType: true },
+        },
         salaryPayments: {
-          where: { academicYear },
+          where: { academicYear, schoolId },
           include: { salaryType: true },
           orderBy: { paidAt: "desc" },
         },
@@ -314,7 +311,7 @@ export async function getEmployeeSalaryStatus(employeeId: string, academicYear: 
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// RECORD SALARY PAYMENT
+// RECORD SALARY PAYMENT  ← মূল সমস্যা এখানে ছিল
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function recordSalaryPayment(data: {
@@ -327,47 +324,37 @@ export async function recordSalaryPayment(data: {
   monthLabel?: string;
   remarks?: string;
 }) {
-  await requireRole("ADMIN", "CASHIER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER");
+  const { userId } = await getUserRoleAuth();
+
+  if (!userId) return { success: false, error: "Unauthorized: Not logged in." };
 
   let processedById: string;
-  let processedByName: string = "";
+  let processedByName: string;
 
   try {
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized: Not logged in.");
-
-    const employee = await prisma.employee.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, surname: true }
-    });
-
-    if (employee) {
-      processedById = employee.id;
-      processedByName = `${employee.name} ${employee.surname}`.trim();
-    } else {
-      const admin = await prisma.admin.findUnique({
-        where: { id: userId },
-        select: { id: true, username: true }
-      });
-
-      if (admin) {
-        processedById = userId;
-        processedByName = admin.username || "Admin";
-      } else {
-        throw new Error("User not found in Employee or Admin table.");
-      }
-    }
+    // userId (emp_xxx session id) → actual Employee record
+    const resolved = await resolveEmployeeId(userId, schoolId);
+    processedById = resolved.id;
+    processedByName = resolved.name;
   } catch (e: any) {
-    console.error("Error getting processor ID:", e);
-    return { success: false, error: "Failed to identify user: " + e.message };
+    console.error("resolveEmployeeId error:", e.message);
+    return { success: false, error: e.message };
   }
 
   try {
-    const invoiceNumber = await generateSalaryInvoice();
+    // Target employee এই school এর কিনা verify
+    const targetEmployee = await prisma.employee.findFirst({
+      where: { id: data.employeeId, schoolId },
+    });
+    if (!targetEmployee) return { success: false, error: "Employee not found in your school." };
+
+    const invoiceNumber = await generateSalaryInvoice(schoolId);
 
     const payment = await prisma.employeeSalaryPayment.create({
       data: {
         invoiceNumber,
+        schoolId,
         employeeId: data.employeeId,
         salaryTypeId: data.salaryTypeId,
         salaryStructureId: data.salaryStructureId ?? null,
@@ -396,7 +383,7 @@ export async function recordSalaryPayment(data: {
         amountPaid: Number(payment.amountPaid),
         paidAt: payment.paidAt.toISOString(),
         processedBy: payment.processedBy
-          ? `${payment.processedBy.name} ${payment.processedBy.surname}`.trim()
+          ? `${payment.processedBy.name} ${payment.processedBy.surname ?? ""}`.trim()
           : processedByName,
       },
     };
@@ -407,20 +394,20 @@ export async function recordSalaryPayment(data: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// GET ALL SALARY PAYMENTS (Admin + Cashier)
+// GET ALL SALARY PAYMENTS
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getAllSalaryPayments(params: {
-  teacherName?: string;  // Changed to teacherName to match frontend
+  teacherName?: string;
   salaryTypeId?: number;
   academicYear?: string;
   fromDate?: string;
   toDate?: string;
   paymentMethod?: string;
 }) {
-  await requireRole("ADMIN", "CASHIER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER");
 
-  const where: any = {};
+  const where: any = { schoolId };
   if (params.academicYear) where.academicYear = params.academicYear;
   if (params.paymentMethod) where.paymentMethod = params.paymentMethod;
   if (params.salaryTypeId) where.salaryTypeId = params.salaryTypeId;
@@ -437,6 +424,7 @@ export async function getAllSalaryPayments(params: {
 
   if (params.teacherName) {
     where.employee = {
+      schoolId,
       OR: [
         { name: { contains: params.teacherName, mode: "insensitive" } },
         { surname: { contains: params.teacherName, mode: "insensitive" } },
@@ -455,10 +443,7 @@ export async function getAllSalaryPayments(params: {
     take: 500,
   });
 
-  const totalAmount = payments.reduce(
-    (s, p) => s + parseFloat(p.amountPaid.toString()),
-    0
-  );
+  const totalAmount = payments.reduce((s, p) => s + parseFloat(p.amountPaid.toString()), 0);
 
   return {
     success: true,
@@ -468,7 +453,7 @@ export async function getAllSalaryPayments(params: {
       id: p.id,
       invoiceNumber: p.invoiceNumber,
       employeeId: p.employeeId,
-      employeeName: `${p.employee.name} ${p.employee.surname}`,
+      employeeName: `${p.employee.name} ${p.employee.surname ?? ""}`.trim(),
       employeeImg: p.employee.img,
       salaryTypeName: p.salaryType.name,
       amountPaid: Number(p.amountPaid),
@@ -477,7 +462,7 @@ export async function getAllSalaryPayments(params: {
       monthLabel: p.monthLabel,
       paidAt: p.paidAt.toISOString(),
       processedBy: p.processedBy
-        ? `${p.processedBy.name} ${p.processedBy.surname}`
+        ? `${p.processedBy.name} ${p.processedBy.surname ?? ""}`.trim()
         : "—",
       remarks: p.remarks,
     })),
@@ -485,20 +470,16 @@ export async function getAllSalaryPayments(params: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// GET FULL INVOICE FOR PDF (Single version - no duplicate)
+// GET FULL INVOICE FOR PDF
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
-  await requireRole("ADMIN", "CASHIER", "TEACHER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER", "TEACHER");
 
-  const payment = await prisma.employeeSalaryPayment.findUnique({
-    where: { invoiceNumber },
+  const payment = await prisma.employeeSalaryPayment.findFirst({
+    where: { invoiceNumber, schoolId },
     include: {
-      employee: {
-        include: {
-          subjects: true,
-        }
-      },
+      employee: { include: { subjects: true } },
       salaryType: true,
       processedBy: true,
     },
@@ -506,9 +487,15 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
 
   if (!payment) return { success: false, error: "Invoice not found." };
 
+  // School info আনুন
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { schoolName: true, address: true, phone: true },
+  });
+
   let processedByName = "—";
   if (payment.processedBy) {
-    processedByName = `${payment.processedBy.name} ${payment.processedBy.surname}`.trim();
+    processedByName = `${payment.processedBy.name} ${payment.processedBy.surname ?? ""}`.trim();
   } else if (payment.processedById) {
     processedByName = await getProcessedByDetails(payment.processedById);
   }
@@ -518,7 +505,7 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
     data: {
       invoiceNumber: payment.invoiceNumber,
       employeeId: payment.employee.id,
-      employeeName: `${payment.employee.name} ${payment.employee.surname}`.trim(),
+      employeeName: `${payment.employee.name} ${payment.employee.surname ?? ""}`.trim(),
       employeePhone: payment.employee.phone,
       employeeEmail: payment.employee.email,
       employeeImg: payment.employee.img,
@@ -532,31 +519,36 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
       processedBy: processedByName,
       processedById: payment.processedById,
       remarks: payment.remarks,
-      schoolName: "Your School Name",
-      schoolAddress: "School Address, City",
-      schoolPhone: "01XXXXXXXXX",
+      // DB থেকে real school info
+      schoolName: school?.schoolName ?? "School Name",
+      schoolAddress: school?.address ?? "School Address",
+      schoolPhone: school?.phone ?? "—",
     },
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// GET EMPLOYEE SALARY STATUS (for self-view)
+// GET TEACHER SALARY STATUS (self-view)
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getTeacherSalaryStatus(employeeId: string, academicYear?: string) {
-  await requireRole("ADMIN", "CASHIER", "TEACHER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER", "TEACHER");
 
-  const year =
-    academicYear ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+  const year = academicYear ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
 
   try {
+    const employeeExists = await prisma.employee.findFirst({
+      where: { id: employeeId, schoolId },
+    });
+    if (!employeeExists) return { success: false, error: "Employee not found in your school." };
+
     const structures = await prisma.employeeSalaryStructure.findMany({
-      where: { employeeId },
+      where: { employeeId, schoolId },
       include: { salaryType: true },
     });
 
     const payments = await prisma.employeeSalaryPayment.findMany({
-      where: { employeeId, academicYear: year },
+      where: { employeeId, academicYear: year, schoolId },
       include: { salaryType: true },
       orderBy: { paidAt: "desc" },
     });
@@ -604,9 +596,10 @@ export async function getTeacherSalaryStatus(employeeId: string, academicYear?: 
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function getSalaryAcademicYears() {
-  await requireRole("ADMIN", "CASHIER");
+  const { schoolId } = await requireRole("ADMIN", "CASHIER");
   try {
     const rows = await prisma.employeeSalaryPayment.findMany({
+      where: { schoolId },
       distinct: ["academicYear"],
       select: { academicYear: true },
       orderBy: { academicYear: "desc" },

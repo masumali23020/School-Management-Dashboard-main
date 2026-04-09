@@ -4,22 +4,45 @@
 
 import SalaryCashierClient from "@/components/Salarycashierclient ";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { redirect } from "next/navigation";
 
 export default async function SalaryCashierPage() {
-  const { role } = await getUserRole();
+  const { role, schoolId } = await getUserRoleAuth();
 
-  const normalizedRole = role.toUpperCase();
+  const normalizedRole = role?.toUpperCase() || "";
   if (!["ADMIN", "CASHIER"].includes(normalizedRole)) redirect("/");
 
+  // Check if user has school access
+  if (!schoolId) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="text-center text-red-500 py-8">
+          <p>Error: No school associated with this account.</p>
+          <p className="text-sm mt-2">Please contact administrator.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [salaryTypes, employees] = await Promise.all([
+    // Only salary types from this school
     prisma.salaryType.findMany({
-      where:   { isActive: true },
+      where: { 
+        isActive: true,
+        schoolId: schoolId 
+      },
       orderBy: { name: "asc" },
     }),
 
+    // Only employees from this school
     prisma.employee.findMany({
+      where: { 
+        schoolId: schoolId,
+        role: {
+          in: ["TEACHER", "STAFF", "ADMIN", "CASHIER"]
+        }
+      },
       select: {
         id:       true,
         name:     true,
@@ -28,11 +51,26 @@ export default async function SalaryCashierPage() {
         phone:    true,
         role:     true,
         subjects: { select: { name: true } },
-        salaryStructures: { include: { salaryType: true } },
+        salaryStructures: { 
+          where: { schoolId: schoolId },
+          include: { salaryType: true } 
+        },
       },
       orderBy: [{ name: "asc" }, { surname: "asc" }],
     }),
   ]);
+
+  // If no salary types exist, show message
+  if (salaryTypes.length === 0) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="text-center text-yellow-500 py-8">
+          <p>No salary types configured for this school.</p>
+          <p className="text-sm mt-2">Please contact administrator to set up salary types.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SalaryCashierClient
@@ -47,6 +85,7 @@ export default async function SalaryCashierPage() {
         surname:  e.surname,
         img:      e.img,
         phone:    e.phone,
+        role:     e.role,
         subjects: e.subjects.map((s) => s.name),
         salaryStructures: e.salaryStructures.map((s) => ({
           id:             s.id,

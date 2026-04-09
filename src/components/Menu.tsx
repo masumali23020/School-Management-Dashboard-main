@@ -46,20 +46,35 @@ const CLASSES_VISIBLE = ["ADMIN", "TEACHER"];
 const RESULTS_VISIBLE = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
 
 const Menu = async ({ user }: { user: any }) => {
-  // Extract role from user object (from your auth system)
-  const role = user?.role || "STUDENT";
+  // Extract role and schoolId from user object
+  const role = user?.role || "null";
+  const schoolId = user?.schoolId;
+
+  // Only fetch classes if user has permission AND has a schoolId
+  let classes: { id: number; name: string; gradeLevel: number }[] = [];
   
-  // Only fetch classes if user has permission
-  const classes = CLASSES_VISIBLE.includes(role)
-    ? await prisma.class
-        .findMany({
-          select: { id: true, name: true, grade: { select: { level: true } } },
-          orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
-        })
-        .then((rows) =>
-          rows.map((c) => ({ id: c.id, name: c.name, gradeLevel: c.grade.level }))
-        )
-    : [];
+  if (CLASSES_VISIBLE.includes(role) && schoolId) {
+    classes = await prisma.class
+      .findMany({
+        where: {
+          schoolId: schoolId, // 🔥 Only fetch classes from the user's school
+        },
+        select: { 
+          id: true, 
+          name: true, 
+          grade: { select: { level: true } } 
+        },
+        orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
+      })
+      .then((rows) =>
+        rows.map((c) => ({ id: c.id, name: c.name, gradeLevel: c.grade.level }))
+      );
+  }
+
+  // If no schoolId but role requires it, show limited menu
+  if (!schoolId && role !== "null") {
+    console.warn("Menu: No schoolId found for user with role:", role);
+  }
 
   return (
     <div className="mt-4 text-sm">
@@ -82,12 +97,12 @@ const Menu = async ({ user }: { user: any }) => {
               <div key={item.label}>
                 {/* Inject Classes submenu just before Lessons */}
                 {item.label === "Lessons" && CLASSES_VISIBLE.includes(role) && (
-                  <ClassesSubMenu key="classes-submenu" classes={classes} />
+                  <ClassesSubMenu key="classes-submenu" classes={classes} schoolId={schoolId} />
                 )}
 
                 {/* Inject Results submenu just before Attendance */}
                 {item.label === "Attendance" && RESULTS_VISIBLE.includes(role) && (
-                  <ResultsSubMenu key="results-submenu" />
+                  <ResultsSubMenu key="results-submenu" schoolId={schoolId} role={role} />
                 )}
 
                 <MenuLink item={item} />
