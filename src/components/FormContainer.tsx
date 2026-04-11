@@ -15,6 +15,7 @@ export type FormContainerProps = {
     | "grade"
     | "lesson"
     | "exam"
+    |  "bulkExam"
     | "assignment"
     | "classSubjectTeacher"
     | "result"
@@ -240,11 +241,25 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
                   select: { level: true }
                 }
               }
+            }, teacher:{
+              select:{
+                name:true,
+                surname:true
+              }
             }
           },
           orderBy: { name: 'asc' }
         });
-        relatedData = { lessons: examLessons };
+        const classess = await prisma.class.findMany({
+          where: {
+            schoolId: Number(schoolId)
+          },
+         select:{
+                 id:true,
+                 name:true,
+         }
+        });
+        relatedData = { lessons: examLessons, classes: classess };
         break;
 
     case "assignment":

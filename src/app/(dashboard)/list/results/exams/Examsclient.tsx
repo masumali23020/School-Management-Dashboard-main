@@ -1,33 +1,28 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
+
 import {
-  getClassSubjectsWithExams,
-  getStudentsWithAllSubjectMarks,
+  ChevronLeft, BookOpen, Users, Loader2,
+  Trash2, Save, PenLine, X, Check, CheckCircle2,
+  AlertCircle, Filter,
+} from "lucide-react";
+import { toast } from "react-toastify";
+import { getClassSubjectsWithExams, getStudentsWithAllSubjectMarks,
   saveOneExamMark,
   bulkSaveAllExamMarks,
   deleteOneExamMark,
   type SubjectWithExam,
   type StudentExamRow,
-} from "../../../../../Actions/ExamAction/Examactions";
-
-import {
-  ChevronLeft, BookOpen, Users, Loader2,
-  Trash2, Save, PenLine, X, Check, CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
-import { toast } from "react-toastify";
-
-// ─────────────────────────────────────────────────────────────────────────────
+  getAvailableAcademicYears,
+  getExamsByClassAndSession,
+} from "@/Actions/ExamAction/resultExamAction";
 
 type ClassOption = { id: number; name: string; gradeLevel: number };
+type ExamOption = { id: number; title: string };
 
 const isPrimary = (level: number) => level <= 5;
-
-// mark key: `${studentId}__${examId}__mcq|written|practical`
 type LocalMarks = Record<string, string>;
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
   const [selectedClass, setSelectedClass] = useState<ClassOption | null>(null);
@@ -38,40 +33,137 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [isBulkSaving, startBulkSave] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  
+  // ফিল্টার স্টেট
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [availableExams, setAvailableExams] = useState<ExamOption[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
+  const [loadingFilters, setLoadingFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // ── Load class data ─────────────────────────────────────────────────────────
-  const loadClass = useCallback((cls: ClassOption) => {
+  // ক্লাস সিলেক্ট করার সময় available years লোড করুন
+  const loadAvailableYears = useCallback(async (cls: ClassOption) => {
+    setLoadingFilters(true);
+    try {
+      const years = await getAvailableAcademicYears(cls.id);
+      setAvailableYears(years);
+      if (years.length > 0) {
+        setSelectedYear(years[0]);
+      } else {
+        setSelectedYear("");
+      }
+    } catch (err) {
+      console.error("Error loading years:", err);
+    } finally {
+      setLoadingFilters(false);
+    }
+  }, []);
+
+  // বছর সিলেক্ট করার সময় available exams লোড করুন
+  const loadAvailableExams = useCallback(async (clsId: number, year: string) => {
+    if (!year) return;
+    setLoadingFilters(true);
+    try {
+      const exams = await getExamsByClassAndSession(clsId, year);
+      setAvailableExams(exams);
+      if (exams.length > 0) {
+        setSelectedExamId(exams[0].id);
+      } else {
+        setSelectedExamId(null);
+      }
+    } catch (err) {
+      console.error("Error loading exams:", err);
+    } finally {
+      setLoadingFilters(false);
+    }
+  }, []);
+
+  // ক্লাস সিলেক্ট হলে
+  const handleClassSelect = async (cls: ClassOption) => {
     setSelectedClass(cls);
+    setSelectedYear("");
+    setSelectedExamId(null);
+    setAvailableExams([]);
+    await loadAvailableYears(cls);
+  };
+
+  // বছর পরিবর্তন হলে
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+    if (selectedClass) {
+      loadAvailableExams(selectedClass.id, year);
+    }
+  };
+
+  // এক্সাম পরিবর্তন হলে ক্লাস ডাটা লোড করুন
+  const loadClassData = useCallback(async () => {
+    if (!selectedClass || !selectedYear || !selectedExamId) {
+      console.log("Missing required data:", { selectedClass, selectedYear, selectedExamId });
+      return;
+    }
+
+    console.log("Loading class data for:", {
+      classId: selectedClass.id,
+      year: selectedYear,
+      examId: selectedExamId
+    });
+    
     setLocalMarks({});
     setEditingStudentId(null);
+    setError(null);
+    
     startLoad(async () => {
-      const subjectData = await getClassSubjectsWithExams(cls.id);
-      setSubjects(subjectData);
+      try {
+        // শুধু সিলেক্ট করা এক্সামের জন্য সাবজেক্ট লোড করুন
+        const subjectData = await getClassSubjectsWithExams(selectedClass.id, selectedYear, selectedExamId);
+        console.log("Subjects received:", subjectData);
+        setSubjects(subjectData);
 
+        const examIds = subjectData
+          .map((s) => s.examId)
+          .filter((id): id is number => id !== null);
+        
+        console.log("Exam IDs found:", examIds);
+
+        if (examIds.length > 0) {
+          const studentData = await getStudentsWithAllSubjectMarks(selectedClass.id, examIds);
+          console.log("Students received:", studentData);
+          setStudents(studentData);
+        } else {
+          setStudents([]);
+          setError("No exams have been created for this class yet.");
+        }
+      } catch (err) {
+        console.error("Error loading class data:", err);
+        setError("Failed to load class data. Please try again.");
+      }
+    });
+  }, [selectedClass, selectedYear, selectedExamId]);
+
+  // ফিল্টার পরিবর্তন হলে ডাটা রিলোড
+  useEffect(() => {
+    if (selectedClass && selectedYear && selectedExamId) {
+      loadClassData();
+    }
+  }, [selectedClass, selectedYear, selectedExamId, loadClassData]);
+
+  // Refresh after save
+  const refresh = useCallback(async () => {
+    if (selectedClass && selectedYear && selectedExamId) {
+      const subjectData = await getClassSubjectsWithExams(selectedClass.id, selectedYear, selectedExamId);
       const examIds = subjectData
         .map((s) => s.examId)
         .filter((id): id is number => id !== null);
-
       if (examIds.length > 0) {
-        const studentData = await getStudentsWithAllSubjectMarks(cls.id, examIds);
+        const studentData = await getStudentsWithAllSubjectMarks(selectedClass.id, examIds);
         setStudents(studentData);
-      } else {
-        setStudents([]);
       }
-    });
-  }, []);
+    }
+  }, [selectedClass, selectedYear, selectedExamId]);
 
-  // ── Refresh after save ──────────────────────────────────────────────────────
-  const refresh = useCallback(async (cls: ClassOption, subjectData: SubjectWithExam[]) => {
-    const examIds = subjectData
-      .map((s) => s.examId)
-      .filter((id): id is number => id !== null);
-    if (examIds.length === 0) return;
-    const studentData = await getStudentsWithAllSubjectMarks(cls.id, examIds);
-    setStudents(studentData);
-  }, []);
-
-  // ── Local mark helpers ──────────────────────────────────────────────────────
+  // Local mark helpers
   const mkKey = (studentId: string, examId: number, field: string) =>
     `${studentId}__${examId}__${field}`;
 
@@ -85,7 +177,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     }));
   };
 
-  // Resolve display value: local edit > saved DB value
   const getVal = (
     student: StudentExamRow,
     examId: number,
@@ -101,7 +192,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     return "";
   };
 
-  // Auto-calculate total for a student + subject
   const calcTotal = (
     student: StudentExamRow,
     subj: SubjectWithExam
@@ -119,7 +209,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     return Number(mcq || 0) + Number(wr || 0) + Number(pr || 0);
   };
 
-  // Build payload for one student + one subject
   const buildEntry = (student: StudentExamRow, subj: SubjectWithExam) => {
     if (!subj.examId) return null;
     const primary = isPrimary(selectedClass?.gradeLevel ?? 1);
@@ -150,7 +239,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     };
   };
 
-  // ── Save one row (one student, all subjects) ────────────────────────────────
   const handleSaveRow = async (student: StudentExamRow) => {
     setSavingStudentId(student.studentId);
     try {
@@ -163,7 +251,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
       await bulkSaveAllExamMarks(entries);
       toast.success(`Saved marks for ${student.name}`);
       setEditingStudentId(null);
-      // clear local edits for this student
       setLocalMarks((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(next)) {
@@ -171,7 +258,7 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
         }
         return next;
       });
-      await refresh(selectedClass!, subjects);
+      await refresh();
     } catch {
       toast.error("Failed to save marks");
     } finally {
@@ -179,7 +266,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     }
   };
 
-  // ── Delete all marks for one student ───────────────────────────────────────
   const handleDeleteRow = async (student: StudentExamRow) => {
     setSavingStudentId(student.studentId);
     try {
@@ -189,7 +275,7 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
 
       await Promise.all(resultIds.map((id) => deleteOneExamMark(id)));
       toast.success(`Removed all marks for ${student.name}`);
-      await refresh(selectedClass!, subjects);
+      await refresh();
     } catch {
       toast.error("Failed to delete marks");
     } finally {
@@ -197,7 +283,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
     }
   };
 
-  // ── Bulk save ALL ───────────────────────────────────────────────────────────
   const handleBulkSave = () => {
     startBulkSave(async () => {
       const entries: any[] = [];
@@ -219,14 +304,13 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
         toast.success(`${entries.length} marks saved!`);
         setLocalMarks({});
         setEditingStudentId(null);
-        await refresh(selectedClass!, subjects);
+        await refresh();
       } catch {
         toast.error("Bulk save failed");
       }
     });
   };
 
-  // ── Check if all students are fully marked ─────────────────────────────────
   const subjectsWithExams = subjects.filter((s) => s.examId !== null);
   const allMarked =
     subjectsWithExams.length > 0 &&
@@ -239,10 +323,18 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
 
   const primary = isPrimary(selectedClass?.gradeLevel ?? 1);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
+  // Class Selector View
   if (!selectedClass) {
-    return <ClassSelector classes={classes} onSelect={loadClass} />;
+    return <ClassSelector classes={classes} onSelect={handleClassSelect} />;
+  }
+
+  // Loading filters view
+  if (loadingFilters) {
+    return (
+      <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
+        <Loader2 className="h-5 w-5 animate-spin" /> Loading filters...
+      </div>
+    );
   }
 
   return (
@@ -250,7 +342,15 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={() => { setSelectedClass(null); setSubjects([]); setStudents([]); }}
+          onClick={() => { 
+            setSelectedClass(null); 
+            setSubjects([]); 
+            setStudents([]);
+            setAvailableYears([]);
+            setAvailableExams([]);
+            setSelectedYear("");
+            setSelectedExamId(null);
+          }}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
         >
           <ChevronLeft className="h-4 w-4" /> Change Class
@@ -264,6 +364,17 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
             {primary ? "Primary" : "Secondary"}
           </span>
         </div>
+
+        {/* Filter Toggle Button */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+            showFilters ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+        </button>
 
         {allMarked && (
           <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">
@@ -283,6 +394,61 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
         </div>
       </div>
 
+      {/* Filter Section */}
+      {showFilters && (
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Filter Exams</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Session/Year Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Academic Year / Session</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={availableYears.length === 0}
+              >
+                <option value="">Select Session</option>
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Exam Title Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Exam Title</label>
+              <select
+                value={selectedExamId || ""}
+                onChange={(e) => setSelectedExamId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={!selectedYear || availableExams.length === 0}
+              >
+                <option value="">Select Exam</option>
+                {availableExams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>{exam.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* No data message */}
+          {selectedYear && availableExams.length === 0 && (
+            <p className="text-xs text-amber-600 mt-3">
+              No exams found for {selectedYear}. Please create exams first.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       {/* No exams warning */}
       {!loading && subjectsWithExams.length === 0 && subjects.length > 0 && (
         <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg text-sm">
@@ -291,94 +457,59 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
         </div>
       )}
 
-      {/* Main grid table */}
+      {/* Loading State */}
       {loading ? (
         <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
           <Loader2 className="h-5 w-5 animate-spin" /> Loading class data…
         </div>
       ) : subjectsWithExams.length > 0 && students.length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Table remains the same as your original code */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                {/* Row 1: Subject names spanning their columns */}
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  {/* Fixed columns */}
-                  <th
-                    rowSpan={2}
-                    className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-200 min-w-[50px]"
-                  >
-                    #
-                  </th>
-                  <th
-                    rowSpan={2}
-                    className="sticky left-[50px] z-20 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-200 min-w-[160px]"
-                  >
-                    Student Name
-                  </th>
-
-                  {/* Subject headers */}
+                  <th rowSpan={2} className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-200 min-w-[50px]">#</th>
+                  <th rowSpan={2} className="sticky left-[50px] z-20 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-200 min-w-[160px]">Student Name</th>
                   {subjectsWithExams.map((subj) => {
                     const cols = primary ? 2 : (subj.practicalMarks ? 4 : 3);
                     return (
-                      <th
-                        key={subj.subjectId}
-                        colSpan={cols}
-                        className="px-3 py-2.5 text-center text-xs font-bold text-gray-700 border-r border-gray-200 bg-indigo-50"
-                      >
+                      <th key={subj.subjectId} colSpan={cols} className="px-3 py-2.5 text-center text-xs font-bold text-gray-700 border-r border-gray-200 bg-indigo-50">
                         <div>{subj.subjectName}</div>
                         <div className="text-indigo-400 font-normal text-xs">/{subj.totalMarks}</div>
                       </th>
                     );
                   })}
-
-                  {/* Actions header */}
-                  <th
-                    rowSpan={2}
-                    className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[100px]"
-                  >
-                    Actions
-                  </th>
+                  <th rowSpan={2} className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[100px]">Actions</th>
                 </tr>
-
-                {/* Row 2: MCQ / Written / (Practical) / Total per subject */}
                 <tr className="bg-gray-50 border-b border-gray-200">
                   {subjectsWithExams.map((subj) => (
                     primary ? (
                       <>
                         <th key={`${subj.subjectId}-wr`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-100 min-w-[70px]">
-                          Written
-                          <div className="text-gray-400 font-normal">/{subj.writtenMarks}</div>
+                          Written <div className="text-gray-400 font-normal">/{subj.writtenMarks}</div>
                         </th>
-                        <th key={`${subj.subjectId}-tot`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-200 min-w-[60px]">
-                          Total
-                        </th>
+                        <th key={`${subj.subjectId}-tot`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-200 min-w-[60px]">Total</th>
                       </>
                     ) : (
                       <>
                         <th key={`${subj.subjectId}-mcq`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-100 min-w-[70px]">
-                          MCQ
-                          <div className="text-gray-400 font-normal">/{subj.mcqMarks ?? 30}</div>
+                          MCQ <div className="text-gray-400 font-normal">/{subj.mcqMarks ?? 30}</div>
                         </th>
                         <th key={`${subj.subjectId}-wr`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-100 min-w-[70px]">
-                          Written
-                          <div className="text-gray-400 font-normal">/{subj.writtenMarks}</div>
+                          Written <div className="text-gray-400 font-normal">/{subj.writtenMarks}</div>
                         </th>
                         {subj.practicalMarks && (
                           <th key={`${subj.subjectId}-pr`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-100 min-w-[70px]">
-                            Practical
-                            <div className="text-gray-400 font-normal">/{subj.practicalMarks}</div>
+                            Practical <div className="text-gray-400 font-normal">/{subj.practicalMarks}</div>
                           </th>
                         )}
-                        <th key={`${subj.subjectId}-tot`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-200 min-w-[60px]">
-                          Total
-                        </th>
+                        <th key={`${subj.subjectId}-tot`} className="px-3 py-2 text-center text-xs font-medium text-gray-500 border-r border-gray-200 min-w-[60px]">Total</th>
                       </>
                     )
                   ))}
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-50">
                 {students.map((student, idx) => {
                   const isEditing = editingStudentId === student.studentId;
@@ -388,16 +519,8 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                   );
 
                   return (
-                    <tr
-                      key={student.studentId}
-                      className={`transition-colors ${isEditing ? "bg-blue-50" : "hover:bg-gray-50"}`}
-                    >
-                      {/* # */}
-                      <td className="sticky left-0 z-10 bg-inherit px-4 py-3 text-gray-400 text-xs border-r border-gray-100">
-                        {idx + 1}
-                      </td>
-
-                      {/* Name */}
+                    <tr key={student.studentId} className={`transition-colors ${isEditing ? "bg-blue-50" : "hover:bg-gray-50"}`}>
+                      <td className="sticky left-0 z-10 bg-inherit px-4 py-3 text-gray-400 text-xs border-r border-gray-100">{idx + 1}</td>
                       <td className="sticky left-[50px] z-10 bg-inherit px-4 py-3 border-r border-gray-100">
                         <div className="flex items-center gap-2">
                           <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -407,7 +530,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                         </div>
                       </td>
 
-                      {/* Per-subject mark cells */}
                       {subjectsWithExams.map((subj) => {
                         const examId = subj.examId!;
                         const total = calcTotal(student, subj);
@@ -415,8 +537,7 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
 
                         return primary ? (
                           <>
-                            {/* Written */}
-                            <td key={`${subj.subjectId}-wr`} className="px-2 py-3 border-r border-gray-100">
+                            <td className="px-2 py-3 border-r border-gray-100">
                               <div className="flex justify-center">
                                 {isEditing || !resultId ? (
                                   <MarkInput
@@ -430,15 +551,13 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                                 )}
                               </div>
                             </td>
-                            {/* Total */}
-                            <td key={`${subj.subjectId}-tot`} className="px-2 py-3 border-r border-gray-200">
+                            <td className="px-2 py-3 border-r border-gray-200">
                               <TotalChip value={total} />
                             </td>
                           </>
                         ) : (
                           <>
-                            {/* MCQ */}
-                            <td key={`${subj.subjectId}-mcq`} className="px-2 py-3 border-r border-gray-100">
+                            <td className="px-2 py-3 border-r border-gray-100">
                               <div className="flex justify-center">
                                 {isEditing || !resultId ? (
                                   <MarkInput
@@ -452,8 +571,7 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                                 )}
                               </div>
                             </td>
-                            {/* Written */}
-                            <td key={`${subj.subjectId}-wr`} className="px-2 py-3 border-r border-gray-100">
+                            <td className="px-2 py-3 border-r border-gray-100">
                               <div className="flex justify-center">
                                 {isEditing || !resultId ? (
                                   <MarkInput
@@ -466,9 +584,8 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                                 )}
                               </div>
                             </td>
-                            {/* Practical (optional) */}
                             {subj.practicalMarks && (
-                              <td key={`${subj.subjectId}-pr`} className="px-2 py-3 border-r border-gray-100">
+                              <td className="px-2 py-3 border-r border-gray-100">
                                 <div className="flex justify-center">
                                   {isEditing || !resultId ? (
                                     <MarkInput
@@ -482,15 +599,13 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
                                 </div>
                               </td>
                             )}
-                            {/* Total */}
-                            <td key={`${subj.subjectId}-tot`} className="px-2 py-3 border-r border-gray-200">
+                            <td className="px-2 py-3 border-r border-gray-200">
                               <TotalChip value={total} />
                             </td>
                           </>
                         );
                       })}
 
-                      {/* Row actions */}
                       <td className="px-3 py-3">
                         <div className="flex items-center justify-center gap-1">
                           {isSaving ? (
@@ -534,7 +649,6 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
             </table>
           </div>
 
-          {/* Footer summary */}
           <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
             <span className="text-xs text-gray-500">
               {students.length} students · {subjectsWithExams.length} subjects
@@ -546,14 +660,37 @@ export default function ExamsClient({ classes }: { classes: ClassOption[] }) {
             )}
           </div>
         </div>
+      ) : !loading && subjectsWithExams.length > 0 && students.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <Users className="h-6 w-6 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700">No Students Found</h3>
+            <p className="text-sm text-gray-500">No students are enrolled in this class. Please add students first.</p>
+          </div>
+        </div>
       ) : null}
     </div>
   );
 }
 
-// ── Class selector ────────────────────────────────────────────────────────────
-
+// Class Selector Component
 function ClassSelector({ classes, onSelect }: { classes: ClassOption[]; onSelect: (c: ClassOption) => void }) {
+  if (classes.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+            <BookOpen className="h-6 w-6 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700">No Classes Found</h3>
+          <p className="text-sm text-gray-500">No classes have been created for your school yet.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <p className="text-sm font-medium text-gray-600 mb-3">Select a class to continue:</p>
@@ -576,8 +713,7 @@ function ClassSelector({ classes, onSelect }: { classes: ClassOption[]; onSelect
   );
 }
 
-// ── Reusable small components ─────────────────────────────────────────────────
-
+// Reusable components (same as before)
 function MarkInput({ value, max, onChange, autoFocus }: {
   value: string; max: number; onChange: (v: string) => void; autoFocus?: boolean;
 }) {

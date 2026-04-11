@@ -12,7 +12,7 @@ export const getTeachersAndPaginated = async (page: number, ...queryParams: any[
 
   // The $transaction call to fetch data and count
   const [teachers, count] = await prisma.$transaction([
-    prisma.teacher.findMany({
+    prisma.employee.findMany({
      
       include: {
         subjects: true,
@@ -25,7 +25,7 @@ export const getTeachersAndPaginated = async (page: number, ...queryParams: any[
       }
    
     }),
-    prisma.teacher.count(),
+    prisma.employee.count(),
   ]);
 
   return { teachers, count };

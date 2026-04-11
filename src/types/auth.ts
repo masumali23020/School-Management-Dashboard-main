@@ -4,16 +4,37 @@
 export type UserRole = "ADMIN" | "TEACHER" | "CASHIER" | "STAFF" | "STUDENT" ;
 export type PlanType = "FREE" | "STANDARD" | "POPULAR";
 
-export interface SessionUser {
-  /** Auth.js `User.id` — same value as `userId` (employee/student primary key). */
+// // types/auth.ts
+// import { UserRole, PlanType } from "@prisma/client";
+
+export type SessionUser = {
   id: string;
-  userId: string;
-  role: UserRole;
-  schoolId: number;
-  planType: PlanType;
   name: string;
-  username: string;
-}
+  email: string;
+  username?: string;
+  role: UserRole;
+  schoolId?: number;
+  schoolName?: string;
+  schoolLogo?: string;
+  planType?: PlanType;
+  academicSession?: string;
+  image?: string;
+};
+// School info type for complete school data
+export type SchoolInfo = {
+  id: number;
+  schoolName: string;
+  shortName: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  academicSession: string;
+  isActive: boolean;
+  slug: string | null;
+  eiinNumber: string | null;
+};
 
 export interface LoginCredentials {
   username: string;

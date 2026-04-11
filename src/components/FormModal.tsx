@@ -20,10 +20,11 @@ import { deleteEvent } from "../Actions/EventAction/EventAction";
 import { deleteLesson } from "../Actions/loessonAction/LessonAction";
 
 import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/ClassSubjectTeacherActions";
-import { deleteOneExamMark } from "@/Actions/ExamAction/Examactions";
+
 import { deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
 import ParentForm from "./forms/ParentForm";
 import { deleteGrade } from "@/Actions/GradeActions/GradeActions";
+import { deleteExamAction } from "@/Actions/ExamAction/Examactions";
 // import AttendanceForm from "./forms/AttendanceForm";
 
 // USE LAZY LOADING
@@ -83,7 +84,7 @@ const deleteActionMap = {
   class: deleteClass,
   teacher: deleteTeacher,
   student: deleteStudent,
-  exam: deleteOneExamMark,
+  exam: deleteExamAction,
   classSubjectTeacher: deleteClassSubjectTeacher,
   // TODO: OTHER DELETE ACTIONS
   // parent: deleteSubject,

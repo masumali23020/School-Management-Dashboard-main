@@ -482,9 +482,11 @@ model Exam {
   endTime     DateTime
   totalMarks  Int       @default(100)
   lessonId    Int
+  session    Int
   lesson      Lesson    @relation(fields: [lessonId], references: [id])
   results     Result[]
   examPublish ExamPublish[]
+
 
   @@index([lessonId])
 }

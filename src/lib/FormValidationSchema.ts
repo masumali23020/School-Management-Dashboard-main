@@ -263,11 +263,16 @@ export type StudentSchema = z.infer<typeof studentSchema>;
 
 export const examSchema = z.object({
   id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Title name is required!" }),
-  startTime: z.coerce.date({ message: "Start time is required!" }),
-  endTime: z.coerce.date({ message: "End time is required!" }),
-  lessonId: z.coerce.number({ message: "Lesson is required!" }),
-});
+  title: z.string().min(1, { message: "Title is required" }),
+  startTime: z.coerce.date({ required_error: "Start date is required" }),
+  endTime: z.coerce.date({ required_error: "End date is required" }),
+  session: z.coerce.number({
+    required_error: "Session is required",
+    invalid_type_error: "Session must be a number",
+  }),
+  // ✅ lessonId optional করুন — এখন lesson auto-create হচ্ছে
+  lessonId: z.coerce.number().optional(),
+})
 
 export type ExamSchema = z.infer<typeof examSchema>;
 

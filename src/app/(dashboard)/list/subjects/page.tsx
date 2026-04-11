@@ -31,42 +31,29 @@ const SubjectListPage = async ({
   searchParams: { [key: string]: string | undefined } 
 }) => {
   const { page, ...queryParams } = searchParams;
-  const { role } = await getUserRoleAuth();
+  const { role, schoolId } = await getUserRoleAuth();
 
   const p = page ? parseInt(page) : 1;
 
+  // Check if user has school access
+  if (!schoolId) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="text-center text-red-500 py-8">
+          <p>Error: No school associated with this account.</p>
+          <p className="text-sm mt-2">Please contact administrator.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Columns definition
   const columns = [
-    {
-      header: "Subject Name",
-      accessor: "name",
-    },
-    // {
-    //   header: "Subject Code",
-    //   accessor: "code",
-    //   className: "hidden md:table-cell",
-    // },
-    {
-      header: "Total Teachers",
-      accessor: "teacherCount",
-      className: "hidden lg:table-cell",
-    },
-    {
-      header: "Classes & Teachers",
-      accessor: "classes",
-      className: "hidden xl:table-cell",
-    },
-    {
-      header: "Total Lessons",
-      accessor: "lessons",
-      className: "hidden lg:table-cell",
-    },
-    ...(role === "admin" ? [
-      {
-        header: "Actions",
-        accessor: "action",
-      },
-    ] : []),
+    { header: "Subject Name", accessor: "name" },
+    { header: "Total Teachers", accessor: "teacherCount", className: "hidden lg:table-cell" },
+    { header: "Classes & Teachers", accessor: "classes", className: "hidden xl:table-cell" },
+    { header: "Total Lessons", accessor: "lessons", className: "hidden lg:table-cell" },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
 
   const renderRow = (item: SubjectWithRelations) => (
@@ -79,9 +66,6 @@ const SubjectListPage = async ({
           <h3 className="font-semibold">{item.name}</h3>
         </div>
       </td>
-      {/* <td className="hidden md:table-cell">
-        {item.code || '—'}
-      </td> */}
       <td className="hidden lg:table-cell">
         <div className="flex items-center">
           <span className="bg-lamaSkyLight px-2 py-1 rounded-full text-xs font-medium">
@@ -121,14 +105,11 @@ const SubjectListPage = async ({
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {/* View Details Link */}
           <Link href={`/subject/${item.id}`}>
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSkyLight">
               <Image src="/view.png" alt="" width={14} height={14} />
             </button>
           </Link>
-          
-          {/* Actions for Admin */}
           {role === "admin" && (
             <>
               <FormContainer table="subject" type="update" data={item} />
@@ -140,30 +121,31 @@ const SubjectListPage = async ({
     </tr>
   );
 
-  // Build query
-  const query: Prisma.SubjectWhereInput = {};
+  // Build query with school filter
+  const query: Prisma.SubjectWhereInput = {
+    schoolId: schoolId  // 🔥 Only subjects from this school
+  };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
           case "search":
-            query.OR = [
-              { name: { contains: value, mode: "insensitive" } },
-             
-            ];
+            query.name = { contains: value, mode: "insensitive" };
             break;
           case "classId":
             query.classTeachers = {
               some: {
-                classId: parseInt(value)
+                classId: parseInt(value),
+                schoolId: schoolId  // 🔥 School filter
               }
             };
             break;
           case "teacherId":
             query.classTeachers = {
               some: {
-                teacherId: value
+                teacherId: value,
+                schoolId: schoolId  // 🔥 School filter
               }
             };
             break;
@@ -181,6 +163,9 @@ const SubjectListPage = async ({
       include: {
         teachers: true,
         classTeachers: {
+          where: {
+            schoolId: schoolId  // 🔥 Only class teachers from this school
+          },
           include: {
             class: {
               include: {
@@ -210,29 +195,70 @@ const SubjectListPage = async ({
     prisma.subject.count({ where: query }),
   ]);
 
-  // Get statistics for the header
+  // Calculate statistics
   const totalTeachers = subjectsData.reduce(
     (acc, subject) => acc + (subject.classTeachers?.length || 0), 
     0
   );
+  
+  const activeClasses = new Set(
+    subjectsData.flatMap(s => s.classTeachers.map(ct => ct.classId))
+  ).size;
+
+  // If no subjects exist
+  if (subjectsData.length === 0) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="flex items-center justify-between">
+          <h1 className="hidden md:block text-lg font-semibold">All Subjects</h1>
+          <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+            <TableSearch />
+            <div className="flex items-center gap-4 self-end">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/filter.png" alt="" width={14} height={14} />
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/sort.png" alt="" width={14} height={14} />
+              </button>
+              {role === "admin" && (
+                <div className="flex gap-2">
+                  <FormContainer table="subject" type="create" />
+                  <FormContainer table="classSubjectTeacher" type="create" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-center py-12 text-gray-500">
+          <p>No subjects found for this school.</p>
+          {role === "admin" && (
+            <p className="text-sm mt-2">Click the &quot;+&quot; button above to create your first subject.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}
       <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Subjects</h1>
+        <div>
+          <h1 className="hidden md:block text-lg font-semibold">All Subjects</h1>
+          <p className="text-xs text-gray-400 mt-1 hidden md:block">
+            Managing subjects for your school
+          </p>
+        </div>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {/* Filter Button */}
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
-            {/* Sort Button */}
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {/* Create Buttons for Admin */}
             {role === "admin" && (
               <div className="flex gap-2">
                 <FormContainer table="subject" type="create" />
@@ -271,32 +297,33 @@ const SubjectListPage = async ({
           </div>
           <div>
             <p className="text-xs text-gray-500">Active Classes</p>
+            <p className="text-xl font-semibold">{activeClasses}</p>
+          </div>
+        </div>
+        
+        <div className="bg-lamaGreenLight p-3 rounded-lg flex items-center gap-2 flex-1 min-w-[150px]">
+          <div className="bg-green-500 w-10 h-10 rounded-full flex items-center justify-center">
+            <Image src="/lesson.png" alt="" width={20} height={20} />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Total Lessons</p>
             <p className="text-xl font-semibold">
-              {new Set(subjectsData.flatMap(s => s.classTeachers.map(ct => ct.classId))).size}
+              {subjectsData.reduce((acc, s) => acc + (s._count?.lessons || 0), 0)}
             </p>
           </div>
         </div>
       </div>
 
-      {/* FILTER TABS (Optional) */}
+      {/* FILTER TABS - Optional, can be removed if not needed */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
         <button className="px-3 py-1 bg-lamaSky text-white rounded-full text-xs whitespace-nowrap">
-          All Subjects
+          All Subjects ({count})
         </button>
         <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs whitespace-nowrap">
-          With Teachers
+          With Teachers ({subjectsData.filter(s => s.classTeachers.length > 0).length})
         </button>
         <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs whitespace-nowrap">
-          No Teachers
-        </button>
-        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs whitespace-nowrap">
-          Science
-        </button>
-        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs whitespace-nowrap">
-          Arts
-        </button>
-        <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs whitespace-nowrap">
-          Commerce
+          No Teachers ({subjectsData.filter(s => s.classTeachers.length === 0).length})
         </button>
       </div>
 

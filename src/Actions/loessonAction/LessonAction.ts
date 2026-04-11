@@ -5,6 +5,7 @@
 import { LessonSchema } from "../../lib/FormValidationSchema";
 import prisma from "../../lib/db";
 import { revalidatePath } from "next/cache";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type CreateState = { success: boolean; error: boolean; message?: string };
 
@@ -13,6 +14,25 @@ export const createLesson = async (
   data: LessonSchema
 ) => {
   try {
+    // Get current user and school info
+    const { schoolId, role } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "No school associated with this account" 
+      };
+    }
+
+    if (role !== "admin") {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Unauthorized: Only admin can create lessons" 
+      };
+    }
+
     // Validate required fields
     if (!data.name || !data.day || !data.startTime || !data.endTime || !data.classSubjectTeacherId) {
       return { 
@@ -22,9 +42,12 @@ export const createLesson = async (
       };
     }
 
-    // Get classSubjectTeacher to verify and get related IDs
-    const assignment = await prisma.classSubjectTeacher.findUnique({
-      where: { id: data.classSubjectTeacherId },
+    // Get classSubjectTeacher with school verification
+    const assignment = await prisma.classSubjectTeacher.findFirst({
+      where: { 
+        id: data.classSubjectTeacherId,
+        schoolId: schoolId  // 🔥 School verification
+      },
       include: {
         class: true,
         subject: true,
@@ -36,7 +59,16 @@ export const createLesson = async (
       return { 
         success: false, 
         error: true, 
-        message: "Invalid class-subject-teacher assignment" 
+        message: "Invalid class-subject-teacher assignment for this school" 
+      };
+    }
+
+    // Verify class belongs to this school
+    if (assignment.class.schoolId !== schoolId) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Class does not belong to your school" 
       };
     }
 
@@ -84,9 +116,9 @@ export const createLesson = async (
       },
     });
 
-    // revalidatePath("/lesson");
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
+    // revalidatePath("/list/lessons");
+    // revalidatePath("/list/classes");
+    // revalidatePath("/list/subjects");
     
     return { success: true, error: false, message: "Lesson created successfully" };
   } catch (err) {
@@ -104,6 +136,46 @@ export const updateLesson = async (
   }
 
   try {
+    // Get current user and school info
+    const { schoolId, role } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "No school associated with this account" 
+      };
+    }
+
+    if (role !== "admin") {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Unauthorized: Only admin can update lessons" 
+      };
+    }
+
+    // Verify lesson exists and belongs to this school
+    const existingLesson = await prisma.lesson.findFirst({
+      where: {
+        id: data.id,
+        class: {
+          schoolId: schoolId  // 🔥 School verification through class
+        }
+      },
+      include: {
+        class: true
+      }
+    });
+
+    if (!existingLesson) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Lesson not found or does not belong to your school" 
+      };
+    }
+
     // Validate required fields
     if (!data.name || !data.day || !data.startTime || !data.endTime || !data.classSubjectTeacherId) {
       return { 
@@ -113,9 +185,12 @@ export const updateLesson = async (
       };
     }
 
-    // Get classSubjectTeacher to verify and get related IDs
-    const assignment = await prisma.classSubjectTeacher.findUnique({
-      where: { id: data.classSubjectTeacherId },
+    // Get classSubjectTeacher with school verification
+    const assignment = await prisma.classSubjectTeacher.findFirst({
+      where: { 
+        id: data.classSubjectTeacherId,
+        schoolId: schoolId  // 🔥 School verification
+      },
       include: {
         class: true,
         subject: true,
@@ -127,7 +202,16 @@ export const updateLesson = async (
       return { 
         success: false, 
         error: true, 
-        message: "Invalid class-subject-teacher assignment" 
+        message: "Invalid class-subject-teacher assignment for this school" 
+      };
+    }
+
+    // Verify class belongs to this school
+    if (assignment.class.schoolId !== schoolId) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Class does not belong to your school" 
       };
     }
 
@@ -177,13 +261,13 @@ export const updateLesson = async (
       },
     });
 
-    // revalidatePath("/lesson");
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
+    // revalidatePath("/list/lessons");
+    // revalidatePath("/list/classes");
+    // revalidatePath("/list/subjects");
     
     return { success: true, error: false, message: "Lesson updated successfully" };
   } catch (err) {
-    // console.error("Error updating lesson:", err);
+    console.error("Error updating lesson:", err);
     return { success: false, error: true, message: "Failed to update lesson" };
   }
 };
@@ -199,27 +283,56 @@ export const deleteLesson = async (
   }
 
   try {
+    // Get current user and school info
+    const { schoolId, role } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "No school associated with this account" 
+      };
+    }
+
+    if (role !== "admin") {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Unauthorized: Only admin can delete lessons" 
+      };
+    }
+
     const lessonId = parseInt(id);
 
-    // Check if lesson has related data
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId },
+    // Check if lesson exists and belongs to this school
+    const lesson = await prisma.lesson.findFirst({
+      where: { 
+        id: lessonId,
+        class: {
+          schoolId: schoolId  // 🔥 School verification through class
+        }
+      },
       include: {
         exams: true,
         assignments: true,
         attendances: true,
+        class: true,
       },
     });
 
     if (!lesson) {
-      return { success: false, error: true, message: "Lesson not found" };
+      return { 
+        success: false, 
+        error: true, 
+        message: "Lesson not found or does not belong to your school" 
+      };
     }
 
     if (lesson.exams.length > 0 || lesson.assignments.length > 0 || lesson.attendances.length > 0) {
       return { 
         success: false, 
         error: true, 
-        message: "Cannot delete lesson because it has related exams, assignments, or attendances" 
+        message: `Cannot delete lesson because it has ${lesson.exams.length} exam(s), ${lesson.assignments.length} assignment(s), and ${lesson.attendances.length} attendance(s)` 
       };
     }
 
@@ -227,13 +340,112 @@ export const deleteLesson = async (
       where: { id: lessonId },
     });
 
-    // revalidatePath("/lesson");
-    // revalidatePath("/class");
-    // revalidatePath("/subject");
+    // revalidatePath("/list/lessons");
+    // revalidatePath("/list/classes");
+    // revalidatePath("/list/subjects");
     
     return { success: true, error: false, message: "Lesson deleted successfully" };
   } catch (err) {
-    // console.error("Error deleting lesson:", err);
+    console.error("Error deleting lesson:", err);
     return { success: false, error: true, message: "Failed to delete lesson" };
+  }
+};
+
+// Additional helper function to get lessons for a specific school
+export const getLessonsBySchool = async () => {
+  try {
+    const { schoolId, role } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { success: false, error: true, message: "No school associated" };
+    }
+
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        class: {
+          schoolId: schoolId
+        }
+      },
+      include: {
+        subject: { select: { name: true } },
+        class: { select: { name: true, grade: { select: { level: true } } } },
+        teacher: { select: { name: true, surname: true } },
+      },
+      orderBy: [
+        { day: "asc" },
+        { startTime: "asc" }
+      ]
+    });
+
+    return { success: true, data: lessons };
+  } catch (err) {
+    console.error("Error fetching lessons:", err);
+    return { success: false, error: true, message: "Failed to fetch lessons" };
+  }
+};
+
+// Helper function to check schedule conflict
+export const checkScheduleConflict = async (
+  classId: number,
+  day: string,
+  startTime: Date,
+  endTime: Date,
+  excludeLessonId?: number
+) => {
+  try {
+    const { schoolId } = await getUserRoleAuth();
+    
+    if (!schoolId) {
+      return { success: false, error: true, message: "No school associated" };
+    }
+
+    // Verify class belongs to this school
+    const classItem = await prisma.class.findFirst({
+      where: { id: classId, schoolId: schoolId }
+    });
+
+    if (!classItem) {
+      return { success: false, error: true, message: "Class not found" };
+    }
+
+    const whereCondition: any = {
+      classId: classId,
+      day: day.toUpperCase() as any,
+      OR: [
+        {
+          AND: [
+            { startTime: { lte: new Date(startTime) } },
+            { endTime: { gt: new Date(startTime) } },
+          ],
+        },
+        {
+          AND: [
+            { startTime: { lt: new Date(endTime) } },
+            { endTime: { gte: new Date(endTime) } },
+          ],
+        },
+      ],
+    };
+
+    if (excludeLessonId) {
+      whereCondition.NOT = { id: excludeLessonId };
+    }
+
+    const conflictingLesson = await prisma.lesson.findFirst({
+      where: whereCondition,
+      include: {
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } }
+      }
+    });
+
+    return { 
+      success: true, 
+      hasConflict: !!conflictingLesson,
+      conflictingLesson: conflictingLesson
+    };
+  } catch (err) {
+    console.error("Error checking schedule conflict:", err);
+    return { success: false, error: true, message: "Failed to check schedule" };
   }
 };

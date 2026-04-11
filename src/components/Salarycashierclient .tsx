@@ -84,9 +84,21 @@ const MONTHS = [
 export default function SalaryCashierClient({
   salaryTypes,
   teachers,
+  schoolInfo
 }: {
   salaryTypes: SalaryTypeItem[];
   teachers: TeacherItem[];
+  schoolInfo: {
+    name: string;
+    address: string;
+    phone: string;
+    shortName: string | null;
+    email: string;
+    logoUrl: string | null;
+    academicSession: string;
+
+  };
+
 }) {
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
 
@@ -204,7 +216,7 @@ export default function SalaryCashierClient({
       paymentMethod: payMethod,
       academicYear: currentYear,
       monthLabel: payMonth || undefined,
-      remarks: payRemarks || undefined,
+      
     });
 
     setPayLoading(false);
@@ -240,49 +252,51 @@ export default function SalaryCashierClient({
   };
 
   // ── Download PDF ────────────────────────────────────────────────────────
-  const handleDownloadPDF = async (payment: SalaryStatusItem['payments'][0] & { 
-    teacherName: string; 
-    teacherPhone: string | null;
-    salaryTypeName: string;
-    amount: number;
-    academicYear: string;
-  }) => {
-    try {
-      const pdfBlob = await generateSalaryPDF({
-        invoiceNumber: payment.invoiceNumber,
-        employeeId: selected?.id || '',
-        employeeName: payment.teacherName,
-        employeePhone: selected?.phone || null,
-        employeeEmail: null,
-        employeeImg: null,
-        salaryTypeName: payment.salaryTypeName,
-        isRecurring: false,
-        amountPaid: payment.amountPaid,
-        paymentMethod: payment.paymentMethod,
-        monthLabel: payment.monthLabel || null,
-        academicYear: payment.academicYear,
-        paidAt: payment.paidAt,
-        processedBy: payment.collectedBy,
-        processedById: "admin-id",
-        remarks: null,
-        schoolName: "Your School Name",
-        schoolAddress: "School Address, City",
-        schoolPhone: "01XXXXXXXXX",
-      });
+const handleDownloadPDF = async (payment: SalaryStatusItem['payments'][0] & { 
+  teacherName: string; 
+  teacherPhone: string | null;
+  salaryTypeName: string;
+  amount: number;
+  academicYear: string;
+}) => {
+  try {
+    // School information from props
+    const schoolData = {
+      name: schoolInfo.name || "Your School Name",
+      shortName: schoolInfo.shortName || "School",
+      address: schoolInfo.address || "School Address, City",
+      phone: schoolInfo.phone || "01XXXXXXXXX",
+      email: schoolInfo.email || "info@school.com",
+      academicSession: schoolInfo.academicSession || currentYear,
+    };
 
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `salary_${payment.invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      setPayError('Failed to generate PDF. Please try again.');
-    }
-  };
+    await generateSalaryPDF({
+      invoiceNumber: payment.invoiceNumber,
+      employeeId: selected?.id || '',
+      employeeName: payment.teacherName,
+      employeePhone: selected?.phone || null,
+      employeeEmail: null,
+      employeeImg: null,
+      salaryTypeName: payment.salaryTypeName,
+      isRecurring: false,
+      amountPaid: payment.amountPaid,
+      paymentMethod: payment.paymentMethod,
+      monthLabel: payment.monthLabel || null,
+      academicYear: payment.academicYear,
+      paidAt: payment.paidAt,
+      processedBy: payment.collectedBy,
+      processedById: "admin-id",
+      remarks: null,
+      schoolName: schoolData.name,
+      schoolAddress: schoolData.address,
+      schoolPhone: schoolData.phone,
+      schoolEmail: schoolData.email,
+    });
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    setPayError('Failed to generate PDF. Please try again.');
+  }
+};
 
   // Configured structures for selected teacher this year
   const configuredStatus = salaryStatus?.salaryStatus ?? [];

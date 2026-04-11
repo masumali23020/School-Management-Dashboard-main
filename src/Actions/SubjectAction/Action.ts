@@ -36,7 +36,7 @@ export const createSubject = async (
       },
     });
 
-    revalidatePath("/list/subjects");
+    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.error("Create Subject Error:", err);
@@ -70,7 +70,7 @@ export const updateSubject = async (
       },
     });
 
-    revalidatePath("/list/subjects");
+    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.error("Update Subject Error:", err);
@@ -99,7 +99,7 @@ export const deleteSubject = async (
       },
     });
 
-    revalidatePath("/list/subjects");
+    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.error("Delete Subject Error:", err);

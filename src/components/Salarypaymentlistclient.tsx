@@ -178,14 +178,14 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
           
           {
           invoiceNumber:  p.invoiceNumber,
-          teacherName:    p.teacherName,
+          teacherName:    p.employeeName,
           salaryTypeName: p.salaryTypeName,
           monthLabel:     p.monthLabel,
           amountPaid:     p.amountPaid,
           paymentMethod:  p.paymentMethod,
           academicYear:   p.academicYear,
           paidAt:         p.paidAt,
-          collectedBy:    p.collectedBy,
+          collectedBy:    p.processedBy,
           remarks:        p.remarks,
         } as SalaryReportPayment)),
         filterMonth:   filterMonth    || undefined,

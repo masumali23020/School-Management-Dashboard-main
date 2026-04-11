@@ -6,6 +6,8 @@ import { requireSession } from "@/lib/get-session";
 import  prisma  from "@/lib/db";
 import Link from "next/link";
 import { signOut } from "@/auth";
+import Menu from "@/components/Menu";
+import Image from "next/image";
 
 export default async function AdminDashboard() {
   // ── Auth guard: only ADMIN ──────────────────────────────────────────────────
@@ -59,12 +61,47 @@ export default async function AdminDashboard() {
   console.log("Dashboard data:",school )
 
   return (
-    <div className="dash">
+    <div className="dash mx-auto">
 
       {/* ── Topbar ── */}
-    
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="school-logo">
+            {school?.schoolName?.[0] ?? "S"}
+          </div>
+          <div>
+            <p className="school-name">{school?.schoolName}</p>
+            <p className="school-meta">
+              ID: {schoolId} &nbsp;·&nbsp; Session: {school?.academicSession}
+            </p>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <PlanBadge plan={planType} />
+          <span className="user-name">👤 {name}</span>
+          <form action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}>
+            <button className="logout-btn" type="submit">Sign Out</button>
+          </form>
+        </div>
+      </header>
+  
+      <div className="flex">
 
-      <main className="main">
+       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
+        <Link
+          href="/"
+          className="flex items-center justify-center lg:justify-start gap-2"
+        >
+          <Image src="/logo.png" alt="logo" width={32} height={32} />
+          <span className="hidden lg:block font-bold">{school?.shortName || school?.schoolName}</span>
+        </Link>
+        <Menu user={user} />
+      </div>
+
+      <main className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]  overflow-scroll flex flex-col"> 
 
         {/* ── Welcome ── */}
         <div className="welcome">
@@ -180,6 +217,7 @@ export default async function AdminDashboard() {
         </section>
 
       </main>
+      </div>
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

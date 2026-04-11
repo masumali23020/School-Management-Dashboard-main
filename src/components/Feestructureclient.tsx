@@ -19,6 +19,16 @@ type Props = {
   structures: Structure[];
   role:       string;           // passed from server — "admin" | other
 };
+ type SchoolInfo ={
+  id: number;
+  name: string;
+  shortName: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  academicSession: string | null;
+  
+ }
 
 // ── Delete Modal ──────────────────────────────────────────────────────────
 type DeleteTarget =
@@ -107,7 +117,7 @@ function DeleteModal({
 }
 
 // ── Main component ────────────────────────────────────────────────────────
-export default function FeeStructureClient({ feeTypes, classes, structures, role }: Props) {
+export default function FeeStructureClient({ feeTypes, classes, structures, role,schoolInfo }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = role === "admin";

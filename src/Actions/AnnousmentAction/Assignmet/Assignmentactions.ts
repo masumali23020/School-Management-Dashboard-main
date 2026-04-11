@@ -1,11 +1,14 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { revalidatePath } from "next/cache";
 
 // ── Get all classes (for class selector) ─────────────────────────────────────
 export async function getAllClasses() {
+  const {schoolId} = await getUserRoleAuth()
   return prisma.class.findMany({
+    where: { schoolId: Number(schoolId) },
     select: { id: true, name: true, grade: { select: { level: true } } },
     orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
   });

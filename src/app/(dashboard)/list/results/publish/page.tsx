@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import {
-  getAllClasses,
-  getExamPublishStatus,
+   getExamPublishStatus,
   canPublishExam,
   publishExamResult,
   unpublishExamResult,
@@ -18,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { getAllClasses } from "@/Actions/ExamAction/resultExamAction";
 
 
 // ── Types ──────────────────────────────────────────────────────────────────

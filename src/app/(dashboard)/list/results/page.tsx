@@ -1,12 +1,13 @@
-import { Class, Exam, Prisma, Result, Student, Teacher } from "@prisma/client";
+import { Class, Employee, Exam, Prisma, Result, Student } from "@prisma/client";
 import Image from "next/image";
-import { getUserRole } from "../../../../lib/utlis";
+
 import FormContainer from "../../../../components/FormContainer";
 import prisma from "../../../../lib/db";
 import { itemPerPage } from "../../../../lib/setting";
 import TableSearch from "../../../../components/TableSearch";
 import Table from "../../../../components/Table";
 import Pagination from "../../../../components/Pagination";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 // type ResultList = {
 //   id: number;
@@ -26,7 +27,7 @@ import Pagination from "../../../../components/Pagination";
 //   startTime: Date;
 // };
 
-type ResultList = Result & {teacher: Teacher} & {class: Class} & {student:Student} & {exam: Exam}
+type ResultList = Result & {teacher: Employee} & {class: Class} & {student:Student} & {exam: Exam}
 
 
 
@@ -36,7 +37,7 @@ const ResultListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
 
-const { role, userId:currentUserId } =await getUserRole();
+const { role, userId:currentUserId } =await getUserRoleAuth();
 
 const columns = [
   {
@@ -201,7 +202,7 @@ const columns = [
 
 
   const data = dataRes.map((item) => {
-    const assessment = item.exam?.[0] || item.assignment?.[0];
+    const assessment = item.exam || item.assignment;
 
     if (!assessment) return null;
 
@@ -216,7 +217,7 @@ const columns = [
       teacherSurname: assessment.lesson.teacher.surname,
       score: item.score,
       className: assessment.lesson.class.name,
-      startTime: isExam ? assessment.startTime : assessment.startDate,
+      startTime: isExam ? assessment.startTime : assessment.dueDate,
     };
   });
 

@@ -25,6 +25,34 @@ export default async function SalaryCashierPage() {
     );
   }
 
+  // Fetch school information
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: {
+      id: true,
+      schoolName: true,
+      shortName: true,
+      address: true,
+      phone: true,
+      email: true,
+      logoUrl: true,
+      bannerUrl: true,
+      academicSession: true,
+      isActive: true,
+    },
+  });
+
+  if (!school) {
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        <div className="text-center text-red-500 py-8">
+          <p>School not found.</p>
+          <p className="text-sm mt-2">Please contact administrator.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [salaryTypes, employees] = await Promise.all([
     // Only salary types from this school
     prisma.salaryType.findMany({
@@ -59,6 +87,20 @@ export default async function SalaryCashierPage() {
       orderBy: [{ name: "asc" }, { surname: "asc" }],
     }),
   ]);
+
+  // Prepare school info for client
+  const schoolInfo = {
+    id: school.id,
+    name: school.schoolName,
+    shortName: school.shortName,
+    address: school.address,
+    phone: school.phone,
+    email: school.email,
+    logoUrl: school.logoUrl,
+    bannerUrl: school.bannerUrl,
+    academicSession: school.academicSession,
+    isActive: school.isActive,
+  };
 
   // If no salary types exist, show message
   if (salaryTypes.length === 0) {
@@ -95,6 +137,7 @@ export default async function SalaryCashierPage() {
           amount:         s.amount.toNumber(),
         })),
       }))}
+      schoolInfo={schoolInfo}
     />
   );
 }
