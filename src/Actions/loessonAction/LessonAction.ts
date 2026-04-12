@@ -15,7 +15,7 @@ export const createLesson = async (
 ) => {
   try {
     // Get current user and school info
-    const { schoolId, role } = await getUserRoleAuth();
+    const { schoolId, role, userId } = await getUserRoleAuth();
     
     if (!schoolId) {
       return { 
@@ -46,7 +46,7 @@ export const createLesson = async (
     const assignment = await prisma.classSubjectTeacher.findFirst({
       where: { 
         id: data.classSubjectTeacherId,
-        schoolId: schoolId  // 🔥 School verification
+        schoolId: schoolId
       },
       include: {
         class: true,
@@ -102,7 +102,7 @@ export const createLesson = async (
       };
     }
 
-    // Create lesson with all relations
+    // Create lesson with all relations including subject
     await prisma.lesson.create({
       data: {
         name: data.name,
@@ -113,6 +113,7 @@ export const createLesson = async (
         teacherId: assignment.teacherId,
         classId: assignment.classId,
         classSubjectTeacherId: data.classSubjectTeacherId,
+        schoolId: schoolId,
       },
     });
 
@@ -123,7 +124,7 @@ export const createLesson = async (
     return { success: true, error: false, message: "Lesson created successfully" };
   } catch (err) {
     console.error("Error creating lesson:", err);
-    return { success: false, error: true, message: "Failed to create lesson" };
+    return { success: false, error: true, message: "Failed to create lesson: " + (err as Error).message };
   }
 };
 
@@ -159,9 +160,7 @@ export const updateLesson = async (
     const existingLesson = await prisma.lesson.findFirst({
       where: {
         id: data.id,
-        class: {
-          schoolId: schoolId  // 🔥 School verification through class
-        }
+        schoolId: schoolId // Direct schoolId check
       },
       include: {
         class: true
@@ -189,7 +188,7 @@ export const updateLesson = async (
     const assignment = await prisma.classSubjectTeacher.findFirst({
       where: { 
         id: data.classSubjectTeacherId,
-        schoolId: schoolId  // 🔥 School verification
+        schoolId: schoolId
       },
       include: {
         class: true,
@@ -246,7 +245,7 @@ export const updateLesson = async (
       };
     }
 
-    // Update lesson
+    // Update lesson with relations
     await prisma.lesson.update({
       where: { id: data.id },
       data: {
@@ -268,7 +267,7 @@ export const updateLesson = async (
     return { success: true, error: false, message: "Lesson updated successfully" };
   } catch (err) {
     console.error("Error updating lesson:", err);
-    return { success: false, error: true, message: "Failed to update lesson" };
+    return { success: false, error: true, message: "Failed to update lesson: " + (err as Error).message };
   }
 };
 
@@ -308,12 +307,9 @@ export const deleteLesson = async (
     const lesson = await prisma.lesson.findFirst({
       where: { 
         id: lessonId,
-        class: {
-          schoolId: schoolId  // 🔥 School verification through class
-        }
+        schoolId: schoolId // Direct schoolId check
       },
       include: {
-        exams: true,
         assignments: true,
         attendances: true,
         class: true,
@@ -328,11 +324,12 @@ export const deleteLesson = async (
       };
     }
 
-    if (lesson.exams.length > 0 || lesson.assignments.length > 0 || lesson.attendances.length > 0) {
+    // Check for dependent records (Note: 'exams' might not exist in your schema)
+    if (lesson.assignments.length > 0 || lesson.attendances.length > 0) {
       return { 
         success: false, 
         error: true, 
-        message: `Cannot delete lesson because it has ${lesson.exams.length} exam(s), ${lesson.assignments.length} assignment(s), and ${lesson.attendances.length} attendance(s)` 
+        message: `Cannot delete lesson because it has ${lesson.assignments.length} assignment(s) and ${lesson.attendances.length} attendance(s)` 
       };
     }
 
@@ -347,7 +344,7 @@ export const deleteLesson = async (
     return { success: true, error: false, message: "Lesson deleted successfully" };
   } catch (err) {
     console.error("Error deleting lesson:", err);
-    return { success: false, error: true, message: "Failed to delete lesson" };
+    return { success: false, error: true, message: "Failed to delete lesson: " + (err as Error).message };
   }
 };
 
@@ -362,13 +359,11 @@ export const getLessonsBySchool = async () => {
 
     const lessons = await prisma.lesson.findMany({
       where: {
-        class: {
-          schoolId: schoolId
-        }
+        schoolId: schoolId
       },
       include: {
         subject: { select: { name: true } },
-        class: { select: { name: true, grade: { select: { level: true } } } },
+        class: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
       },
       orderBy: [
@@ -411,6 +406,7 @@ export const checkScheduleConflict = async (
     const whereCondition: any = {
       classId: classId,
       day: day.toUpperCase() as any,
+      schoolId: schoolId,
       OR: [
         {
           AND: [

@@ -424,7 +424,10 @@ export async function getExamsByClassAndSession(classId: number, session: string
   
   if (!schoolId) return [];
   
-  const exams = await prisma.exam.findMany({
+  const sessionNum = parseInt(session) || new Date().getFullYear();
+  
+  // Try to get exams from ExamPublish first (for officially published exams)
+  let exams = await prisma.exam.findMany({
     where: {
       lesson: { classId, class: { schoolId: schoolId } },
       examPublish: { some: { session: session } }
@@ -433,6 +436,19 @@ export async function getExamsByClassAndSession(classId: number, session: string
     select: { id: true, title: true },
     orderBy: { title: "asc" },
   });
+  
+  // If no exams found via ExamPublish, fallback to exams with matching session number
+  if (exams.length === 0) {
+    exams = await prisma.exam.findMany({
+      where: {
+        lesson: { classId, class: { schoolId: schoolId } },
+        session: sessionNum
+      },
+      distinct: ["title"],
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    });
+  }
   
   return exams;
 }

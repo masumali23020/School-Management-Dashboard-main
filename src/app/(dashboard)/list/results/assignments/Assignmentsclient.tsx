@@ -319,7 +319,6 @@ function MarkEntryPanel({
   const [marks, setMarks] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
-  const [bulkSaving, setBulkSaving] = useTransition ? [false, (fn: () => void) => fn()] : [false, (fn: () => void) => fn()];
   const [isBulkSaving, startBulkSave] = useTransition();
 
   const getScore = (s: StudentMarkRow) =>

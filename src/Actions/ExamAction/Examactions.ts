@@ -741,6 +741,7 @@ export async function createExamsBulk(payload: {
           writtenMarks: primary ? 100 : 60,
           practicalMarks: null,
           lessonId: lesson.id,
+          session: parseInt(payload.session) || new Date().getFullYear(),
         };
         console.log(`    Creating exam with data:`, examData);
 

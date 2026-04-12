@@ -91,18 +91,28 @@ model School {
   smsBalance Int              @default(0)
   expiredAt  DateTime?
 
-  employees     Employee[]
-  students      Student[]
-  parents       Parent[]
-  grades        Grade[]
-  classes       Class[]
-  subjects      Subject[]
-  homeSliders   HomeSlider[]
-  feeTypes      FeeType[]
-  salaryTypes   SalaryType[]
-  smsLogs       SMSLog[]
-  events        Event[]
-  announcements Announcement[]
+  employees             Employee[]
+  students              Student[]
+  parents               Parent[]
+  grades                Grade[]
+  classes               Class[]
+  subjects              Subject[]
+  homeSliders           HomeSlider[]
+  feeTypes              FeeType[]
+  salaryTypes           SalaryType[]
+  smsLogs               SMSLog[]
+  events                Event[]
+  announcements         Announcement[]
+  assignments           Assignment[]
+  exams                 Exam[]
+  results               Result[]
+  attendance            Attendance[]
+  lessons               Lesson[]
+  assignmentPublishes   AssignmentPublish[]
+  examPublishes         ExamPublish[]
+  studentClassHistories StudentClassHistory[]
+  feePayments           FeePayment[]
+  classFeeStructures    ClassFeeStructure[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -127,24 +137,24 @@ model HomeSlider {
 // --- CORE USER MODELS ---
 
 model Employee {
-  id         String   @id
-  schoolId   Int
-  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  username   String   @unique
-  password   String?
-  role       UserRole @default(STAFF)
-  name       String
-  surname    String
-  email      String?  @unique
-  phone      String?  @unique
-  address    String
-  img        String?
-  bloodType  String
-  sex        UserSex
-  birthday   DateTime
+  id          String   @id
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  username    String   @unique
+  password    String?
+  role        UserRole @default(STAFF)
+  name        String
+  surname     String
+  email       String?  @unique
+  phone       String?  @unique
+  address     String
+  img         String?
+  bloodType   String
+  sex         UserSex
+  birthday    DateTime
   designation String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   subjects          Subject[]
   lessons           Lesson[]
@@ -178,11 +188,11 @@ model Student {
   createdAt DateTime @default(now())
 
   parentId String?
-  parent   Parent?  @relation(fields: [parentId], references: [id])
+  parent   Parent? @relation(fields: [parentId], references: [id])
   classId  Int
-  class    Class    @relation(fields: [classId], references: [id])
+  class    Class   @relation(fields: [classId], references: [id])
   gradeId  Int
-  grade    Grade    @relation(fields: [gradeId], references: [id])
+  grade    Grade   @relation(fields: [gradeId], references: [id])
 
   attendances  Attendance[]
   results      Result[]
@@ -196,17 +206,17 @@ model Student {
 }
 
 model Parent {
-  id        String   @id
+  id        String    @id
   schoolId  Int
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  username  String   @unique
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  username  String    @unique
   surname   String
   password  String?
   name      String
-  email     String?  @unique
-  phone     String   @unique
+  email     String?   @unique
+  phone     String    @unique
   address   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   students  Student[]
 
   @@index([schoolId])
@@ -216,12 +226,12 @@ model Parent {
 // --- ACADEMIC STRUCTURE ---
 
 model Grade {
-  id       Int @id @default(autoincrement())
-  schoolId Int
-  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  level    Int
-  students Student[]
-  classes  Class[]
+  id           Int                   @id @default(autoincrement())
+  schoolId     Int
+  school       School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  level        Int
+  students     Student[]
+  classes      Class[]
   classHistory StudentClassHistory[]
 
   @@unique([schoolId, level])
@@ -257,15 +267,15 @@ model Class {
 }
 
 model Subject {
-  id        Int      @id @default(autoincrement())
-  schoolId  Int
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name      String
-  teachers  Employee[]
-  lessons   Lesson[]
+  id            Int                   @id @default(autoincrement())
+  schoolId      Int
+  school        School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name          String
+  teachers      Employee[]
+  lessons       Lesson[]
   classTeachers ClassSubjectTeacher[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -310,27 +320,30 @@ model Lesson {
   attendances           Attendance[]
   classSubjectTeacherId Int
   classSubjectTeacher   ClassSubjectTeacher @relation(fields: [classSubjectTeacherId], references: [id])
+  schoolId              Int
+  school                School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([classId])
   @@index([teacherId])
   @@index([subjectId])
   @@index([day])
+  @@index([schoolId])
 }
 
 // --- SALARY MANAGEMENT ---
 
 model SalaryType {
-  id          Int      @id @default(autoincrement())
+  id          Int                       @id @default(autoincrement())
   schoolId    Int
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  isRecurring Boolean  @default(false)
-  isActive    Boolean  @default(true)
+  isRecurring Boolean                   @default(false)
+  isActive    Boolean                   @default(true)
   structures  EmployeeSalaryStructure[]
   payments    EmployeeSalaryPayment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -338,16 +351,16 @@ model SalaryType {
 }
 
 model EmployeeSalaryStructure {
-  id           Int      @id @default(autoincrement())
+  id           Int                     @id @default(autoincrement())
   schoolId     Int
   employeeId   String
-  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee     Employee                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   salaryTypeId Int
-  salaryType   SalaryType @relation(fields: [salaryTypeId], references: [id], onDelete: Cascade)
-  amount       Decimal  @db.Decimal(10, 2)
+  salaryType   SalaryType              @relation(fields: [salaryTypeId], references: [id], onDelete: Cascade)
+  amount       Decimal                 @db.Decimal(10, 2)
   payments     EmployeeSalaryPayment[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
 
   @@unique([employeeId, salaryTypeId])
   @@index([schoolId])
@@ -355,23 +368,23 @@ model EmployeeSalaryStructure {
 }
 
 model EmployeeSalaryPayment {
-  id            Int      @id @default(autoincrement())
-  schoolId      Int
-  invoiceNumber String   @unique
-  employeeId    String
-  employee      Employee @relation(fields: [employeeId], references: [id])
-  salaryTypeId  Int
-  salaryType    SalaryType @relation(fields: [salaryTypeId], references: [id])
+  id                Int                      @id @default(autoincrement())
+  schoolId          Int
+  invoiceNumber     String                   @unique
+  employeeId        String
+  employee          Employee                 @relation(fields: [employeeId], references: [id])
+  salaryTypeId      Int
+  salaryType        SalaryType               @relation(fields: [salaryTypeId], references: [id])
   salaryStructureId Int?
   salaryStructure   EmployeeSalaryStructure? @relation(fields: [salaryStructureId], references: [id])
-  amountPaid    Decimal  @db.Decimal(10, 2)
-  paymentMethod PaymentMethod
-  academicYear  String
-  monthLabel    String?
-  remarks       String?
-  processedById String
-  processedBy   Employee @relation("SalaryProcessor", fields: [processedById], references: [id])
-  paidAt        DateTime @default(now())
+  amountPaid        Decimal                  @db.Decimal(10, 2)
+  paymentMethod     PaymentMethod
+  academicYear      String
+  monthLabel        String?
+  remarks           String?
+  processedById     String
+  processedBy       Employee                 @relation("SalaryProcessor", fields: [processedById], references: [id])
+  paidAt            DateTime                 @default(now())
 
   @@index([schoolId])
   @@index([employeeId])
@@ -383,15 +396,15 @@ model EmployeeSalaryPayment {
 // --- FEE MANAGEMENT ---
 
 model FeeType {
-  id          Int      @id @default(autoincrement())
-  schoolId    Int
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
+  id              Int                 @id @default(autoincrement())
+  schoolId        Int
+  school          School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  isActive        Boolean             @default(true)
   classStructures ClassFeeStructure[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -400,16 +413,19 @@ model FeeType {
 
 // REMOVED redundant schoolId from ClassFeeStructure (accessible via Class)
 model ClassFeeStructure {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   classId   Int
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class     Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   feeTypeId Int
-  feeType   FeeType  @relation(fields: [feeTypeId], references: [id], onDelete: Cascade)
+  feeType   FeeType      @relation(fields: [feeTypeId], references: [id], onDelete: Cascade)
   amount    Float
   payments  FeePayment[]
+  schoolId  Int
+  school    School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([classId, feeTypeId])
   @@index([classId])
+  @@index([schoolId])
 }
 
 // REMOVED redundant schoolId from FeePayment (accessible via Student or Class)
@@ -429,6 +445,8 @@ model FeePayment {
   collectedById       String
   collectedBy         Employee          @relation("FeeCollector", fields: [collectedById], references: [id])
   paidAt              DateTime          @default(now())
+  schoolId            Int
+  school              School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([classId])
@@ -468,27 +486,35 @@ model StudentClassHistory {
   academicYear String
   rollNumber   Int
   promotedAt   DateTime @default(now())
+  schoolId     Int
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, academicYear])
   @@index([studentId])
   @@index([classId])
   @@index([academicYear])
+  @@index([schoolId])
 }
 
 model Exam {
-  id          Int       @id @default(autoincrement())
-  title       String
-  startTime   DateTime
-  endTime     DateTime
-  totalMarks  Int       @default(100)
-  lessonId    Int
-  session    Int
-  lesson      Lesson    @relation(fields: [lessonId], references: [id])
-  results     Result[]
-  examPublish ExamPublish[]
-
+  id             Int           @id @default(autoincrement())
+  title          String
+  startTime      DateTime
+  endTime        DateTime
+  totalMarks     Int           @default(100)
+  mcqScore       Int?
+  writtenScore   Int?
+  practicalScore Int?
+  lessonId       Int
+  session        Int
+  lesson         Lesson        @relation(fields: [lessonId], references: [id])
+  results        Result[]
+  examPublish    ExamPublish[]
+  schoolId       Int // ← যোগ করো
+  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
+  @@index([schoolId])
 }
 
 // REMOVED redundant schoolId from ExamPublish (accessible via Class)
@@ -500,22 +526,28 @@ model ExamPublish {
   class       Class   @relation(fields: [classId], references: [id])
   session     String
   isPublished Boolean @default(false)
+  schoolId    Int // ← যোগ করো
+  school      School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([classId])
   @@index([isPublished])
+  @@index([schoolId])
 }
 
 model Assignment {
-  id          Int       @id @default(autoincrement())
-  title       String
-  dueDate     DateTime
-  lessonId    Int
-  lesson      Lesson    @relation(fields: [lessonId], references: [id])
-  results     Result[]
+  id                Int                @id @default(autoincrement())
+  title             String
+  dueDate           DateTime
+  lessonId          Int
+  lesson            Lesson             @relation(fields: [lessonId], references: [id])
+  results           Result[]
   assignmentPublish AssignmentPublish?
+  schoolId          Int
+  school            School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
   @@index([dueDate])
+  @@index([schoolId])
 }
 
 // REMOVED redundant schoolId from AssignmentPublish (accessible via Class)
@@ -527,27 +559,36 @@ model AssignmentPublish {
   class        Class      @relation(fields: [classId], references: [id])
   session      String
   isPublished  Boolean    @default(false)
+  schoolId     Int
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([classId])
   @@index([isPublished])
+  @@index([schoolId])
 }
 
 model Result {
-  id           Int         @id @default(autoincrement())
-  score        Int
-  totalScore   Int
-  examId       Int?
-  exam         Exam?       @relation(fields: [examId], references: [id])
-  assignmentId Int?
-  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
-  studentId    String
-  student      Student     @relation(fields: [studentId], references: [id])
+  id             Int         @id @default(autoincrement())
+  score          Int
+  totalScore     Int
+  mcqScore       Int? // ← যোগ করুন
+  writtenScore   Int? // ← যোগ করুন
+  practicalScore Int?
+  examId         Int?
+  exam           Exam?       @relation(fields: [examId], references: [id])
+  assignmentId   Int?
+  assignment     Assignment? @relation(fields: [assignmentId], references: [id])
+  studentId      String
+  student        Student     @relation(fields: [studentId], references: [id])
+  schoolId       Int // ← যোগ করো
+  school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  @@index([studentId])
-  @@index([examId])
-  @@index([assignmentId])
   @@unique([studentId, examId]) // Prevent duplicate results for same exam
   @@unique([studentId, assignmentId]) // Prevent duplicate results for same assignment
+  @@index([studentId])
+  @@index([schoolId])
+  @@index([examId])
+  @@index([assignmentId])
 }
 
 model Attendance {
@@ -558,8 +599,11 @@ model Attendance {
   student   Student  @relation(fields: [studentId], references: [id])
   lessonId  Int?
   lesson    Lesson?  @relation(fields: [lessonId], references: [id])
+  schoolId  Int // ← যোগ করো
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([date, studentId, lessonId])
+  @@index([schoolId, date])
   @@index([studentId])
   @@index([date])
   @@index([lessonId])
@@ -569,16 +613,16 @@ model Attendance {
 // --- COMMUNICATION ---
 
 model Event {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   schoolId    Int
-  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   title       String
   description String
   startTime   DateTime
   endTime     DateTime
   classId     Int?
-  class       Class?    @relation(fields: [classId], references: [id])
-  isPublic    Boolean   @default(true)
+  class       Class?   @relation(fields: [classId], references: [id])
+  isPublic    Boolean  @default(true)
 
   @@index([schoolId])
   @@index([classId])
@@ -587,15 +631,15 @@ model Event {
 }
 
 model Announcement {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   schoolId    Int
-  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   title       String
   description String
   date        DateTime
   classId     Int?
-  class       Class?    @relation(fields: [classId], references: [id])
-  isPublic    Boolean   @default(true)
+  class       Class?   @relation(fields: [classId], references: [id])
+  isPublic    Boolean  @default(true)
 
   @@index([schoolId])
   @@index([classId])
