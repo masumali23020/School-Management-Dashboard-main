@@ -34,7 +34,7 @@ export async function assignRollNumbers({
     const classRecord = await prisma.class.findFirst({
       where: {
         id: classId,
-        schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+        schoolId: Number(schoolId),
       },
       select: { gradeId: true, schoolId: true },
     });
@@ -49,7 +49,7 @@ export async function assignRollNumbers({
     const students = await prisma.student.findMany({
       where: {
         id: { in: rolls.map(r => r.studentId) },
-        schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+        schoolId: Number(schoolId),
       },
       select: { id: true },
     });
@@ -64,7 +64,7 @@ export async function assignRollNumbers({
       return { success: false, error: "Duplicate roll numbers detected." };
     }
 
-    // 5. Upsert each roll number
+    // 5. Upsert each roll number with schoolId
     await Promise.all(
       rolls.map((r) =>
         prisma.studentClassHistory.upsert({
@@ -77,19 +77,22 @@ export async function assignRollNumbers({
           update: {
             rollNumber: r.rollNumber,
             classId,
+            gradeId, // Add gradeId in update
+            schoolId: Number(schoolId), // Add schoolId in update
           },
           create: {
             academicYear,
             rollNumber: r.rollNumber,
-            student: { connect: { id: r.studentId } },
-            class: { connect: { id: classId } },
-            grade: { connect: { id: gradeId } },
+            studentId: r.studentId, // Use studentId directly instead of connect
+            classId: classId, // Use classId directly
+            gradeId: gradeId, // Use gradeId directly
+            schoolId: Number(schoolId), // Add schoolId in create
           },
         })
       )
     );
 
-    revalidatePath(`/list/classes/${classId}`);
+    // revalidatePath(`/list/classes/${classId}`);
     return { success: true };
   } catch (err: any) {
     console.error("assignRollNumbers error:", err);
@@ -134,14 +137,14 @@ export async function promoteStudents({
       prisma.class.findFirst({
         where: {
           id: fromClassId,
-          schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+          schoolId: Number(schoolId),
         },
         select: { gradeId: true, schoolId: true },
       }),
       prisma.class.findFirst({
         where: {
           id: toClassId,
-          schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+          schoolId: Number(schoolId),
         },
         select: { gradeId: true, schoolId: true },
       }),
@@ -158,7 +161,7 @@ export async function promoteStudents({
     const students = await prisma.student.findMany({
       where: {
         id: { in: studentIds },
-        schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+        schoolId: Number(schoolId),
       },
       select: { id: true, classId: true },
     });
@@ -190,9 +193,10 @@ export async function promoteStudents({
           create: {
             academicYear: currentYear,
             rollNumber: idx + 1,
-            student: { connect: { id: studentId } },
-            class: { connect: { id: fromClassId } },
-            grade: { connect: { id: fromClass.gradeId } },
+            studentId: studentId,
+            classId: fromClassId,
+            gradeId: fromClass.gradeId,
+            schoolId: Number(schoolId), // Add schoolId
           },
         }).catch(() => null) // skip if record already exists
       )
@@ -202,7 +206,7 @@ export async function promoteStudents({
     await prisma.student.updateMany({
       where: {
         id: { in: studentIds },
-        schoolId: Number(schoolId), // স্কুল ভিত্তিক সিকিউরিটি
+        schoolId: Number(schoolId),
       },
       data: {
         classId: toClassId,
@@ -225,16 +229,17 @@ export async function promoteStudents({
           create: {
             academicYear,
             rollNumber: idx + 1,
-            student: { connect: { id: studentId } },
-            class: { connect: { id: toClassId } },
-            grade: { connect: { id: toClass.gradeId } },
+            studentId: studentId,
+            classId: toClassId,
+            gradeId: toClass.gradeId,
+            schoolId: Number(schoolId), // Add schoolId
           },
         })
       )
     );
 
-    revalidatePath(`/list/classes/${fromClassId}`);
-    revalidatePath(`/list/classes/${toClassId}`);
+    // revalidatePath(`/list/classes/${fromClassId}`);
+    // revalidatePath(`/list/classes/${toClassId}`);
     return { success: true, count: studentIds.length };
   } catch (err: any) {
     console.error("promoteStudents error:", err);
@@ -275,6 +280,7 @@ export async function getRollNumbers({
       where: {
         classId,
         academicYear,
+        schoolId: Number(schoolId), // Add schoolId filter
       },
       select: {
         studentId: true,
@@ -376,7 +382,7 @@ export async function changeAcademicYear({
       },
     });
 
-    revalidatePath("/admin/dashboard");
+    // revalidatePath("/admin/dashboard");
     return { success: true };
   } catch (err: any) {
     console.error("changeAcademicYear error:", err);

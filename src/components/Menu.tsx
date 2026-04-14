@@ -12,6 +12,7 @@ const menuItems = [
     items: [
       { icon: "/home.png", label: "Home", href: "/", visible: ["ADMIN", "TEACHER", "STAFF", "CASHIER"] },
       { icon: "/teacher.png", label: "Teachers", href: "/list/teachers", visible: ["ADMIN", "TEACHER"] },
+      { icon: "/staff.png", label: "Staff", href: "/list/staff", visible: ["ADMIN", "STAFF"] },
       { icon: "/student.png", label: "Students", href: "/list/students", visible: ["ADMIN", "TEACHER", "STAFF"] },
       { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["ADMIN", "TEACHER"] },
       { icon: "/cashier.png", label: "Accounting", href: "/list/fees/cashier", visible: ["ADMIN", "CASHIER"] },

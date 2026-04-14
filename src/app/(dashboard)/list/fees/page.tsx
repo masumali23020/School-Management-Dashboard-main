@@ -64,7 +64,7 @@ export default async function FeeManagementPage() {
         feeType: true,
         class: { include: { grade: true } },
       },
-      orderBy: [{ class: { grade: { level: "asc" } } }, { feeType: { name: "asc" } }],
+      orderBy: [{ academicYear: "desc" }, { class: { grade: { level: "asc" } } }, { feeType: { name: "asc" } }],
     }),
   ]);
 
@@ -78,6 +78,10 @@ export default async function FeeManagementPage() {
     email: school?.email || null,
     academicSession: school?.academicSession || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
   };
+  const academicYears = [...new Set(structures.map((s) => s.academicYear))];
+  if (schoolInfo.academicSession && !academicYears.includes(schoolInfo.academicSession)) {
+    academicYears.unshift(schoolInfo.academicSession);
+  }
 
   // If no fee types exist, show message for admin
   if (feeTypes.length === 0 && normalizedRole === "admin") {
@@ -97,6 +101,7 @@ export default async function FeeManagementPage() {
           structures={[]}
           role={normalizedRole}
           schoolInfo={schoolInfo}
+          academicYears={academicYears}
         />
       </div>
     );
@@ -123,9 +128,11 @@ export default async function FeeManagementPage() {
         feeTypeId: s.feeTypeId,
         feeTypeName: s.feeType.name,
         amount: s.amount,
+        academicYear: s.academicYear,
       }))}
       role={normalizedRole}
       schoolInfo={schoolInfo}
+      academicYears={academicYears}
     />
   );
 }

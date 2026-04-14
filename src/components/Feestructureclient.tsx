@@ -11,6 +11,7 @@ type ClassItem = { id: number; name: string; gradeLevel: number };
 type Structure = {
   id: number; classId: number; className: string;
   gradeLevel: number; feeTypeId: number; feeTypeName: string; amount: number;
+  academicYear: string;
 };
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   classes:    ClassItem[];
   structures: Structure[];
   role:       string;           // passed from server — "admin" | other
+  schoolInfo: SchoolInfo;
+  academicYears: string[];
 };
  type SchoolInfo ={
   id: number;
@@ -117,7 +120,7 @@ function DeleteModal({
 }
 
 // ── Main component ────────────────────────────────────────────────────────
-export default function FeeStructureClient({ feeTypes, classes, structures, role,schoolInfo }: Props) {
+export default function FeeStructureClient({ feeTypes, classes, structures, role, schoolInfo, academicYears }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = role === "admin";
@@ -141,13 +144,17 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
   // Structure form
   const [stClassId,   setStClassId]   = useState<number | "">(classes[0]?.id ?? "");
   const [stFeeTypeId, setStFeeTypeId] = useState<number | "">("");
+  const [stSession, setStSession] = useState<string>(schoolInfo.academicSession ?? academicYears[0] ?? "");
   const [stAmount,    setStAmount]    = useState("");
   const [stError,     setStError]     = useState("");
   const [stSuccess,   setStSuccess]   = useState("");
+  const [selectedSession, setSelectedSession] = useState<string>(schoolInfo.academicSession ?? academicYears[0] ?? "");
 
-  const filteredStructures = selectedClassId
-    ? structures.filter((s) => s.classId === selectedClassId)
-    : structures;
+  const filteredStructures = structures.filter((s) => {
+    const classMatch = selectedClassId ? s.classId === selectedClassId : true;
+    const sessionMatch = selectedSession ? s.academicYear === selectedSession : true;
+    return classMatch && sessionMatch;
+  });
 
   const refresh = () => startTransition(() => router.refresh());
 
@@ -166,11 +173,11 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
 
   // ── Upsert Structure ─────────────────────────────────────────────────────
   const handleUpsertStructure = async () => {
-    if (!stClassId || !stFeeTypeId || !stAmount) { setStError("All fields are required."); return; }
+    if (!stClassId || !stFeeTypeId || !stAmount || !stSession) { setStError("All fields are required."); return; }
     const amount = parseFloat(stAmount);
     if (isNaN(amount) || amount <= 0) { setStError("Enter a valid amount."); return; }
     setStError(""); setStSuccess("");
-    const res = await upsertClassFeeStructure({ classId: Number(stClassId), feeTypeId: Number(stFeeTypeId), amount });
+    const res = await upsertClassFeeStructure({ classId: Number(stClassId), feeTypeId: Number(stFeeTypeId), amount, academicYear: stSession });
     if (res.success) {
       setStAmount(""); setStFeeTypeId("");
       setStSuccess("✅ Saved!");
@@ -355,6 +362,19 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500 font-medium">Session</label>
+                  <select
+                    value={stSession}
+                    onChange={(e) => setStSession(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                  >
+                    <option value="">Select session…</option>
+                    {academicYears.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
                   <label className="text-xs text-gray-500 font-medium">Amount (৳)</label>
                   <input
                     type="number"
@@ -380,6 +400,15 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
           {/* Class filter chips */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-500 font-medium">Filter:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="text-xs border border-gray-200 rounded-full px-3 py-1 bg-white text-gray-600"
+            >
+              {academicYears.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
             <button
               onClick={() => setSelectedClassId("")}
               className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${!selectedClassId ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
@@ -408,6 +437,7 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Class</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fee Type</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Session</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Amount</th>
                   {isAdmin && (
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
@@ -417,7 +447,7 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
               <tbody>
                 {filteredStructures.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 5 : 4} className="text-center py-12 text-gray-400">
+                    <td colSpan={isAdmin ? 6 : 5} className="text-center py-12 text-gray-400">
                       <p className="text-2xl mb-2">📋</p>
                       <p className="text-sm">No fee structures configured{selectedClassId ? " for this class" : ""}.</p>
                     </td>
@@ -433,6 +463,7 @@ export default function FeeStructureClient({ feeTypes, classes, structures, role
                       <span className="ml-1.5 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Grade {s.gradeLevel}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-700 font-medium">{s.feeTypeName}</td>
+                    <td className="px-4 py-3 text-gray-600">{s.academicYear}</td>
                     <td className="px-4 py-3">
                       <span className="font-bold text-indigo-700">৳{s.amount.toLocaleString()}</span>
                     </td>

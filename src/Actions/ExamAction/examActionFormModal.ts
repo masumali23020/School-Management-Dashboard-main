@@ -99,6 +99,7 @@ export const createExam = async (
                 classId: cls.id,
                 teacherId: cst.teacher.id,
                 classSubjectTeacherId: cst.id,
+                schoolId: Number(schoolId),
               },
               select: { id: true },
             });
@@ -120,6 +121,7 @@ export const createExam = async (
               session: session,           // ✅ Int
               totalMarks: 100,            // schema-তে শুধু totalMarks আছে
               lessonId: lesson.id,
+              schoolId: Number(schoolId),
             },
           });
           created++;

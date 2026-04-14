@@ -2,8 +2,9 @@
 
 import { useRef } from "react";
 
-import { X, Printer } from "lucide-react";
+import { X, Printer, FileDown } from "lucide-react";
 import { StudentResultData } from "@/Actions/ResultAction/resultSearchAction";
+import { generateStudentResultPDF } from "@/lib/generateStudentResultPDF";
 
 interface ResultSheetProps {
   data: StudentResultData;
@@ -34,6 +35,15 @@ function getSubjectGPA(score: number, total: number): string {
 
 export function ResultSheet({ data, onClose }: ResultSheetProps) {
   const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePdf = () => {
+    try {
+      generateStudentResultPDF(data);
+    } catch (e) {
+      console.error(e);
+      alert("Could not generate PDF. Try Print / Download instead.");
+    }
+  };
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -202,21 +212,31 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
   };
 
   const isAdvanced = data.student.class.grade.level >= 6;
-  const totalPerSubject = 100;
   const studentName = `${data.student.name} ${data.student.surname}`;
+  const schoolTitle = data.schoolName?.trim() || "Bright Future School & College";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto py-6 px-4">
       {/* Controls */}
-      <div className="fixed top-4 right-4 flex gap-2 z-50">
+      <div className="fixed top-4 right-4 flex flex-wrap justify-end gap-2 z-50 max-w-[min(100vw-2rem,520px)]">
         <button
+          type="button"
+          onClick={handlePdf}
+          className="flex items-center gap-2 bg-[#c8a84b] text-[#1a3a5c] px-4 py-2 font-bold text-sm uppercase tracking-widest hover:bg-[#b8943d] transition-colors shadow-lg"
+        >
+          <FileDown className="w-4 h-4" />
+          Save PDF
+        </button>
+        <button
+          type="button"
           onClick={handlePrint}
           className="flex items-center gap-2 bg-[#1a3a5c] text-white px-4 py-2 font-bold text-sm uppercase tracking-widest hover:bg-[#0f2a47] transition-colors shadow-lg"
         >
           <Printer className="w-4 h-4" />
-          Print / Download
+          Print
         </button>
         <button
+          type="button"
           onClick={onClose}
           className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 font-bold text-sm uppercase tracking-widest hover:bg-red-700 transition-colors shadow-lg"
         >
@@ -239,7 +259,7 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
                 </div>
                 <div>
                   <div style={{ fontSize: "18px", fontWeight: 900, color: "#1a3a5c", textTransform: "uppercase", letterSpacing: "2px", fontFamily: "Merriweather, serif" }}>
-                    Bright Future School & College
+                    {schoolTitle}
                   </div>
                   <div style={{ fontSize: "10px", color: "#555", marginTop: "2px" }}>
                     123 Education Road, Dhaka, Bangladesh | Phone: 01700-000000
@@ -319,7 +339,7 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
                     </>
                   ) : null}
                   <th style={{ padding: "5px 6px", textAlign: "center", fontSize: "8.5px", textTransform: "uppercase", border: "1px solid #1a3a5c" }}>
-                    Total<br /><span style={{ fontSize: "7px", fontWeight: 400 }}>(100)</span>
+                    Total<br /><span style={{ fontSize: "7px", fontWeight: 400 }}>(marks)</span>
                   </th>
                   <th style={{ padding: "5px 6px", textAlign: "center", fontSize: "8.5px", textTransform: "uppercase", border: "1px solid #1a3a5c" }}>
                     Grade
@@ -334,9 +354,10 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
               </thead>
               <tbody>
                 {data.results.map((r, idx) => {
-                  const isFail = r.totalScore < 33;
-                  const grade = getSubjectGrade(r.totalScore, totalPerSubject);
-                  const gpa = getSubjectGPA(r.totalScore, totalPerSubject);
+                  const cap = r.maxMarks && r.maxMarks > 0 ? r.maxMarks : 100;
+                  const isFail = r.totalScore < cap * 0.33;
+                  const grade = getSubjectGrade(r.totalScore, cap);
+                  const gpa = getSubjectGPA(r.totalScore, cap);
                   return (
                     <tr key={r.id} style={{ background: idx % 2 === 0 ? "white" : "#f9f7f2" }}>
                       <td style={{ padding: "4px 6px", border: "1px solid #c8c8c8", textAlign: "left", fontWeight: 600, fontSize: "9px" }}>
@@ -356,7 +377,7 @@ export function ResultSheet({ data, onClose }: ResultSheetProps) {
                         </>
                       ) : null}
                       <td style={{ padding: "4px 6px", border: "1px solid #c8c8c8", textAlign: "center", fontWeight: 700, fontSize: "9px", color: isFail ? "#c0392b" : "#1a3a5c" }}>
-                        {r.totalScore}
+                        {r.totalScore}/{cap}
                       </td>
                       <td style={{ padding: "4px 6px", border: "1px solid #c8c8c8", textAlign: "center", fontWeight: 700, color: isFail ? "#c0392b" : "#c8a84b", fontSize: "9px" }}>
                         {grade}

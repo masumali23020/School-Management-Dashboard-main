@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 
 import { generateInvoicePDF, type InvoiceData } from "@/lib/generateInvoicePDF";
-import { getStudentFeeStatus, recordPayment, searchStudents } from "@/Actions/Feeactions/Feeactions";
+import { getFeeCollectionSessions, getStudentFeeStatus, recordPayment, searchStudents } from "@/Actions/Feeactions/Feeactions";
 
 type ClassItem = { id: number; name: string; gradeLevel: number };
 type StudentResult = {
@@ -28,9 +28,10 @@ const METHOD_LABEL: Record<string, string> = {
 const MONTHS = ["January","February","March","April","May","June",
                 "July","August","September","October","November","December"];
 
-export default function CashierClient({ classes }: { classes: ClassItem[] }) {
+export default function CashierClient({ classes, defaultSession }: { classes: ClassItem[]; defaultSession: string }) {
   const [isPending, startTransition] = useTransition();
-  const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+  const [selectedSession, setSelectedSession] = useState(defaultSession);
+  const [availableSessions, setAvailableSessions] = useState<string[]>([defaultSession]);
 
   const [searchName, setSearchName]       = useState("");
   const [searchId, setSearchId]           = useState("");
@@ -52,6 +53,15 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
   const [lastInvoice, setLastInvoice] = useState<Invoice | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
 
+  useEffect(() => {
+    getFeeCollectionSessions().then((sessions) => {
+      if (sessions.length > 0) {
+        setAvailableSessions(sessions);
+        setSelectedSession((prev) => (sessions.includes(prev) ? prev : sessions[0]));
+      }
+    });
+  }, []);
+
   const handleSearch = async () => {
     setSearchError(""); setHasSearched(true);
 
@@ -59,6 +69,7 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
       name: searchName || undefined, studentId: searchId || undefined,
       classId: searchClassId ? Number(searchClassId) : undefined,
       rollNumber: searchRoll ? parseInt(searchRoll) : undefined,
+      academicYear: selectedSession || undefined,
     });
     if (res.success) setSearchResults(res.data as StudentResult[]);
     else setSearchError("Search failed.");
@@ -67,7 +78,7 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
   const handleSelectStudent = async (student: StudentResult) => {
     setSelectedStudent(student); setFeeStatus(null); setFeeLoading(true);
     setSelectedStructureId(""); setPayAmount(""); setLastInvoice(null); setShowInvoice(false);
-    const res = await getStudentFeeStatus(student.id, currentYear);
+    const res = await getStudentFeeStatus(student.id, selectedSession);
     setFeeLoading(false);
     if (res.success && res.data) setFeeStatus({
       feeStatus: res.data.feeStatus as FeeStatusItem[],
@@ -89,7 +100,7 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
     setPayError(""); setPayLoading(true);
     const res = await recordPayment({
       studentId: selectedStudent.id, classFeeStructureId: Number(selectedStructureId),
-      amountPaid: amount, paymentMethod: payMethod, academicYear: currentYear,
+      amountPaid: amount, paymentMethod: payMethod, academicYear: selectedSession,
       monthLabel: payMonth || undefined, remarks: payRemarks || undefined,
     });
     setPayLoading(false);
@@ -129,7 +140,7 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold text-gray-800">🏦 Fee Collection</h1>
-          <p className="text-sm text-gray-500">Academic Year: <strong>{currentYear}</strong></p>
+          <p className="text-sm text-gray-500">Academic Year: <strong>{selectedSession}</strong></p>
         </div>
         <a href="/list/fees/payments"
           className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">
@@ -142,6 +153,15 @@ export default function CashierClient({ classes }: { classes: ClassItem[] }) {
         <div className="space-y-4">
           <div className="bg-gray-50 rounded-xl p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">🔍 Find Student</h2>
+            <select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+            >
+              {availableSessions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { ph: "Student Name", val: searchName, set: setSearchName, type: "text" },

@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { revalidatePath } from "next/cache";
 
 // ─────────────────────────────────────────────────────────
@@ -55,6 +56,83 @@ export type ExamPublishStatusItem = {
   publishedAt: Date | null;
   session: string | null;
 };
+
+export type PublishStatusItem = {
+  id: number;
+  type: "exam" | "assignment";
+  examId: number;
+  assignmentId: number;
+  title: string;
+  subjectName: string;
+  className: string;
+  classId: number;
+  resultCount: number;
+  totalStudents: number;
+  isPublished: boolean;
+  publishedAt: Date | null;
+  session: string | null;
+};
+
+export async function getResultPublishSessions(
+  classId: number,
+  tab: "exam" | "assignment"
+): Promise<string[]> {
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return [];
+  const schoolIdNum = Number(schoolId);
+
+  const cls = await prisma.class.findFirst({
+    where: { id: classId, schoolId: schoolIdNum },
+    select: { id: true, school: { select: { academicSession: true } } },
+  });
+  if (!cls) return [];
+
+  if (tab === "exam") {
+    const [exams, published] = await Promise.all([
+      prisma.exam.findMany({
+      where: { schoolId: schoolIdNum, lesson: { classId } },
+      select: { session: true },
+      distinct: ["session"],
+      orderBy: { session: "desc" },
+      }),
+      prisma.examPublish.findMany({
+        where: { schoolId: schoolIdNum, classId },
+        select: { session: true },
+        distinct: ["session"],
+        orderBy: { session: "desc" },
+      }),
+    ]);
+
+    const values = new Set<string>([
+      ...exams.map((e) => String(e.session)),
+      ...published.map((p) => p.session),
+    ]);
+    if (cls.school.academicSession) values.add(cls.school.academicSession);
+    return [...values].sort((a, b) => b.localeCompare(a));
+  }
+
+  const [published, histories] = await Promise.all([
+    prisma.assignmentPublish.findMany({
+      where: { schoolId: schoolIdNum, classId },
+      select: { session: true },
+      distinct: ["session"],
+      orderBy: { session: "desc" },
+    }),
+    prisma.studentClassHistory.findMany({
+      where: { classId, class: { schoolId: schoolIdNum } },
+      select: { academicYear: true },
+      distinct: ["academicYear"],
+      orderBy: { academicYear: "desc" },
+    }),
+  ]);
+
+  const values = new Set<string>([
+    ...published.map((p) => p.session),
+    ...histories.map((h) => h.academicYear),
+  ]);
+  if (cls.school.academicSession) values.add(cls.school.academicSession);
+  return [...values].sort((a, b) => b.localeCompare(a));
+}
 
 // ─────────────────────────────────────────────────────────
 // GRADE HELPER
@@ -334,17 +412,20 @@ export async function searchStudentResult({
 export async function getExamPublishStatus(
   classId: number,
   session: string
-): Promise<ExamPublishStatusItem[]> {
+): Promise<PublishStatusItem[]> {
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return [];
 
   // Real student count from Class relation
   const classData = await prisma.class.findUnique({
     where: { id: classId },
     include: { _count: { select: { students: true } } },
   });
+  if (classData && classData.schoolId !== Number(schoolId)) return [];
   const totalStudents = classData?._count?.students ?? 0;
 
   const exams = await prisma.exam.findMany({
-    where: { lesson: { classId } },
+    where: { schoolId: Number(schoolId), lesson: { classId } },
     include: {
       examPublish: { where: { classId, session } },
       lesson: { include: { subject: true, class: true } },
@@ -360,7 +441,10 @@ export async function getExamPublishStatus(
   return exams.map((e) => {
     const publish = e.examPublish[0] ?? null;
     return {
+      id:            e.id,
+      type:          "exam",
       examId:        e.id,
+      assignmentId:  0,
       title:         e.title,
       subjectName:   e.lesson.subject.name,
       className:     e.lesson.class.name,
@@ -419,25 +503,40 @@ export async function canPublishExam(
 export async function publishExamResult(
   examId: number,
   classId: number,
-  adminId: string,
   session: string
 ) {
   const { canPublish, reason } = await canPublishExam(examId, classId);
   if (!canPublish) return { success: false, error: reason };
 
   try {
-    const existing = await prisma.examPublish.findFirst({
-      where: { examId, classId, session },
+    const classData = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { schoolId: true },
+    });
+    if (!classData) return { success: false, error: "Class not found." };
+
+    const existing = await prisma.examPublish.findUnique({
+      where: { examId },
     });
 
     if (existing) {
+      if (existing.classId !== classId) {
+        return { success: false, error: "Exam belongs to a different class." };
+      }
       await prisma.examPublish.update({
         where: { id: existing.id },
-        data: { isPublished: true, publishedAt: new Date(), publishedBy: adminId },
+        data: { isPublished: true, publishedAt: new Date(), session },
       });
     } else {
       await prisma.examPublish.create({
-        data: { examId, classId, session, isPublished: true, publishedAt: new Date(), publishedBy: adminId },
+        data: {
+          examId,
+          classId,
+          session,
+          isPublished: true,
+          publishedAt: new Date(),
+          schoolId: classData.schoolId,
+        },
       });
     }
 
@@ -460,11 +559,14 @@ export async function unpublishExamResult(
   session: string
 ) {
   try {
-    const existing = await prisma.examPublish.findFirst({
-      where: { examId, classId, session },
+    const existing = await prisma.examPublish.findUnique({
+      where: { examId },
     });
 
     if (!existing) return { success: false, error: "Publish record not found." };
+    if (existing.classId !== classId || existing.session !== session) {
+      return { success: false, error: "Publish record not found for this session." };
+    }
 
     await prisma.examPublish.update({
       where: { id: existing.id },
@@ -476,6 +578,169 @@ export async function unpublishExamResult(
     return { success: true };
   } catch (err) {
     console.error("[unpublishExamResult]", err);
+    return { success: false, error: "Failed to unpublish. Please try again." };
+  }
+}
+
+export async function getAssignmentPublishStatus(
+  classId: number,
+  session: string
+): Promise<PublishStatusItem[]> {
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return [];
+
+  const classData = await prisma.class.findUnique({
+    where: { id: classId },
+    include: { _count: { select: { students: true } } },
+  });
+  if (classData && classData.schoolId !== Number(schoolId)) return [];
+  const totalStudents = classData?._count?.students ?? 0;
+
+  const assignments = await prisma.assignment.findMany({
+    where: { schoolId: Number(schoolId), lesson: { classId } },
+    include: {
+      assignmentPublish: true,
+      lesson: { include: { subject: true, class: true } },
+      results: {
+        select: { studentId: true },
+        distinct: ["studentId"],
+      },
+    },
+    orderBy: { dueDate: "desc" },
+  });
+
+  return assignments.map((a) => {
+    const publish =
+      a.assignmentPublish && a.assignmentPublish.classId === classId && a.assignmentPublish.session === session
+        ? a.assignmentPublish
+        : null;
+
+    return {
+      id: a.id,
+      type: "assignment",
+      examId: 0,
+      assignmentId: a.id,
+      title: a.title,
+      subjectName: a.lesson.subject.name,
+      className: a.lesson.class.name,
+      classId: a.lesson.classId,
+      resultCount: a.results.length,
+      totalStudents,
+      isPublished: publish?.isPublished ?? false,
+      publishedAt: publish?.publishedAt ?? null,
+      session: publish?.session ?? null,
+    };
+  });
+}
+
+export async function canPublishAssignment(
+  assignmentId: number,
+  classId: number
+): Promise<{
+  canPublish: boolean;
+  reason?: string;
+  totalStudents: number;
+  markedStudents: number;
+}> {
+  const classData = await prisma.class.findUnique({
+    where: { id: classId },
+    include: { _count: { select: { students: true } } },
+  });
+  const totalStudents = classData?._count?.students ?? 0;
+
+  const markedData = await prisma.result.findMany({
+    where: { assignmentId },
+    select: { studentId: true },
+    distinct: ["studentId"],
+  });
+  const markedStudents = markedData.length;
+
+  if (markedStudents < totalStudents) {
+    return {
+      canPublish: false,
+      reason: `${totalStudents - markedStudents} student(s) still have no marks entered. (${markedStudents}/${totalStudents})`,
+      totalStudents,
+      markedStudents,
+    };
+  }
+
+  return { canPublish: true, totalStudents, markedStudents };
+}
+
+export async function publishAssignmentResult(
+  assignmentId: number,
+  classId: number,
+  session: string
+) {
+  const { canPublish, reason } = await canPublishAssignment(assignmentId, classId);
+  if (!canPublish) return { success: false, error: reason };
+
+  try {
+    const classData = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { schoolId: true },
+    });
+    if (!classData) return { success: false, error: "Class not found." };
+
+    const existing = await prisma.assignmentPublish.findUnique({
+      where: { assignmentId },
+    });
+
+    if (existing) {
+      if (existing.classId !== classId) {
+        return { success: false, error: "Assignment belongs to a different class." };
+      }
+      await prisma.assignmentPublish.update({
+        where: { id: existing.id },
+        data: { isPublished: true, publishedAt: new Date(), session },
+      });
+    } else {
+      await prisma.assignmentPublish.create({
+        data: {
+          assignmentId,
+          classId,
+          session,
+          isPublished: true,
+          publishedAt: new Date(),
+          schoolId: classData.schoolId,
+        },
+      });
+    }
+
+    revalidatePath("/admin/results/publish");
+    revalidatePath("/result");
+    return { success: true };
+  } catch (err) {
+    console.error("[publishAssignmentResult]", err);
+    return { success: false, error: "Failed to publish. Please try again." };
+  }
+}
+
+export async function unpublishAssignmentResult(
+  assignmentId: number,
+  classId: number,
+  session: string
+) {
+  try {
+    const existing = await prisma.assignmentPublish.findUnique({
+      where: { assignmentId },
+    });
+
+    if (!existing) return { success: false, error: "Publish record not found." };
+    if (existing.classId !== classId || existing.session !== session) {
+      return { success: false, error: "Publish record not found for this session." };
+    }
+
+    await prisma.assignmentPublish.update({
+      where: { id: existing.id },
+      data: { isPublished: false, publishedAt: null },
+    });
+
+    revalidatePath("/admin/results/publish");
+    revalidatePath("/result");
+    return { success: true };
+  } catch (err) {
+    console.error("[unpublishAssignmentResult]", err);
     return { success: false, error: "Failed to unpublish. Please try again." };
   }
 }

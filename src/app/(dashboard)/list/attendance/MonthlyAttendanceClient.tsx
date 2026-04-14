@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { bulkAttendance } from "@/Actions/attendance/attendance"; // উপরের Server Action এর পাথ
+import { bulkAttendance } from "@/Actions/attendance/attendance";
 
 interface MonthlyAttendanceClientProps {
   classes: any[];
@@ -37,6 +37,7 @@ interface MonthlyAttendanceClientProps {
 export default function MonthlyAttendanceClient({ classes, currentMonth }: MonthlyAttendanceClientProps) {
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState<Date>(currentMonth);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("2026-2027");
   const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, boolean>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -54,12 +55,11 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
 
     const initialData: Record<string, Record<string, boolean>> = {};
     
-    selectedClass.students.forEach((student: any) => {
+    selectedClass.students?.forEach((student: any) => {
       initialData[student.id] = {};
       
       days.forEach(day => {
         const dateKey = format(day, 'yyyy-MM-dd');
-        // ডাটাবেস থেকে আসা ডাটা চেক করা
         const existingAttendance = student.attendances?.find(
           (att: any) => att && format(new Date(att.date), 'yyyy-MM-dd') === dateKey
         );
@@ -69,6 +69,16 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     
     setAttendanceData(initialData);
   }, [selectedClass, selectedMonth, days]);
+
+  // student এর rollNumber বের করার ফাংশন
+  const getStudentRollNumber = (student: any) => {
+    // student এর classHistory array থেকে current academic year এর rollNumber বের করা
+    const classHistory = student.classHistory?.find(
+      (history: any) => history.academicYear === selectedAcademicYear
+    );
+    
+    return classHistory?.rollNumber || "N/A";
+  };
 
   // চেকবক্স চেঞ্জ হ্যান্ডলার
   const handleAttendanceChange = useCallback((studentId: string, date: Date, checked: boolean) => {
@@ -82,7 +92,7 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     }));
   }, []);
 
-  // সবাইকে একসাথ প্রেজেন্ট/অ্যাবসেন্ট করার হ্যান্ডলার
+  // সবাইকে একসাথে প্রেজেন্ট/অ্যাবসেন্ট করার হ্যান্ডলার
   const handleMarkAll = useCallback((date: Date, value: boolean) => {
     if (!selectedClass) return;
     
@@ -91,7 +101,7 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     setAttendanceData(prev => {
       const updated = { ...prev };
       
-      selectedClass.students.forEach((student: any) => {
+      selectedClass.students?.forEach((student: any) => {
         if (!updated[student.id]) {
           updated[student.id] = {};
         }
@@ -112,34 +122,25 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // আজকের তারিখের শুরু
+    today.setHours(0, 0, 0, 0);
 
     const attendancesToSubmit: any[] = [];
 
-    // পরিবর্তন হওয়া ডাটা বের করা
-    selectedClass.students.forEach((student: any) => {
+    selectedClass.students?.forEach((student: any) => {
       days.forEach(day => {
         const dateKey = format(day, 'yyyy-MM-dd');
         const isPresent = attendanceData[student.id]?.[dateKey] || false;
 
-        // ভবিষ্যৎ তারিখের জন্য অ্যাটেনডেন্স নিষিদ্ধ
         if (day > today) return;
 
-        // ডাটাবেসে আগের অবস্থা চেক
         const existingAttendance = student.attendances?.find(
           (att: any) => format(new Date(att.date), 'yyyy-MM-dd') === dateKey
         );
 
-        // যদি স্টেট এবং ডাটাবেসের ডাটা আলাদা হয়, তবেই সাবমিট করব
-        // নোট: যদি existingAttendance না থাকে এবং isPresent false হয়, তাহলে আমরা সেটি সেভ করছি না (অপশনাল)
-        // কিন্তু যদি isPresent true হয় এবং existing না থাকে, তবে সেভ করতে হবে।
-        // অথবা existing থাকলে এবং ভ্যালু চেঞ্জ হলে আপডেট করতে হবে।
-        
         const dbValue = existingAttendance ? existingAttendance.present : false;
         
         if (isPresent !== dbValue) {
           attendancesToSubmit.push({
-            id: existingAttendance?.id, // আপডেটের জন্য এটি লাগবে না কারণ আমরা upsert ব্যবহার করব
             studentId: student.id,
             date: day.toISOString(),
             present: isPresent,
@@ -158,12 +159,11 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     formData.append("attendances", JSON.stringify(attendancesToSubmit));
 
     try {
-      // Server Action কল করা
       const result = await bulkAttendance({ success: false, error: false }, formData);
 
       if (result.success) {
         toast.success(result.message || "Attendance saved successfully!");
-        router.refresh(); // সার্ভার কম্পোনেন্ট থেকে নতুন ডাটা আনার জন্য
+        router.refresh();
       } else {
         toast.error(result.message || "Failed to save attendance");
       }
@@ -185,7 +185,6 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
     
     days.forEach(day => {
       const dateKey = format(day, 'yyyy-MM-dd');
-      // শুধুমাত্র আজকের আগ পর্যন্ত দিন গুনবে
       const today = new Date();
       today.setHours(0,0,0,0);
       if (day <= today) {
@@ -199,7 +198,6 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
 
   const monthName = format(selectedMonth, 'MMMM yyyy');
 
-  // UI রেন্ডারিং
   if (!classes.length) {
     return (
       <Card>
@@ -213,6 +211,7 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
   return (
     <Card className="w-full">
       <CardHeader>
+     
         <CardTitle>Monthly Attendance - {monthName}</CardTitle>
       </CardHeader>
       <CardContent>
@@ -225,7 +224,8 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
                 <Select
                   value={selectedClass?.id?.toString()}
                   onValueChange={(value) => {
-                    const cls = classes.find(c => c.id === parseInt(value));
+                    const cls = classes.find((c: any) => c.id === parseInt(value));
+                    console.log("Selected Class:", cls);
                     setSelectedClass(cls);
                   }}
                   disabled={isSubmitting}
@@ -234,11 +234,27 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
                     <SelectValue placeholder="Select a class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((cls) => (
+                    {classes.map((cls: any) => (
                       <SelectItem key={cls.id} value={cls.id.toString()}>
-                        Class {cls.name} {cls.grade && `- Grade ${cls.grade.level}`}
+                        {cls.name} {cls.grade && `- Grade ${cls.grade.level}`}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Academic Year Selector */}
+                <Select
+                  value={selectedAcademicYear}
+                  onValueChange={setSelectedAcademicYear}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Academic Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2024-2025">2024-2025</SelectItem>
+                    <SelectItem value="2025-2026">2025-2026</SelectItem>
+                    <SelectItem value="2026-2027">2026-2027</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -288,8 +304,9 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="sticky left-0 bg-white min-w-[200px] z-10">Student Name</TableHead>
-                      <TableHead className="sticky left-[200px] bg-white min-w-[80px] z-10">Stats</TableHead>
+                      <TableHead className="sticky left-0 bg-white min-width-[180px] z-10">Roll Number</TableHead>
+                      <TableHead className="sticky left-[100px] bg-white min-w-[200px] z-10">Student Name</TableHead>
+                      <TableHead className="sticky left-[300px] bg-white min-w-[80px] z-10">Stats</TableHead>
                       {days.map((day) => {
                         const isFuture = day > new Date();
                         return (
@@ -310,12 +327,17 @@ export default function MonthlyAttendanceClient({ classes, currentMonth }: Month
                   <TableBody>
                     {selectedClass.students.map((student: any) => {
                       const stats = calculateAttendance(student.id);
+                      const rollNumber = getStudentRollNumber(student);
+                      
                       return (
                         <TableRow key={student.id}>
                           <TableCell className="sticky left-0 bg-white font-medium">
+                            {rollNumber}
+                          </TableCell>
+                          <TableCell className="sticky left-[100px] bg-white">
                             {student.name} {student.surname}
                           </TableCell>
-                          <TableCell className="sticky left-[200px] bg-white text-xs text-gray-500">
+                          <TableCell className="sticky left-[300px] bg-white text-xs text-gray-500">
                             {stats.present}/{stats.total}
                           </TableCell>
                           {days.map((day) => {

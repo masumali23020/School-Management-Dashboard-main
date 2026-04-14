@@ -3,14 +3,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { invoiceNumber: string } }
 ) {
   try {
-    const { role } = await getUserRole();
+    const { role } = await getUserRoleAuth();
     if (!["admin", "cashier", "teacher"].includes(role)) {
       return new NextResponse("Unauthorized", { status: 403 });
     }

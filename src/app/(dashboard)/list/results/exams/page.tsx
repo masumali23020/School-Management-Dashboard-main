@@ -1,7 +1,8 @@
 // app/list/results/exams/page.tsx
 
 
-import { getAllClasses } from "@/Actions/AnnousmentAction/Assignmet/Assignmentactions";
+
+import { getAllClasses } from "@/Actions/ExamAction/deepsek";
 import ExamsClient from "./Examsclient";
 
 

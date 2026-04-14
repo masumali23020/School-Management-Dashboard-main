@@ -106,7 +106,7 @@ export const teacherSchema = z.object({
 });
 
 export type TeacherSchema = z.infer<typeof teacherSchema>;
-// TeacherSchema.birthday এখন Date — Prisma DateTime এর সাথে মিলবে
+
 
 export const staffSchema = z.object({
   id: z.string().optional(),
@@ -130,7 +130,7 @@ export const staffSchema = z.object({
   address: z.string(),
   img: z.string().optional(),
   bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
+ birthday:  z.string().min(1, "Birthday is required"),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   
 });

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    
+    "ignoreDeprecations": "6.0",
     "allowJs": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -12,7 +12,8 @@
       "next-auth/jwt"
 
     ],
-    "target": "es5",
+   "target": "es2018", // এখানে পরিবর্তন করা হয়েছে
+    "downlevelIteration": true, // এটি যুক্ত করা হয়েছে
     "lib": [
       "dom",
       "dom.iterable",

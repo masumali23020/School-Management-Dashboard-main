@@ -19,9 +19,11 @@ async function generateInvoiceNumber(): Promise<string> {
 // ── Helper: check role ────────────────────────────────────────────────────────
 
 async function requireRole(...roles: string[]) {
-   const { role } = await getUserRoleAuth();
-  if (!roles.includes(role)) throw new Error("Unauthorized");
-  return role;
+  const { role } = await getUserRoleAuth();
+  const normalizedRole = (role || "").toLowerCase();
+  const normalizedAllowed = roles.map((r) => r.toLowerCase());
+  if (!normalizedAllowed.includes(normalizedRole)) throw new Error("Unauthorized");
+  return normalizedRole;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -32,9 +34,18 @@ export async function createFeeType(data: {
   name: string;
   description?: string;
 }) {
-  await requireRole("admin", );
+  await requireRole("admin");
   try {
-    const feeType = await prisma.feeType.create({ data });
+    const { schoolId } = await getUserRoleAuth();
+    if (!schoolId) return { success: false, error: "No school found for this account." };
+
+    const feeType = await prisma.feeType.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        schoolId: Number(schoolId),
+      },
+    });
     revalidatePath("/list/fees");
     return { success: true, data: feeType };
   } catch (e: any) {
@@ -78,14 +89,35 @@ export async function upsertClassFeeStructure(data: {
   classId: number;
   feeTypeId: number;
   amount: number;
+  academicYear: string;
 }) {
   await requireRole("admin");
   try {
+    const { schoolId } = await getUserRoleAuth();
+    if (!schoolId) return { success: false, error: "No school found for this account." };
+
+    const schoolIdNum = Number(schoolId);
+
+    const [classRow, feeTypeRow] = await Promise.all([
+      prisma.class.findFirst({
+        where: { id: data.classId, schoolId: schoolIdNum },
+        select: { id: true },
+      }),
+      prisma.feeType.findFirst({
+        where: { id: data.feeTypeId, schoolId: schoolIdNum },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!classRow) return { success: false, error: "Selected class is not in your school." };
+    if (!feeTypeRow) return { success: false, error: "Selected fee type is not in your school." };
+
     const result = await prisma.classFeeStructure.upsert({
       where: {
-        classId_feeTypeId: {
+        classId_feeTypeId_academicYear: {
           classId: data.classId,
           feeTypeId: data.feeTypeId,
+          academicYear: data.academicYear,
         },
       },
       update: { amount: data.amount },
@@ -93,6 +125,8 @@ export async function upsertClassFeeStructure(data: {
         classId: data.classId,
         feeTypeId: data.feeTypeId,
         amount: data.amount,
+        academicYear: data.academicYear,
+        schoolId: schoolIdNum,
       },
     });
     revalidatePath("/list/fees");
@@ -131,6 +165,9 @@ export async function searchStudents(params: {
   academicYear?: string;
 }) {
   await requireRole("admin", "cashier");
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return { success: false, error: "No school found for this account." };
+  const schoolIdNum = Number(schoolId);
 
   const { studentId, name, classId, rollNumber, academicYear } = params;
 
@@ -144,7 +181,7 @@ export async function searchStudents(params: {
       })();
 
     const history = await prisma.studentClassHistory.findFirst({
-      where: { classId, rollNumber, academicYear: year },
+      where: { classId, rollNumber, academicYear: year, class: { schoolId: schoolIdNum } },
       include: {
         student: {
           include: { class: { include: { grade: true } }, parent: true },
@@ -173,6 +210,7 @@ export async function searchStudents(params: {
             }
           : {},
         classId ? { classId } : {},
+        { class: { schoolId: schoolIdNum } },
       ],
     },
     include: { class: { include: { grade: true } }, parent: true },
@@ -209,6 +247,9 @@ export async function getStudentFeeStatus(
   academicYear?: string
 ) {
   await requireRole("admin", "cashier");
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return { success: false, error: "No school found for this account." };
+  const schoolIdNum = Number(schoolId);
 
   const year =
     academicYear ||
@@ -222,17 +263,18 @@ export async function getStudentFeeStatus(
     include: { class: { include: { grade: true } } },
   });
   if (!student) return { success: false, error: "Student not found." };
+  if (student.schoolId !== schoolIdNum) return { success: false, error: "Student is not in your school." };
 
   // Get all fee structures for the student's class
   const structures = await prisma.classFeeStructure.findMany({
-    where: { classId: student.classId },
+    where: { classId: student.classId, academicYear: year, schoolId: schoolIdNum },
     include: { feeType: true },
     orderBy: { feeType: { name: "asc" } },
   });
 
   // Get all payments this student has made this academic year
   const payments = await prisma.feePayment.findMany({
-    where: { studentId, academicYear: year },
+    where: { studentId, academicYear: year, schoolId: schoolIdNum },
     include: {
       classFeeStructure: { include: { feeType: true } },
       collectedBy: { select: { name: true, surname: true } },
@@ -301,13 +343,19 @@ export async function recordPayment(data: {
 }) {
   // ── 1. Auth + get cashier's userId ────────────────────────────────────
   let cashierId: string;
+  let schoolIdNum: number;
   try {
-    const result = await getUserRoleAuth() as { role: string; userId: string };
-    const { role, userId } = result;
+    const result = await getUserRoleAuth() as { role: string; userId: string; schoolId?: number | string };
+    const role = (result.role || "").toLowerCase();
+    const { userId, schoolId } = result;
     if (!["admin", "cashier"].includes(role)) {
       return { success: false, error: "AUTH_FAILED: You do not have permission to record payments." };
     }
+    if (!schoolId) {
+      return { success: false, error: "AUTH_FAILED: No school found for this account." };
+    }
     cashierId = userId;
+    schoolIdNum = Number(schoolId);
   } catch {
     return { success: false, error: "AUTH_FAILED: Could not resolve user." };
   }
@@ -358,12 +406,25 @@ export async function recordPayment(data: {
   }
   if (!structure)
     return { success: false, error: "Fee structure not found for id: " + data.classFeeStructureId };
+  const structureSchoolCheck = await prisma.classFeeStructure.findFirst({
+    where: { id: data.classFeeStructureId, schoolId: schoolIdNum },
+    select: { id: true, classId: true, academicYear: true },
+  });
+  if (!structureSchoolCheck) {
+    return { success: false, error: "Fee structure is not in your school." };
+  }
+  if (structureSchoolCheck.academicYear !== data.academicYear) {
+    return { success: false, error: "Selected fee type does not belong to this session." };
+  }
 
   // ── 4. Validate student ───────────────────────────────────────────────
   try {
     const student = await prisma.student.findUnique({ where: { id: data.studentId } });
     if (!student)
       return { success: false, error: "Student not found for id: " + data.studentId };
+    if (student.schoolId !== schoolIdNum) {
+      return { success: false, error: "Student is not in your school." };
+    }
   } catch (e: any) {
     return { success: false, error: "DB_ERROR fetching student: " + e.message };
   }
@@ -406,8 +467,8 @@ export async function recordPayment(data: {
         paymentMethod:       data.paymentMethod,
         academicYear:        data.academicYear,
         monthLabel:          data.monthLabel || null,
-        remarks:             data.remarks    || null,
         collectedById:       cashierId,       // ✅ proper FK to Employee
+        schoolId:            schoolIdNum,
       },
     });
     paymentId = payment.id;
@@ -460,6 +521,39 @@ export async function recordPayment(data: {
   }
 }
 
+export async function getFeeCollectionSessions() {
+  await requireRole("admin", "cashier");
+  const { schoolId } = await getUserRoleAuth();
+  if (!schoolId) return [];
+  const schoolIdNum = Number(schoolId);
+
+  const [school, structures, payments] = await Promise.all([
+    prisma.school.findUnique({
+      where: { id: schoolIdNum },
+      select: { academicSession: true },
+    }),
+    prisma.classFeeStructure.findMany({
+      where: { schoolId: schoolIdNum },
+      select: { academicYear: true },
+      distinct: ["academicYear"],
+      orderBy: { academicYear: "desc" },
+    }),
+    prisma.feePayment.findMany({
+      where: { schoolId: schoolIdNum },
+      select: { academicYear: true },
+      distinct: ["academicYear"],
+      orderBy: { academicYear: "desc" },
+    }),
+  ]);
+
+  const values = new Set<string>([
+    ...structures.map((s) => s.academicYear),
+    ...payments.map((p) => p.academicYear),
+  ]);
+  if (school?.academicSession) values.add(school.academicSession);
+  return [...values].sort((a, b) => b.localeCompare(a));
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // GET PAYMENT HISTORY (for student profile)
 // ═══════════════════════════════════════════════════════════════════════
@@ -496,7 +590,6 @@ export async function getStudentPaymentHistory(
       collectedBy: p.collectedBy
         ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
         : "",
-      remarks: p.remarks,
     })),
 
     
@@ -558,7 +651,6 @@ export async function getInvoiceById(invoiceNumber: string) {
       academicYear:   payment.academicYear,
       paidAt:         payment.paidAt.toISOString(),
       collectedBy:    collectedByName,
-      remarks:        payment.remarks,
     },
   };
 }
@@ -635,7 +727,6 @@ export async function getAllPayments(params: {
       collectedBy: p.collectedBy
         ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
         : "",
-      remarks: p.remarks,
     })),
   };
 }
@@ -708,7 +799,6 @@ export async function getFullInvoiceForPDF(invoiceNumber: string) {
       academicYear:   payment.academicYear,
       paidAt:         payment.paidAt.toISOString(),
       collectedBy:    collectedByName,
-      remarks:        payment.remarks,
     },
   };
 }
@@ -761,7 +851,6 @@ export async function getParentStudentsPayments(
         collectedBy: p.collectedBy
           ? `${p.collectedBy.name} ${p.collectedBy.surname}`.trim()
           : "",
-        remarks: p.remarks,
       })),
     })),
   };

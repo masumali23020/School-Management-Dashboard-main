@@ -33,12 +33,6 @@ const METHOD_LABEL: Record<string, string> = {
   BANK_TRANSFER: "Bank Transfer",
 };
 
-const METHOD_BADGE: Record<string, string> = {
-  CASH: "💰 Cash", 
-  MOBILE_BANKING: "📱 Mobile Banking", 
-  BANK_TRANSFER: "🏦 Bank Transfer",
-};
-
 function amountInWords(n: number): string {
   const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
     "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
@@ -89,229 +83,130 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
   
   const words = amountInWords(Math.round(safeInv.amountPaid)) + " Taka Only";
   const methodStr = METHOD_LABEL[safeInv.paymentMethod] ?? safeInv.paymentMethod;
-  const methodBadge = METHOD_BADGE[safeInv.paymentMethod] ?? safeInv.paymentMethod;
 
   const drawCopy = (yStart: number, copyLabel: string, copyType: "teacher" | "school") => {
-    const ML = 15; 
-    const MR = 15;
-    const CW = PW - ML - MR;
+    const ML = 12;
+    const MR = 12;
     const x = ML;
-    let y = yStart + 6;
+    const boxTop = yStart;
+    const boxHeight = 136;
+    const CW = PW - ML - MR;
+    let y = boxTop + 7;
 
-    // ── Header with School Info ──────────────────────────────────────────
-    doc.setDrawColor(100, 160, 100);
-    doc.setLineWidth(0.5);
-    
-    // Left decorative circle
-    doc.circle(x + 10, y + 6, 10);
-    doc.setFontSize(6);
-    doc.setTextColor(60, 120, 60);
-    doc.setFont("helvetica", "bold");
-    doc.text(safeInv.schoolName.substring(0, 2).toUpperCase(), x + 10, y + 7, { align: "center" });
-
-    // Right decorative circle
-    doc.circle(x + CW - 10, y + 6, 10);
-    doc.text(safeInv.schoolName.substring(0, 2).toUpperCase(), x + CW - 10, y + 7, { align: "center" });
-
-    // School Name
-    doc.setFontSize(16);
-    doc.setTextColor(20, 20, 20);
-    doc.setFont("helvetica", "bold");
-    doc.text(safeInv.schoolName, PW / 2, y + 3, { align: "center" });
-
-    // School Address
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
-    doc.text(safeInv.schoolAddress, PW / 2, y + 9, { align: "center" });
-    
-    // School Contact
-    doc.text(`📞 ${safeInv.schoolPhone} | ✉️ ${safeInv.schoolEmail}`, PW / 2, y + 14, { align: "center" });
-
-    y += 20;
-
-    // Underlined subtitle
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(20, 20, 20);
-    const title = copyType === "teacher" ? "TEACHER'S COPY - SALARY RECEIPT" : "SCHOOL'S COPY - SALARY RECEIPT";
-    const titleW = doc.getTextWidth(title);
-    doc.text(title, PW / 2, y, { align: "center" });
-    doc.setDrawColor(20, 20, 20);
+    doc.setDrawColor(70, 70, 70);
     doc.setLineWidth(0.3);
-    doc.line(PW / 2 - titleW / 2, y + 0.8, PW / 2 + titleW / 2, y + 0.8);
+    doc.rect(x, boxTop, CW, boxHeight);
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text(safeInv.schoolName, PW / 2, y, { align: "center" });
     y += 5;
 
-    // Copy label header with color coding
-    const isTeacherCopy = copyType === "teacher";
-    doc.setFillColor(isTeacherCopy ? 22 : 16, isTeacherCopy ? 163 : 128, isTeacherCopy ? 74 : 50);
-    doc.rect(x, y, CW, 7, "F");
-    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${safeInv.schoolAddress} | Phone: ${safeInv.schoolPhone} | Email: ${safeInv.schoolEmail}`, PW / 2, y, { align: "center" });
+    y += 6;
+
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    doc.text(copyLabel, PW / 2, y + 5, { align: "center" });
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text(copyType === "teacher" ? "TEACHER'S COPY - SALARY RECEIPT" : "SCHOOL'S COPY - SALARY RECEIPT", PW / 2, y, { align: "center" });
+    y += 5;
 
-    y += 9;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(x + 1, y, CW - 2, 6, "F");
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.text(copyLabel, PW / 2, y + 4.2, { align: "center" });
+    y += 8;
 
-    // ── Row helpers ──────────────────────────────────────────────────────
-    doc.setLineWidth(0.2);
-    doc.setDrawColor(180, 180, 180);
-    const rowH = 8;
+    const rowH = 7;
+    const colLabel = 32;
+    const colVal = 61;
+    const colLabel2 = 32;
+    const colVal2 = CW - colLabel - colVal - colLabel2;
 
-    const drawRow = (label1: string, val1: string, label2?: string, val2?: string, highlight?: boolean) => {
-      if (highlight) { 
-        doc.setFillColor(240, 255, 245); 
-        doc.rect(x, y, CW, rowH, "F"); 
-      }
-      doc.rect(x, y, CW, rowH);
+    const drawTwo = (l1: string, v1: string, l2: string, v2: string) => {
+      doc.setDrawColor(180, 180, 180);
+      doc.rect(x + 1, y, CW - 2, rowH);
+      let cx = x + 1;
+      doc.line(cx + colLabel, y, cx + colLabel, y + rowH);
+      doc.line(cx + colLabel + colVal, y, cx + colLabel + colVal, y + rowH);
+      doc.line(cx + colLabel + colVal + colLabel2, y, cx + colLabel + colVal + colLabel2, y + rowH);
 
-      if (label2 !== undefined && val2 !== undefined) {
-        const half = CW * 0.5;
-        doc.line(x + half, y, x + half, y + rowH);
-        doc.line(x + half * 0.42, y, x + half * 0.42, y + rowH);
-        doc.line(x + half + half * 0.42, y, x + half + half * 0.42, y + rowH);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(70, 70, 70);
+      doc.text(l1, cx + 1.5, y + 4.6);
+      doc.text(l2, cx + colLabel + colVal + 1.5, y + 4.6);
 
-        doc.setFont("helvetica", "bold"); 
-        doc.setFontSize(8); 
-        doc.setTextColor(80, 80, 80);
-        doc.text(label1, x + 2, y + 5.5);
-        doc.setFont("helvetica", "normal"); 
-        doc.setTextColor(20, 20, 20);
-        doc.text(doc.splitTextToSize(val1, half * 0.55)[0], x + half * 0.44, y + 5.5);
-
-        doc.setFont("helvetica", "bold"); 
-        doc.setTextColor(80, 80, 80);
-        doc.text(label2, x + half + 2, y + 5.5);
-        doc.setFont("helvetica", "normal"); 
-        doc.setTextColor(20, 20, 20);
-        doc.text(doc.splitTextToSize(val2, half * 0.55)[0], x + half + half * 0.44, y + 5.5);
-      } else {
-        const labelW = CW * 0.35;
-        doc.line(x + labelW, y, x + labelW, y + rowH);
-        doc.setFont("helvetica", "bold"); 
-        doc.setFontSize(8); 
-        doc.setTextColor(80, 80, 80);
-        doc.text(label1, x + 2, y + 5.5);
-        doc.setFont("helvetica", "normal"); 
-        doc.setTextColor(20, 20, 20);
-        const val = doc.splitTextToSize(val1, CW - labelW - 4)[0];
-        doc.text(val, x + labelW + 2, y + 5.5);
-      }
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(20, 20, 20);
+      doc.text(doc.splitTextToSize(v1, colVal - 2)[0], cx + colLabel + 1.5, y + 4.6);
+      doc.text(doc.splitTextToSize(v2, colVal2 - 2)[0], cx + colLabel + colVal + colLabel2 + 1.5, y + 4.6);
       y += rowH;
     };
 
-    // ── Teacher Information Section ──────────────────────────────────────
-    // Section header
-    doc.setFillColor(230, 245, 235);
-    doc.rect(x, y, CW, 6, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(40, 100, 60);
-    doc.text("TEACHER INFORMATION", x + 2, y + 4.5);
-    y += 6;
-    
-    drawRow("Teacher Name:", safeInv.employeeName);
-    drawRow("Teacher ID:", safeInv.employeeId);
-    if (safeInv.employeePhone && safeInv.employeePhone !== "N/A") {
-      drawRow("Phone:", safeInv.employeePhone);
-    }
-    if (safeInv.employeeEmail && safeInv.employeeEmail !== "N/A") {
-      drawRow("Email:", safeInv.employeeEmail);
-    }
-
-    // ── Payment Information Section ──────────────────────────────────────
-    // Section header
-    doc.setFillColor(230, 245, 235);
-    doc.rect(x, y, CW, 6, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(40, 100, 60);
-    doc.text("PAYMENT INFORMATION", x + 2, y + 4.5);
-    y += 6;
-    
-    drawRow("Invoice No:", safeInv.invoiceNumber, "Date:", paidDate, true);
-    drawRow("Salary Type:", safeInv.salaryTypeName, "Academic Year:", safeInv.academicYear, true);
-    
-    if (safeInv.monthLabel && safeInv.monthLabel !== "N/A") {
-      drawRow("Month:", safeInv.monthLabel, undefined, undefined, true);
-    }
-    
-    drawRow("Amount:", `${safeInv.amountPaid.toLocaleString()}/=`, "Method:", methodBadge, true);
-    drawRow("In Words:", words, undefined, undefined, true);
-    
-    if (safeInv.remarks && safeInv.remarks.trim()) {
-      drawRow("Remarks:", safeInv.remarks);
-    }
-    
-    // Payment status
-    drawRow("Paid By:", safeInv.processedBy, "Status:", "✅ PAID ✓", true);
-
-    y += 4;
-
-    // ── Declaration (only for school copy) ───────────────────────────────
-    if (copyType === "school") {
-      doc.setFontSize(7.5);
+    const drawOne = (l1: string, v1: string) => {
+      doc.setDrawColor(180, 180, 180);
+      doc.rect(x + 1, y, CW - 2, rowH);
+      doc.line(x + 1 + colLabel, y, x + 1 + colLabel, y + rowH);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(70, 70, 70);
+      doc.text(l1, x + 2.5, y + 4.6);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(50, 50, 50);
-      const declaration = [
-        `This is to certify that the above-mentioned teacher has received the salary/payment as stated.`,
-        `This payment has been recorded in the school's accounting system.`,
-        `This document is digitally generated and requires no signature.`
-      ];
-      for (const line of declaration) {
-        const lines = doc.splitTextToSize(line, CW);
-        doc.text(lines, x, y);
-        y += lines.length * 4;
-      }
-      y += 2;
+      doc.setTextColor(20, 20, 20);
+      doc.text(doc.splitTextToSize(v1, CW - colLabel - 5)[0], x + colLabel + 2.5, y + 4.6);
+      y += rowH;
+    };
+
+    drawTwo("Invoice No", safeInv.invoiceNumber, "Date", paidDate);
+    drawTwo("Teacher Name", safeInv.employeeName, "Teacher ID", safeInv.employeeId);
+    drawTwo("Salary Type", safeInv.salaryTypeName, "Session", safeInv.academicYear);
+    drawTwo("Month", safeInv.monthLabel ?? "N/A", "Method", methodStr);
+    drawTwo("Amount", `Tk ${safeInv.amountPaid.toLocaleString()}`, "Status", "PAID");
+    drawOne("Paid By", safeInv.processedBy);
+    drawOne("In Words", words);
+
+    if (safeInv.remarks && safeInv.remarks.trim()) {
+      drawOne("Remarks", safeInv.remarks);
     }
 
-    // ── Footer / Signature lines ─────────────────────────────────────────
-    const sigY = y + 8;
-    doc.setDrawColor(80, 80, 80);
-    doc.setLineWidth(0.3);
-    
-    // Left signature line
-    doc.line(x, sigY, x + 55, sigY);
-    // Right signature line
-    doc.line(x + CW - 60, sigY, x + CW, sigY);
-    
+    y += 7;
+    doc.setDrawColor(90, 90, 90);
+    doc.setLineWidth(0.2);
+    doc.line(x + 5, y + 8, x + 60, y + 8);
+    doc.line(x + CW - 60, y + 8, x + CW - 5, y + 8);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Date: ${paidDateLong}`, x, sigY + 4);
-    doc.text("Authorized Signature", x + CW - 55, sigY + 4);
+    doc.setFontSize(8);
+    doc.setTextColor(70, 70, 70);
+    doc.text(`Date: ${paidDateLong}`, x + 5, y + 12);
+    doc.text("Authorized Signature", x + CW - 60, y + 12);
 
-    // ── Footer note ──────────────────────────────────────────────────────
-    y = sigY + 12;
-    doc.setFontSize(6);
-    doc.setTextColor(150, 150, 150);
-    const footerNote = `Generated on: ${new Date().toLocaleString()} | Invoice: ${safeInv.invoiceNumber} | School ID: ${safeInv.schoolName}`;
-    doc.text(footerNote, PW / 2, y, { align: "center" });
-
-    // Outer border
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.5);
-    doc.rect(ML - 3, yStart - 2, CW + 6, sigY + 16 - yStart);
+    doc.setFontSize(6.5);
+    doc.setTextColor(130, 130, 130);
+    doc.text(`Generated: ${new Date().toLocaleString()} | Invoice: ${safeInv.invoiceNumber}`, PW / 2, boxTop + boxHeight - 2.5, { align: "center" });
   };
 
-  // ── Teacher's Copy (top) ────────────────────────────────────────────────
-  drawCopy(8, "TEACHER'S COPY - Keep for your records", "teacher");
+  // ── Teacher's Copy (top half) ───────────────────────────────────────────
+  drawCopy(8, "Teacher Copy - Keep for your records", "teacher");
 
   // ── Cut line ────────────────────────────────────────────────────────────
-  const midY = PH / 2 - 2;
+  const midY = PH / 2;
   doc.setDrawColor(150, 150, 150);
   doc.setLineWidth(0.3);
   doc.setLineDashPattern([2, 2], 0);
-  doc.line(12, midY, PW - 12, midY);
+  doc.line(10, midY, PW - 10, midY);
   doc.setLineDashPattern([], 0);
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(130, 130, 130);
-  doc.text("✂ - - - - - - - - - - - - - - - cut here - - - - - - - - - - - - - - - - ✂", PW / 2, midY - 1, { align: "center" });
+  doc.text("-------------------------------------------------- CUT HERE --------------------------------------------------", PW / 2, midY - 1.5, { align: "center" });
 
-  // ── School's Copy (bottom) ──────────────────────────────────────────────
-  drawCopy(midY + 4, "SCHOOL'S COPY - Official Record", "school");
+  // ── School's Copy (bottom half) ─────────────────────────────────────────
+  drawCopy(midY + 4, "School Copy - Official record", "school");
 
   // Save PDF with school prefix
   const fileName = `${safeInv.schoolName.replace(/\s/g, '_')}_${safeInv.invoiceNumber}.pdf`;

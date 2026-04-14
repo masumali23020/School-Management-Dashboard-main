@@ -338,21 +338,30 @@ async function main() {
 
   const academicYear = new Date().getFullYear().toString();
 
-  for (let i = 0; i < students.length; i++) {
-    const student = students[i];
-    const class_ = classes[i % classes.length];
-    const grade = grades[i % grades.length];
-    
-    await prisma.studentClassHistory.create({
-      data: {
-        studentId: student.id,
-        classId: class_.id,
-        gradeId: grade.id,
-        academicYear,
-        rollNumber: i + 1,
-      },
-    });
+  // Per-class roll 1..n (rolls are class-scoped for result portal / fees).
+  const studentsByClass = new Map<number, typeof students>();
+  for (const s of students) {
+    const list = studentsByClass.get(s.classId) ?? [];
+    list.push(s);
+    studentsByClass.set(s.classId, list);
   }
+  await prisma.$transaction(
+    [...studentsByClass.entries()].flatMap(([, classStudents]) => {
+      const ordered = [...classStudents].sort((a, b) => a.id.localeCompare(b.id));
+      return ordered.map((student, idx) =>
+        prisma.studentClassHistory.create({
+          data: {
+            studentId: student.id,
+            classId: student.classId,
+            gradeId: student.gradeId,
+            academicYear,
+            rollNumber: idx + 1,
+            schoolId: school.id,
+          },
+        })
+      );
+    })
+  );
 
   console.log(`   ✓ Student class history created`);
 
@@ -424,6 +433,7 @@ async function main() {
             classId: cls.id,
             teacherId: teacher.id,
             classSubjectTeacherId: classSubjectTeacher.id,
+            schoolId: school.id,
           },
         });
       }
@@ -453,22 +463,31 @@ async function main() {
     }),
   ]);
 
-  for (const class_ of classes) {
-    for (const feeType of feeTypes) {
-      const amount = feeType.name === "Tuition Fee" ? 2500 :
-                     feeType.name === "Exam Fee" ? 500 : 3000;
-      
-      await prisma.classFeeStructure.upsert({
-        where: { classId_feeTypeId: { classId: class_.id, feeTypeId: feeType.id } },
-        update: {},
-        create: {
-          classId: class_.id,
+for (const class_ of classes) {
+  for (const feeType of feeTypes) {
+    const amount = feeType.name === "Tuition Fee" ? 2500 :
+                   feeType.name === "Exam Fee" ? 500 : 3000;
+    
+    await prisma.classFeeStructure.upsert({
+      // এখানে classId, feeTypeId এবং academicYear তিনটিই থাকতে হবে
+      where: { 
+        classId_feeTypeId_academicYear: { 
+          classId: class_.id, 
           feeTypeId: feeType.id,
-          amount,
-        },
-      });
-    }
+          academicYear: academicYear // আপনার ফাইলে উপরে ডিফাইন করা আছে
+        } 
+      },
+      update: {},
+      create: {
+        classId: class_.id,
+        feeTypeId: feeType.id,
+        academicYear: academicYear,
+        amount,
+        schoolId: school.id,
+      },
+    });
   }
+}
 
   console.log(`   ✓ ${feeTypes.length} fee types created`);
 
@@ -494,6 +513,7 @@ async function main() {
           academicYear,
           monthLabel: new Date().toLocaleString("default", { month: "long" }),
           collectedById: cashier.id,
+          schoolId: school.id,
         },
       });
     }
