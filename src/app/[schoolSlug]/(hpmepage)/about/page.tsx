@@ -1,49 +1,147 @@
+// app/[schoolSlug]/about/page.tsx
+
 import Footer from "@/components/hompage/Footer";
 import SchoolNavbar from "@/components/hompage/SchoolNavber";
+import prisma from "@/lib/db";
 import { getSchoolSettings } from "@/lib/getSchoolData";
-
+import { notFound } from "next/navigation";
+import Image from "next/image";
 
 export const metadata = { title: "আমাদের সম্পর্কে" };
 
-const features = [
-  { icon: "🏛️", title: "প্রতিষ্ঠার ইতিহাস", desc: "দীর্ঘ ৩০ বছরেরও বেশি সময় ধরে শিক্ষার আলো ছড়িয়ে আসছে এই প্রতিষ্ঠান।" },
-  { icon: "🎯", title: "আমাদের লক্ষ্য", desc: "জ্ঞান, নৈতিকতা ও দক্ষতার সমন্বয়ে আলোকিত মানুষ তৈরি করা।" },
-  { icon: "📖", title: "একাডেমিক কার্যক্রম", desc: "জাতীয় পাঠ্যক্রম অনুসারে আধুনিক পদ্ধতিতে শিক্ষাদান।" },
-  { icon: "🤝", title: "সম্প্রদায়ের সাথে", desc: "অভিভাবক ও সমাজের সাথে নিবিড় সম্পর্ক বজায় রেখে শিক্ষার মান উন্নয়ন।" },
-];
+export default async function AboutPage({ params }: { params: { schoolSlug: string } }) {
+  // ১. স্ল্যাগ দিয়ে স্কুল খুঁজে বের করা (পাবলিক অ্যাক্সেস)
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, schoolName: true }
+  });
 
-const stats = [
-  { label: "প্রতিষ্ঠাকাল", value: "১৯৯৪" },
-  { label: "মোট শিক্ষার্থী", value: "১,২০০+" },
-  { label: "অভিজ্ঞ শিক্ষক", value: "৬৫+" },
-  { label: "পাসের হার", value: "৯৮%" },
-];
+  if (!school) {
+    notFound();
+  }
 
-const team = [
-  { name: "মো. আবদুল করিম", role: "প্রধান শিক্ষক", initials: "আক" },
-  { name: "নাসরিন আক্তার", role: "সহকারী প্রধান শিক্ষক", initials: "না" },
-  { name: "রফিকুল ইসলাম", role: "অফিস সহকারী", initials: "রই" },
-];
+  const schoolId = school.id;
 
-export default async function AboutPage() {
-  const settings = await getSchoolSettings();
+  // ২. স্কুল সেটিংস ডাটা ফেচিং
+  const settings = await getSchoolSettings(Number(schoolId));
+
+  if (!settings) {
+    return <div>লোড হচ্ছে...</div>;
+  }
+
+  // ৩. স্টুডেন্ট কাউন্ট (সঠিক ভাবে)
+  const studentCount = await prisma.student.count({
+    where: { schoolId: schoolId }
+  });
+
+  // ৪. টিচার কাউন্ট
+  const teacherCount = await prisma.employee.count({
+    where: { 
+      schoolId: schoolId,
+      role: "TEACHER"
+    }
+  });
+
+  // ৫. স্টাফ কাউন্ট
+  const staffCount = await prisma.employee.count({
+    where: { 
+      schoolId: schoolId,
+      role: { in: ["STAFF", "ADMIN", "CASHIER"] }
+    }
+  });
+
+  // ৬. ডাইনামিক ফিচার্স (স্কুলের তথ্য অনুযায়ী)
+  const features = [
+    { 
+      icon: "🏛️", 
+      title: "প্রতিষ্ঠার ইতিহাস", 
+      // desc: settings?.eiinNumber 
+      //   ? `${settings.establishedYear || "১৯৯৪"} সালে প্রতিষ্ঠিত, দীর্ঘ সময় ধরে শিক্ষার আলো ছড়িয়ে আসছে এই প্রতিষ্ঠান।`
+      //   : "দীর্ঘ ৩০ বছরেরও বেশি সময় ধরে শিক্ষার আলো ছড়িয়ে আসছে এই প্রতিষ্ঠান।" 
+      desc: "দীর্ঘ ৩০ বছরেরও বেশি সময় ধরে শিক্ষার আলো ছড়িয়ে আসছে এই প্রতিষ্ঠান।" 
+    },
+    { 
+      icon: "🎯", 
+      title: "আমাদের লক্ষ্য", 
+      desc: "জ্ঞান, নৈতিকতা ও দক্ষতার সমন্বয়ে আলোকিত মানুষ তৈরি করা।" 
+    },
+    { 
+      icon: "📖", 
+      title: "একাডেমিক কার্যক্রম", 
+      desc: "জাতীয় পাঠ্যক্রম অনুসারে আধুনিক পদ্ধতিতে শিক্ষাদান।" 
+    },
+    { 
+      icon: "🤝", 
+      title: "সম্প্রদায়ের সাথে", 
+      desc: "অভিভাবক ও সমাজের সাথে নিবিড় সম্পর্ক বজায় রেখে শিক্ষার মান উন্নয়ন।" 
+    },
+  ];
+
+  // ৭. ডাইনামিক স্ট্যাটস (ডাটাবেস থেকে আসল সংখ্যা)
+  const stats = [
+    { label: "প্রতিষ্ঠাকাল", value: settings?.id || "১৯৯৪" },
+    { label: "মোট শিক্ষার্থী", value: studentCount > 0 ? studentCount.toLocaleString("bn-BD") : "১,২০০+" },
+    { label: "মোট শিক্ষক", value: teacherCount > 0 ? teacherCount.toLocaleString("bn-BD") : "৬৫+" },
+    { label: "পাসের হার", value: settings?.passRate || "৯৮%" },
+  ];
+
+  // ৮. ডাইনামিক টিম (ডাটাবেস থেকে - শিক্ষক ও স্টাফ)
+  const team = await prisma.employee.findMany({
+    where: {
+      schoolId: schoolId,
+      role: { in: ["TEACHER", "STAFF", "ADMIN", "CASHIER", ] }
+    },
+    select: {
+      name: true,
+      surname: true,
+      designation: true,
+      img: true,
+      role: true,
+    },
+    take: 3,
+  });
+
+  const teamMembers = team.length > 0 ? team.map(member => ({
+    name: `${member.name} ${member.surname || ''}`,
+    role: member.designation || (member.role === "TEACHER" ? "শিক্ষক" : "স্টাফ"),
+    initials: member.name?.[0] || "প",
+    img: member.img,
+  })) : [
+    { name: "মো. আবদুল করিম", role: "প্রধান শিক্ষক", initials: "আক" },
+    { name: "নাসরিন আক্তার", role: "সহকারী প্রধান শিক্ষক", initials: "না" },
+    { name: "রফিকুল ইসলাম", role: "অফিস সহকারী", initials: "রই" },
+  ];
+
+  const currentYear = settings?.academicSession ?? new Date().getFullYear().toString();
 
   return (
     <main className="min-h-screen bg-slate-50">
       <SchoolNavbar settings={settings} />
 
-      {/* Hero */}
-      <section className="bg-[#1a365d] text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <span className="inline-block bg-sky-400/20 border border-sky-400/40 text-sky-300 text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-5">
-            আমাদের সম্পর্কে
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight">
-            {settings?.schoolName ?? "আমাদের বিদ্যালয়"}
-          </h1>
-          <p className="mt-5 text-sky-100 text-lg max-w-2xl mx-auto leading-relaxed">
-            জ্ঞান, মূল্যবোধ ও দক্ষতার সমন্বয়ে আলোকিত মানুষ গড়ার লক্ষ্যে আমরা নিরলসভাবে কাজ করে যাচ্ছি।
-          </p>
+      {/* Hero - Admission Page এর মতো */}
+      <section className="relative bg-[#1a365d] overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 70% 50%, rgba(56,189,248,0.15) 0%, transparent 60%)",
+          }}
+        />
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full border border-white/5" />
+        <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full border border-white/5" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20">
+          <div className="text-center">
+            <span className="inline-block bg-sky-400/20 border border-sky-400/40 text-sky-300 text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
+              আমাদের সম্পর্কে — সেশন {currentYear}
+            </span>
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight">
+              {settings?.schoolName ?? "আমাদের বিদ্যালয়"}
+            </h1>
+            <p className="mt-5 text-sky-100/90 text-lg max-w-2xl mx-auto leading-relaxed">
+              জ্ঞান, মূল্যবোধ ও দক্ষতার সমন্বয়ে আলোকিত মানুষ গড়ার লক্ষ্যে আমরা নিরলসভাবে কাজ করে যাচ্ছি।
+            </p>
+          </div>
         </div>
       </section>
 
@@ -89,7 +187,7 @@ export default async function AboutPage() {
                 { label: "ঠিকানা", value: settings?.address },
                 { label: "ফোন", value: settings?.phone },
                 { label: "ইমেইল", value: settings?.email },
-                { label: "ওয়েবসাইট", value: settings?.website },
+                { label: "ওয়েবসাইট", value: settings?.slug },
                 { label: "একাডেমিক সেশন", value: settings?.academicSession },
               ]
                 .filter((item) => item.value)
@@ -120,15 +218,25 @@ export default async function AboutPage() {
       {/* Team */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-[#1a365d]">পরিচালনা পরিষদ</h2>
-          <p className="text-gray-500 mt-2 text-sm">আমাদের অভিজ্ঞ নেতৃত্ব</p>
+          <h2 className="text-3xl font-bold text-[#1a365d]">আমাদের নেতৃত্ব</h2>
+          <p className="text-gray-500 mt-2 text-sm">দক্ষ ও অভিজ্ঞ নেতৃত্ব</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {team.map((member) => (
+          {teamMembers.map((member) => (
             <div key={member.name} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 rounded-full bg-[#1a365d] text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
-                {member.initials}
-              </div>
+              {member.img ? (
+                <Image 
+                  src={member.img} 
+                  alt={member.name} 
+                  width={64} 
+                  height={64} 
+                  className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#1a365d] text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                  {member.initials}
+                </div>
+              )}
               <h3 className="font-bold text-gray-800">{member.name}</h3>
               <p className="text-sky-600 text-sm mt-1">{member.role}</p>
             </div>

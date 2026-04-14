@@ -1,6 +1,7 @@
 // app/(admin)/admin/dashboard/page.tsx
 // School Admin Dashboard — shows school stats, recent activity
 
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/get-session";
 import  prisma  from "@/lib/db";
 import Link from "next/link";
@@ -91,7 +92,7 @@ export default async function AdminDashboard() {
 
        <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
         <Link
-          href="/"
+          href={`/${school?.slug || ""}/`}
           className="flex items-center justify-center lg:justify-start gap-2"
         >
           <Image src="/logo.png" alt="logo" width={32} height={32} />
@@ -403,7 +404,7 @@ function StatCard({
   );
 }
 
-function PlanBadge({ plan }: { plan: string }) {
+export function PlanBadge({ plan }: { plan: string }) {
   const map: Record<string, string> = {
     FREE:     "background:#1c1c2e;color:#818cf8;border:1px solid #312e81",
     STANDARD: "background:#0c2340;color:#60a5fa;border:1px solid #1e3a5f",

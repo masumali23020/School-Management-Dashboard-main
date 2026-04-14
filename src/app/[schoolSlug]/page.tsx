@@ -23,7 +23,7 @@ export default async function HomePage({ params }: { params: { schoolSlug: strin
     notFound(); 
   }
 
-  const schoolIdStr = String(school.id);
+  const schoolIdStr = Number(school.id);
 
   // ২. নির্দিষ্ট স্কুলের আইডি দিয়ে ডাটা লোড করা (লগইন থাকুক বা না থাকুক)
   // এটি করার ফলে লিঙ্ক শেয়ার করলে যে কেউ ডাটা দেখতে পারবে

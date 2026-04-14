@@ -24,10 +24,30 @@ export async function getUserRoleAuth() {
         bannerUrl: true,
         academicSession: true,
         isActive: true,
+        expiredAt: true,
         slug: true,
         eiinNumber: true,
       }
     });
+  }
+
+  const blockedBySchoolStatus =
+    !!school &&
+    (!school.isActive ||
+      (!!school.expiredAt && new Date(school.expiredAt) < new Date()));
+
+  if (blockedBySchoolStatus) {
+    return {
+      role: null,
+      userId: null,
+      schoolId: null,
+      name: null,
+      email: null,
+      school: school,
+      schoolName: null,
+      shortName: null,
+      academicSession: null,
+    };
   }
 
   return {

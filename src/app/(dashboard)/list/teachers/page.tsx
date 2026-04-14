@@ -26,7 +26,7 @@ const TeacherListPage = async ({
   // Get the logged-in user with their school information
   const { role, schoolId } = await getUserRoleAuth();
 
-  console.log("Current user schoolId:", schoolId); // Debug log
+
 
   const columns = [
     {

@@ -12,17 +12,17 @@ type Props = {
   role?: string;
 };
 
-export default function ResultsSubMenu({ schoolId, role }: Props) {
+export default function PaymentSubMenu({ schoolId, role }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const isParentActive =
-    pathname === "/list/results" || pathname.startsWith("/list/results/");
+    pathname === "/list/salary" || pathname.startsWith("/list/fees");
 
-  const isExamActive = pathname.startsWith("/list/results/exams");
-  const isAssignmentActive = pathname.startsWith("/list/results/assignments");
-  const isPublishActive = pathname.startsWith("/list/results/publish");
+  const isExamActive = pathname.startsWith("/list/salary/fees");
+  const isAssignmentActive = pathname.startsWith("/list/salary");
+//   const isPublishActive = pathname.startsWith("/list/salary/publish");
 
   // Only navigate if NOT already on that page — prevents remount/state reset
   const handleNavClick = useCallback(
@@ -35,11 +35,11 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
   );
 
   // Role-based visibility
-  const canManageResults = role === "ADMIN" || role === "TEACHER";
-  const canViewResults = role === "STUDENT" || role === "PARENT";
+  const canManageFee = role === "ADMIN" || role === "CASHIER";
+  const canViewSalary = role === "ADMIN" || role === "CASHIER";
 
   // If no permission, don't render
-  if (!canManageResults && !canViewResults) {
+  if (!canManageFee && !canViewSalary) {
     return null;
   }
 
@@ -53,7 +53,7 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
       >
         <Image src="/result.png" alt="" width={20} height={20} />
         <span className="hidden lg:flex items-center justify-between flex-1">
-          <span>Marks Mangment</span>
+          <span>Payment Mangements</span>
           {isOpen ? (
             <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
           ) : (
@@ -66,10 +66,10 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
       {isOpen && (
         <div className="flex flex-col mt-0.5 ml-0 lg:ml-6 gap-0.5">
           
-          {/* Exams - visible to all */}
+          {/* Fee - visible to all */}
           <Link
-            href={canManageResults ? "/list/results/exams" : "/result/my-results"}
-            onClick={(e) => handleNavClick(e, "/list/results/exams")}
+            href={canManageFee ? "/list/fees/payments" : "/list/fees"}
+            onClick={(e) => handleNavClick(e, "/list/fees/payments")}
             className={`flex items-center justify-center lg:justify-start gap-2 py-1.5 md:px-2 rounded-md text-sm transition-colors
               ${isExamActive
                 ? "bg-lamaYellow text-yellow-800 font-semibold"
@@ -77,14 +77,14 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
           >
             <FileText className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="hidden lg:block">
-              {canManageResults ? "Exam Marks" : "My Exam Marks"}
+              {canManageFee ? "Student Payments" : "My Student Payments"}
             </span>
           </Link>
 
-          {/* Assignments - visible to all */}
+          {/* Salary - visible to all */}
           <Link
-            href={canManageResults ? "/list/results/assignments" : "/result/my-assignments"}
-            onClick={(e) => handleNavClick(e, "/list/results/assignments")}
+            href={canManageFee ? "/list/salary/payments" : "/list/salary"}
+            onClick={(e) => handleNavClick(e, "/list/salary/payments")}
             className={`flex items-center justify-center lg:justify-start gap-2 py-1.5 md:px-2 rounded-md text-sm transition-colors
               ${isAssignmentActive
                 ? "bg-lamaYellow text-yellow-800 font-semibold"
@@ -92,24 +92,11 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
           >
             <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="hidden lg:block">
-              {canManageResults ? "Assignment Marks" : "My Assignment Marks"}
+              {canManageFee ? "Employee Payments" : "My Employee Payments"}
             </span>
           </Link>
 
-          {/* Publish Results - only for ADMIN and TEACHER */}
-          {canManageResults && (
-            <Link
-              href="/list/results/publish"
-              onClick={(e) => handleNavClick(e, "/list/results/publish")}
-              className={`flex items-center justify-center lg:justify-start gap-2 py-1.5 md:px-2 rounded-md text-sm transition-colors
-                ${isPublishActive
-                  ? "bg-lamaYellow text-yellow-800 font-semibold"
-                  : "text-gray-500 hover:bg-lamaSkyLight"}`}
-            >
-              <Send className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="hidden lg:block">Publish Results</span>
-            </Link>
-          )}
+          
 
           {/* School info (optional - for debugging) */}
           {process.env.NODE_ENV === "development" && schoolId && (

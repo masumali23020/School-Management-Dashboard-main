@@ -14,6 +14,10 @@ const nextConfig = {
             protocol: "https", // এখানে আপনার http ছিল, তাই এরর দিচ্ছিল
             hostname: "images.unsplash.com",
           },
+          {
+            protocol: "https", // এখানে আপনার http ছিল, তাই এরর দিচ্ছিল
+            hostname: "www.facebook.com",
+          },
           // ডেভেলপমেন্টে অনেক সময় http লাগে তাই এটিও রাখতে পারেন
           {
             protocol: "http",

@@ -1,15 +1,27 @@
 import Image from "next/image";
 import prisma from "../lib/db"
+import { UserRole } from "@prisma/client";
 
-const UserCard = async({ type }: { type: "admin" | "student" | "teacher" | "parent" }) => {
+const UserCard = async({ type }: { type: "staff" | "student" | "teacher" | "parent"| "cashier" }) => {
 
   const modelMap: Record<typeof type, any> ={
-    admin: prisma?.admin,
-    teacher: prisma?.teacher,
+    staff: prisma?.employee,
+    cashier: prisma?.employee,
+    teacher: prisma?.employee,
     student: prisma?.student,
     parent: prisma?.parent
   }
-  const count = await modelMap[type]?.count()
+const roleMap: Record<string, UserRole> = {
+  admin: UserRole.STAFF,
+  teacher: UserRole.TEACHER,
+  staff: UserRole.STAFF,
+};
+
+const queryOptions = 
+  (type === "staff" || type === "teacher" || type === "cashier")
+    ? { where: { role: roleMap[type] } }
+    : {};
+    const count = await modelMap[type]?.count(queryOptions);
   return (
     <div className="rounded-2xl odd:bg-lamaPurple even:bg-lamaYellow p-4 flex-1 min-w-[130px]">
       <div className="flex justify-between items-center">

@@ -71,6 +71,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             school: {
               include: {
                 plan: true,
+                _count: {
+                  select: {
+                    students: true,
+                    employees: true,
+                  },
+                },
               },
             },
           } as const;
@@ -125,6 +131,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               school: {
                 include: {
                   plan: true,
+                  _count: {
+                    select: {
+                      students: true,
+                      employees: true,
+                    },
+                  },
                 },
               },
             },
@@ -140,6 +152,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 school: {
                   include: {
                     plan: true,
+                    _count: {
+                      select: {
+                        students: true,
+                        employees: true,
+                      },
+                    },
                   },
                 },
               },
@@ -173,6 +191,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             "INVALID_PASSWORD",
             "SCHOOL_DISABLED",
             "SUBSCRIPTION_EXPIRED",
+            "PLAN_LIMIT_REACHED",
             "SCHOOL_NOT_FOUND",
             "UNKNOWN_ERROR",
           ];
@@ -240,7 +259,15 @@ interface VerifyInput {
     id: number;
     isActive: boolean;
     expiredAt: Date | null;
-    plan: { name: SessionUser["planType"] };
+    plan: {
+      name: SessionUser["planType"];
+      maxStudents: number;
+      maxEmployees: number;
+    };
+    _count: {
+      students: number;
+      employees: number;
+    };
   };
   inputPassword: string;
 }
@@ -258,7 +285,17 @@ async function verifyAndBuildUser(input: VerifyInput): Promise<SessionUser> {
     throw new Error("SUBSCRIPTION_EXPIRED" satisfies AuthError);
   }
 
-  // Security check 3: bcrypt password verification
+  // Security check 3: plan limits must be respected
+  const studentLimitReached =
+    school.plan.maxStudents > 0 && school._count.students >= school.plan.maxStudents;
+  const employeeLimitReached =
+    school.plan.maxEmployees > 0 && school._count.employees >= school.plan.maxEmployees;
+
+  if (studentLimitReached || employeeLimitReached) {
+    throw new Error("PLAN_LIMIT_REACHED" satisfies AuthError);
+  }
+
+  // Security check 4: bcrypt password verification
   const isValidPassword = await bcrypt.compare(inputPassword, password);
   if (!isValidPassword) {
     throw new Error("INVALID_PASSWORD" satisfies AuthError);

@@ -2,108 +2,148 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* ─── CUSTOM AUTH THEME (Dark Mode) ─── */
+  .sa-root {
+    @apply min-h-screen flex bg-[#070809];
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
 
-.react-calendar {
-  width: 100% !important;
-  border: none !important;
-  font-family: "Inter", sans-serif !important;
-}
+  .sa-left {
+    @apply hidden relative overflow-hidden bg-gradient-to-br from-[#0a0f1e] via-[#0d1a0f] to-[#0a0c10] border-r border-[#1a2a1a];
+  }
+  
+  @screen md {
+    .sa-left { @apply flex items-center justify-center w-[45%]; }
+  }
 
-.react-calendar__navigation__label__labelText {
-  font-weight: 600;
-}
+  .sa-left-content { @apply relative z-10 p-12 max-w-[380px]; }
 
-.react-calendar__tile--active {
-  background-color: #c3ebfa !important;
-  color: black !important;
-}
+  .sa-logo {
+    @apply w-14 h-14 bg-gradient-to-br from-green-600 to-green-800 rounded-2xl flex items-center justify-center text-2xl font-black text-white mb-6 shadow-[0_0_40px_rgba(22,163,74,0.26)];
+  }
 
-.rbc-btn-group:first-child {
-  display: none !important;
-}
+  .sa-left-content h1 { @apply text-4xl text-[#f0fdf4] font-extrabold tracking-tight mb-1.5; }
 
-.rbc-toolbar-label {
-  text-align: right !important;
-  padding: 0px 20px !important;
-}
+  .sa-left-content > p {
+    @apply text-[0.85rem] text-green-400 mb-10 uppercase tracking-widest;
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-btn-group:last-child {
-  font-size: 13px !important;
-}
+  .sa-features { @apply list-none space-y-3; }
+  .sa-features li { @apply flex items-center gap-3 text-green-200 text-sm py-2 border-b border-[#1a3a1a] last:border-none; }
+  .sa-check { @apply w-5 h-5 bg-green-900 rounded-full flex items-center justify-center text-[10px] text-green-400 flex-shrink-0 font-bold; }
 
-.rbc-btn-group:last-child button {
-  border: none !important;
-  background-color: #f1f0ff !important;
-  margin-left: 2px !important;
-}
+  .sa-grid {
+    @apply absolute inset-0 z-0;
+    background-image: linear-gradient(rgba(22, 163, 74, 0.04) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(22, 163, 74, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 
-.rbc-toolbar button.rbc-active {
-  background-color: #dbdafe !important;
-  box-shadow: none !important;
-}
+  .sa-right { @apply flex-1 flex items-center justify-center p-8 bg-[#070809]; }
+  .sa-card { @apply w-full max-w-[420px]; }
 
-.rbc-time-view {
-  border-color: #eee !important;
-}
+  .sa-badge {
+    @apply inline-block bg-green-900 text-green-400 text-[0.65rem] tracking-[0.15em] px-3 py-1 rounded-full border border-green-700 mb-5;
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-time-header {
-  display: none !important;
-}
+  .sa-card-header h2 { @apply text-[1.6rem] text-gray-50 font-bold tracking-tight mb-1.5; }
+  .sa-card-header p {
+    @apply text-[0.825rem] text-gray-600;
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-time-content {
-  border: none !important;
-}
+  .sa-error-banner {
+    @apply flex items-start gap-3 bg-[#1c0a0a] border border-red-900 rounded-xl p-3.5 mb-6 text-red-300 text-[0.85rem];
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-time-gutter.rbc-time-column {
-  font-size: 12px !important;
-}
+  .sa-field { @apply flex flex-col gap-1.5 mb-5; }
+  .sa-field label {
+    @apply text-[0.72rem] text-gray-500 uppercase tracking-widest;
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
-  padding: 0px 20px !important;
-}
+  .sa-input {
+    @apply w-full bg-[#0d0f14] border border-gray-800 rounded-xl text-gray-50 text-[0.9rem] py-3 pl-10 pr-4 outline-none transition-all duration-150;
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-timeslot-group {
-  background-color: #f7fdff !important;
-}
+  .sa-input:focus { @apply border-green-600 ring-4 ring-green-600/10; }
 
-.rbc-day-slot {
-  font-size: 14px !important;
-}
+  .sa-submit {
+    @apply w-full mt-2 bg-green-600 rounded-xl text-white text-[0.9rem] font-bold py-3.5 transition-all duration-150 flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-55 hover:bg-green-700 hover:shadow-[0_0_20px_rgba(22,163,74,0.26)];
+    font-family: 'Courier New', monospace;
+  }
 
-.rbc-event {
-  border: none !important;
-  color: black !important;
-  padding: 10px !important;
-  margin: 10px !important;
-  width: 99% !important;
-}
+  /* ─── REACT CALENDAR & BIG CALENDAR CUSTOMS ─── */
+  .react-calendar {
+    @apply w-full border-none font-sans !important;
+  }
 
-.rbc-event:nth-child(1) {
-  background-color: #e2f8ff !important;
-}
-.rbc-event:nth-child(2) {
-  background-color: #fefce8 !important;
-}
-.rbc-event:nth-child(3) {
-  background-color: #f2f1ff !important;
-}
-.rbc-event:nth-child(4) {
-  background-color: #fdf2fb !important;
-}
-.rbc-event:nth-child(5) {
-  background-color: #e2f8ff !important;
-}
-.rbc-event:nth-child(6) {
-  background-color: #fefce8 !important;
-}
-.rbc-event:nth-child(7) {
-  background-color: #f2f1ff !important;
-}
-.rbc-event:nth-child(8) {
-  background-color: #fdf2fb !important;
-}
+  .react-calendar__navigation__label__labelText {
+    @apply font-semibold;
+  }
 
-.rbc-event-label{
-  color: gray !important;
-  margin-bottom: 5px;
+  .react-calendar__tile--active {
+    @apply bg-[#c3ebfa] text-black !important;
+  }
+
+  .rbc-btn-group:first-child {
+    @apply hidden !important;
+  }
+
+  .rbc-toolbar-label {
+    @apply text-right px-5 !important;
+  }
+
+  .rbc-btn-group:last-child {
+    @apply text-[13px] !important;
+  }
+
+  .rbc-btn-group:last-child button {
+    @apply border-none bg-[#f1f0ff] ml-[2px] !important;
+  }
+
+  .rbc-toolbar button.rbc-active {
+    @apply bg-[#dbdafe] shadow-none !important;
+  }
+
+  .rbc-time-view { @apply border-[#eee] !important; }
+  .rbc-time-header { @apply hidden !important; }
+  .rbc-time-content { @apply border-none !important; }
+
+  .rbc-time-gutter.rbc-time-column {
+    @apply text-[12px] !important;
+  }
+
+  .rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
+    @apply px-5 !important;
+  }
+
+  .rbc-timeslot-group {
+    @apply bg-[#f7fdff] !important;
+  }
+
+  .rbc-day-slot { @apply text-sm !important; }
+
+  .rbc-event {
+    @apply border-none text-black p-[10px] m-[10px] w-[99%] !important;
+  }
+
+  /* Event Colors */
+  .rbc-event:nth-child(1) { @apply bg-[#e2f8ff] !important; }
+  .rbc-event:nth-child(2) { @apply bg-[#fefce8] !important; }
+  .rbc-event:nth-child(3) { @apply bg-[#f2f1ff] !important; }
+  .rbc-event:nth-child(4) { @apply bg-[#fdf2fb] !important; }
+  .rbc-event:nth-child(5) { @apply bg-[#e2f8ff] !important; }
+  .rbc-event:nth-child(6) { @apply bg-[#fefce8] !important; }
+  .rbc-event:nth-child(7) { @apply bg-[#f2f1ff] !important; }
+  .rbc-event:nth-child(8) { @apply bg-[#fdf2fb] !important; }
+
+  .rbc-event-label {
+    @apply text-gray-500 mb-1.25 !important;
+  }
 }

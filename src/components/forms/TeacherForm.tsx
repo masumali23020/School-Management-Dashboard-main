@@ -14,14 +14,12 @@ import InputField from "../InputField";
 import { teacherSchema, type TeacherSchema } from "@/lib/FormValidationSchema";
 import { createTeacher, updateTeacher } from "@/Actions/TeacherActions/teacherActions";
 
-type Props = {
-  setOpen:     Dispatch<SetStateAction<boolean>>;
-  relatedData: { subjects?: { id: number; name: string }[] };
-  type:        "create" | "update";
-  data?:       any;
-};
-
-const TeacherForm = ({ setOpen, relatedData, type, data }: Props) => {
+const TeacherForm = ({ setOpen, relatedData, type, data }: {
+  type: "create" | "update";
+  data?: any;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  relatedData?: any;
+}) => {
   const router = useRouter();
   const [imgUrl, setImgUrl] = useState(data?.img || "");
   const [uploadError, setUploadError] = useState("");

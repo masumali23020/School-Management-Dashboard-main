@@ -47,6 +47,12 @@ enum SMSStatus {
   PENDING
 }
 
+enum SubscriptionPaymentStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
 // --- SAAS SUPER ADMIN & SUBSCRIPTION ---
 
 model SuperAdmin {
@@ -82,6 +88,8 @@ model School {
   email           String?
   phone           String?
   address         String?
+  establishedYear String?
+  passRate        String?
   eiinNumber      String? @unique
   academicSession String  @default("2026")
 
@@ -113,12 +121,31 @@ model School {
   studentClassHistories StudentClassHistory[]
   feePayments           FeePayment[]
   classFeeStructures    ClassFeeStructure[]
+  subscriptionPayments  SubscriptionPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([slug])
   @@index([isActive])
+}
+
+model SubscriptionPayment {
+  id            Int                       @id @default(autoincrement())
+  schoolId      Int
+  school        School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  amount        Decimal                   @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  status        SubscriptionPaymentStatus @default(PAID)
+  transactionId String?
+  invoiceNo     String?                   @unique
+  note          String?
+  paidAt        DateTime                  @default(now())
+  createdAt     DateTime                  @default(now())
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([paidAt])
 }
 
 model HomeSlider {
@@ -428,6 +455,7 @@ model ClassFeeStructure {
   @@index([classId])
   @@index([schoolId])
   @@index([academicYear])
+
 }
 
 // REMOVED redundant schoolId from FeePayment (accessible via Student or Class)

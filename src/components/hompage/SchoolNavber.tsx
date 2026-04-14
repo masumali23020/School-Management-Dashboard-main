@@ -3,6 +3,7 @@
 import { SchoolSetting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 
@@ -10,18 +11,26 @@ interface NavbarProps {
   settings: SchoolSetting | null;
 }
 
-const navLinks = [
-  { label: "হোম", href: "/bagulat-high-scholl/" },
-  { label: "আমাদের সম্পর্কে", href: "/bagulat-high-scholl/about" },
-  { label: "একাডেমিক", href: "/bagulat-high-scholl/academic" },
-  { label: "ভর্তি", href: "/bagulat-high-scholl/admission" },
-  { label: "ইভেন্ট", href: "/bagulat-high-scholl/events" },
-  { label: "যোগাযোগ", href: "/bagulat-high-scholl/contact" },
-  { label: "নোটিশ", href: "/bagulat-high-scholl/notice" },
-];
+
 
 export default function SchoolNavbar({ settings }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // স্কুলের স্লাগ বের করা (URL থেকে)
+  const schoolSlug = pathname?.split('/')[1] || settings?.slug || "";
+  
+  // ডাইনামিক নেভিগেশন লিংক - স্কুল স্লাগ অনুযায়ী
+  const navLinks = [
+    { label: "হোম", href: `/${schoolSlug}/` },
+    { label: "আমাদের সম্পর্কে", href: `/${schoolSlug}/about` },
+    { label: "একাডেমিক", href: `/${schoolSlug}/academic` },
+    { label: "ভর্তি", href: `/${schoolSlug}/admission` },
+    { label: "ইভেন্ট", href: `/${schoolSlug}/events` },
+    { label: "যোগাযোগ", href: `/${schoolSlug}/contact` },
+    { label: "নোটিশ", href: `/${schoolSlug}/notice` },
+  ];
+
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -62,7 +71,7 @@ export default function SchoolNavbar({ settings }: NavbarProps) {
       {/* Main nav */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo + Name */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link href={`/${schoolSlug}/`} className="flex items-center gap-3">
           {settings?.logoUrl ? (
             <Image src={settings.logoUrl} alt="School Logo" width={44} height={44} className="rounded-full object-cover" />
           ) : (

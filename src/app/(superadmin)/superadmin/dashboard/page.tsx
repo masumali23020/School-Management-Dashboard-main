@@ -20,11 +20,42 @@ export default async function SuperAdminDashboard() {
     prisma.school.count({ where: { expiredAt: { lt: new Date() } } }),
   ]);
 
-  const schools = await prisma.school.findMany({
-    take:    10,
-    orderBy: { createdAt: "desc" },
-    include: { plan: true, _count: { select: { students: true, employees: true } } },
-  });
+  const [schools, planBreakdown, expiringSoonSchools, activeSchoolsWithPlan] = await Promise.all([
+    prisma.school.findMany({
+      take:    10,
+      orderBy: { createdAt: "desc" },
+      include: { plan: true, _count: { select: { students: true, employees: true } } },
+    }),
+    prisma.school.groupBy({
+      by: ["planId"],
+      _count: { id: true },
+    }),
+    prisma.school.findMany({
+      where: {
+        expiredAt: {
+          gte: new Date(),
+          lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+        },
+      },
+      orderBy: { expiredAt: "asc" },
+      take: 8,
+      include: { plan: true },
+    }),
+    prisma.school.findMany({
+      where: { isActive: true },
+      include: { plan: true },
+    }),
+  ]);
+
+  const projectedRevenue = activeSchoolsWithPlan.reduce(
+    (sum, school) => sum + Number(school.plan.price ?? 0),
+    0
+  );
+
+  const planCountMap = planBreakdown.reduce<Record<number, number>>((acc, item) => {
+    acc[item.planId] = item._count.id;
+    return acc;
+  }, {});
 
   return (
     <div className="sa-dash">
@@ -72,6 +103,9 @@ export default async function SuperAdminDashboard() {
             </Link>
             <Link href="/superadmin/plans" className="sa-action-btn">
               Manage Plans
+            </Link>
+            <Link href="/superadmin/payments" className="sa-action-btn">
+              Track Payments
             </Link>
           </div>
         </div>
@@ -128,6 +162,77 @@ export default async function SuperAdminDashboard() {
             </table>
           </div>
         </div>
+
+        {/* ── Platform Analytics ── */}
+        <div className="sa-section">
+          <h2 className="sa-section-title">Platform Analytics</h2>
+          <div className="sa-analytics-grid">
+            <div className="sa-analytics-card">
+              <p className="sa-analytics-label">Projected Plan Revenue</p>
+              <p className="sa-analytics-revenue">৳{projectedRevenue.toLocaleString("en-BD")}</p>
+              <p className="sa-analytics-sub">Based on currently active schools and assigned plan pricing.</p>
+            </div>
+
+            <div className="sa-analytics-card">
+              <p className="sa-analytics-label">Plan Distribution</p>
+              <div className="sa-plan-list">
+                {Object.entries(planCountMap).map(([planId, count]) => (
+                  <div key={planId} className="sa-plan-row">
+                    <span>Plan #{planId}</span>
+                    <span>{count} schools</span>
+                  </div>
+                ))}
+                {Object.keys(planCountMap).length === 0 && (
+                  <p className="sa-empty">No plan distribution data found.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Expiry Alerts ── */}
+        <div className="sa-section">
+          <h2 className="sa-section-title">Expiring In Next 30 Days</h2>
+          <div className="sa-table-wrap">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>School</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Expiry Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expiringSoonSchools.map((school) => (
+                  <tr key={school.id}>
+                    <td>
+                      <p className="sa-school-name">{school.schoolName}</p>
+                      <p className="sa-school-sub">/{school.slug}</p>
+                    </td>
+                    <td><PlanBadge plan={school.plan.name} /></td>
+                    <td>
+                      {school.isActive
+                        ? <StatusBadge label="Active" color="green" />
+                        : <StatusBadge label="Disabled" color="red" />
+                      }
+                    </td>
+                    <td className="sa-td-mono sa-td-muted">
+                      {school.expiredAt
+                        ? new Date(school.expiredAt).toLocaleDateString("en-BD")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+                {expiringSoonSchools.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="sa-empty-cell">No school expiring in next 30 days.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
 
       <style>{`
@@ -175,6 +280,14 @@ export default async function SuperAdminDashboard() {
         /* Sections */
         .sa-section { margin-bottom: 2.5rem; }
         .sa-section-title { font-size: .75rem; color: #4b5563; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: .12em; border-bottom: 1px solid #1f2130; padding-bottom: .6rem; margin-bottom: 1.25rem; }
+        .sa-analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+        .sa-analytics-card { background: #0d0f14; border: 1px solid #1f2130; border-radius: 14px; padding: 1rem; }
+        .sa-analytics-label { font-size: .72rem; color: #6b7280; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+        .sa-analytics-revenue { font-size: 1.6rem; color: #4ade80; font-weight: 800; font-family: 'Courier New', monospace; }
+        .sa-analytics-sub { font-size: .72rem; color: #4b5563; margin-top: .35rem; }
+        .sa-plan-list { display: flex; flex-direction: column; gap: .55rem; }
+        .sa-plan-row { display: flex; justify-content: space-between; align-items: center; background: #0a0c10; border: 1px solid #1f2130; border-radius: 8px; padding: .5rem .75rem; font-family: 'Courier New', monospace; font-size: .78rem; color: #d1d5db; }
+        .sa-empty { font-size: .75rem; color: #4b5563; font-family: 'Courier New', monospace; }
 
         /* Actions */
         .sa-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
@@ -205,6 +318,7 @@ export default async function SuperAdminDashboard() {
         .sa-school-sub  { color: #4b5563; font-size: .7rem; font-family: 'Courier New', monospace; }
         .sa-td-mono     { font-family: 'Courier New', monospace; font-size: .8rem; color: #9ca3af; }
         .sa-td-muted    { color: #4b5563 !important; }
+        .sa-empty-cell { text-align: center; color: #6b7280; font-family: 'Courier New', monospace; padding: 1rem !important; }
       `}</style>
     </div>
   );

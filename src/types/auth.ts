@@ -58,6 +58,7 @@ export type AuthError =
   | "INVALID_PASSWORD"
   | "SCHOOL_DISABLED"
   | "SUBSCRIPTION_EXPIRED"
+  | "PLAN_LIMIT_REACHED"
   | "SCHOOL_NOT_FOUND"
   | "UNKNOWN_ERROR";
 
@@ -68,6 +69,8 @@ export const AUTH_ERROR_MESSAGES: Record<AuthError, string> = {
     "Your school account has been disabled. Contact support.",
   SUBSCRIPTION_EXPIRED:
     "Your school's subscription has expired. Please renew.",
+  PLAN_LIMIT_REACHED:
+    "Your current plan limit has been reached. Please contact Super Admin to upgrade or renew your plan.",
   SCHOOL_NOT_FOUND: "School not found. Please verify your School ID.",
   UNKNOWN_ERROR: "An unexpected error occurred. Please try again.",
 };

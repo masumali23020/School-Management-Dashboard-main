@@ -1,8 +1,10 @@
+// app/[schoolSlug]/notice/page.tsx
 
 import Footer from "@/components/hompage/Footer";
 import SchoolNavbar from "@/components/hompage/SchoolNavber";
 import prisma from "@/lib/db";
 import { getSchoolSettings } from "@/lib/getSchoolData";
+import { notFound } from "next/navigation";
 
 export const metadata = { title: "নোটিশ বোর্ড" };
 
@@ -22,15 +24,35 @@ function getRelativeTime(date: Date) {
   return `${Math.floor(days / 30)} মাস আগে`;
 }
 
-export default async function NoticesPage() {
-  const [settings, notices] = await Promise.all([
-    getSchoolSettings(),
-    prisma.announcement.findMany({
-      where: { isPublic: true },
-      orderBy: { date: "desc" },
-      include: { class: { select: { name: true } } },
-    }),
-  ]);
+export default async function NoticesPage({ params }: { params: { schoolSlug: string } }) {
+  // ১. স্ল্যাগ দিয়ে স্কুল খুঁজে বের করা (পাবলিক অ্যাক্সেস)
+  const school = await prisma.school.findUnique({
+    where: { slug: params.schoolSlug },
+    select: { id: true, schoolName: true }
+  });
+
+  if (!school) {
+    notFound();
+  }
+
+  const schoolId = school.id;
+
+  // ২. স্কুল সেটিংস ডাটা ফেচিং
+  const settings = await getSchoolSettings(Number(schoolId));
+
+  if (!settings) {
+    return <div>লোড হচ্ছে...</div>;
+  }
+
+  // ৩. নোটিশ ডাটা ফেচিং (নির্দিষ্ট স্কুলের)
+  const notices = await prisma.announcement.findMany({
+    where: { 
+      schoolId: schoolId,
+      isPublic: true 
+    },
+    orderBy: { date: "desc" },
+    include: { class: { select: { name: true } } },
+  });
 
   // Group by month
   const grouped = notices.reduce<Record<string, typeof notices>>((acc, notice) => {
@@ -40,23 +62,39 @@ export default async function NoticesPage() {
     return acc;
   }, {});
 
+  const currentYear = settings?.academicSession ?? new Date().getFullYear().toString();
+
   return (
     <main className="min-h-screen bg-slate-50">
       <SchoolNavbar settings={settings} />
 
-      {/* Hero */}
-      <section className="bg-[#1a365d] text-white py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <span className="inline-block bg-sky-400/20 border border-sky-400/40 text-sky-300 text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-4">
-            বিজ্ঞপ্তি
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold">নোটিশ বোর্ড</h1>
-          <p className="mt-4 text-sky-100 text-base max-w-xl mx-auto">
-            বিদ্যালয়ের সকল সরকারি বিজ্ঞপ্তি ও ঘোষণাসমূহ
-          </p>
-          <div className="mt-6 inline-flex items-center gap-2 bg-white/10 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            মোট {notices.length}টি নোটিশ
+      {/* Hero - Admission Page এর মতো */}
+      <section className="relative bg-[#1a365d] overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 70% 50%, rgba(56,189,248,0.15) 0%, transparent 60%)",
+          }}
+        />
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full border border-white/5" />
+        <div className="absolute -bottom-10 -left-10 w-60 h-60 rounded-full border border-white/5" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20">
+          <div className="text-center">
+            <span className="inline-block bg-sky-400/20 border border-sky-400/40 text-sky-300 text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
+              নোটিশ বোর্ড — সেশন {currentYear}
+            </span>
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight">
+              সকল <span className="text-sky-300">বিজ্ঞপ্তি</span>
+            </h1>
+            <p className="mt-5 text-sky-100/90 text-lg max-w-2xl mx-auto leading-relaxed">
+              বিদ্যালয়ের সকল সরকারি বিজ্ঞপ্তি ও ঘোষণাসমূহ
+            </p>
+            <div className="mt-6 inline-flex items-center gap-2 bg-white/10 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              মোট {notices.length}টি নোটিশ
+            </div>
           </div>
         </div>
       </section>

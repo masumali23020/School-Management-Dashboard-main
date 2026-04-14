@@ -16,6 +16,48 @@ export async function requireSession(
     redirect("/login");
   }
 
+  // Hard access guard: suspended/expired/plan-limit reached school users are forced to logout.
+  if (user.schoolId) {
+    const school = await prisma.school.findUnique({
+      where: { id: user.schoolId },
+      include: {
+        plan: {
+          select: {
+            maxStudents: true,
+            maxEmployees: true,
+          },
+        },
+        _count: {
+          select: {
+            students: true,
+            employees: true,
+          },
+        },
+      },
+    });
+
+    if (!school) {
+      redirect("/?account=SCHOOL_NOT_FOUND");
+    }
+
+    if (!school.isActive) {
+      redirect("/?account=SCHOOL_DISABLED");
+    }
+
+    if (school.expiredAt && school.expiredAt < new Date()) {
+      redirect("/?account=SUBSCRIPTION_EXPIRED");
+    }
+
+    const studentsLimitReached =
+      school.plan.maxStudents > 0 && school._count.students >= school.plan.maxStudents;
+    const employeesLimitReached =
+      school.plan.maxEmployees > 0 && school._count.employees >= school.plan.maxEmployees;
+
+    if (studentsLimitReached || employeesLimitReached) {
+      redirect("/?account=PLAN_LIMIT_REACHED");
+    }
+  }
+
   // যদি user-এ schoolId না থাকে, তাহলে ডাটাবেস থেকে fetch করুন
   if (!user.schoolId && (user.email || user.username)) {
     const email = user.email || user.username;
