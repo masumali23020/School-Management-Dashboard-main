@@ -61,7 +61,7 @@ export const createClassSubjectTeacher = async (
       },
     });
 
-    revalidatePath("/list/class-subject-teacher"); // আপনার লিস্ট পেজ পাথ অনুযায়ী
+    // revalidatePath("/list/class-subject-teacher"); 
     return { success: true, error: false, message: "সফলভাবে এসাইন করা হয়েছে।" };
   } catch (err) {
     console.error("Create Assignment Error:", err);
@@ -106,7 +106,7 @@ export const updateClassSubjectTeacher = async (
       },
     });
 
-    revalidatePath("/list/class-subject-teacher");
+    // revalidatePath("/list/class-subject-teacher");
     return { success: true, error: false, message: "সফলভাবে আপডেট করা হয়েছে।" };
   } catch (err) {
     return { success: false, error: true, message: "আপডেট ব্যর্থ হয়েছে।" };
@@ -143,7 +143,7 @@ export const deleteClassSubjectTeacher = async (
       where: { id },
     });
 
-    revalidatePath("/list/class-subject-teacher");
+    // revalidatePath("/list/class-subject-teacher");
     return { success: true, error: false, message: "সফলভাবে ডিলিট করা হয়েছে।" };
   } catch (err) {
     return { success: false, error: true, message: "ডিলিট করা সম্ভব হয়নি।" };

@@ -36,7 +36,7 @@ export async function getExamsByClass(
     where: {
       schoolId: Number(schoolId),
       lessonId: { in: lessonIds },
-      session: String(session) ,
+      session: Number(session),
       startTime: { gte: startOfMonth, lte: endOfMonth },
     },
     include: {

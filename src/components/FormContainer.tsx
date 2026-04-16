@@ -14,6 +14,7 @@ export type FormContainerProps = {
     | "class"
     | "grade"
     | "staff"
+    | "cashier"
     | "lesson"
     | "exam"
     |  "bulkExam"
@@ -114,6 +115,17 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           orderBy: { name: 'asc' }
         });
         relatedData = { staff: staff };
+        break;
+      case "cashier":
+        // Only get subjects from the same school
+        const cashier = await prisma.employee.findMany({ 
+          where: { schoolId: Number(schoolId) ,
+            role: UserRole.CASHIER
+          },
+          select: { id: true, name: true, surname: true, username: true, email: true, phone: true, address: true },
+          orderBy: { name: 'asc' }
+        });
+        relatedData = { cashier: cashier };
         break;
 
       case "student":

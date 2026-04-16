@@ -721,6 +721,7 @@ export async function createExamsBulk(payload: {
                 classId: cls.classId,
                 teacherId: subj.teacherId,
                 classSubjectTeacherId: subj.cstId,
+                schoolId: schoolId
               },
               select: { id: true, name: true },
             });
@@ -742,6 +743,7 @@ export async function createExamsBulk(payload: {
           practicalMarks: null,
           lessonId: lesson.id,
           session: parseInt(payload.session) || new Date().getFullYear(),
+          schoolId
         };
         console.log(`    Creating exam with data:`, examData);
 

@@ -9,7 +9,7 @@ import {
   unpublishExamResult,
   publishAssignmentResult,
   unpublishAssignmentResult,
-  PublishStatusItem,
+  type PublishStatusItem,
 } from "@/Actions/ResultAction/resultSearchAction";
 import {
   AlertTriangle,
@@ -77,10 +77,10 @@ export default function AdminPublishPage() {
     setIsLoadingItems(true);
     try {
       if (tab === "exam") {
-        const data = await getExamPublishStatus(classId, sess);
+        const data: PublishStatusItem[] = await getExamPublishStatus(classId, sess);
         setItems(data);
       } else {
-        const data = await getAssignmentPublishStatus(classId, sess);
+        const data: PublishStatusItem[] = await getAssignmentPublishStatus(classId, sess);
         setItems(data);
       }
     } finally {

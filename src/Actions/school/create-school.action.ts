@@ -6,7 +6,14 @@ import { nanoid } from "nanoid";
 import prisma from "@/lib/db";
 import { SchoolRegistrationInput } from "@/types/auth";
 import { PLAN_DURATIONS_DAYS, SchoolRegistrationSchema } from "@/lib/FormValidationSchema";
-
+const generateSlug = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')     // Remove non-word chars
+    .replace(/[\s_-]+/g, '-')     // Replace spaces/underscores with dashes
+    .replace(/^-+|-+$/g, '');     // Trim dashes from start/end
+};
 export type CreateSchoolResult =
   | {
       success: true;
@@ -66,7 +73,7 @@ export async function createSchoolAction(
   if (existingEiin) {
     return {
       success: false,
-      fieldErrors: { eiinNumber: ["A school with this EIIN already exists."] },
+    
       error: "A school with this EIIN number is already registered.",
     };
   }
@@ -74,7 +81,7 @@ export async function createSchoolAction(
   if (existingSlug) {
     return {
       success: false,
-      fieldErrors: { slug: ["This URL / Slug is already taken. Try modifying school name."] },
+  
       error: "This school URL identifier is already in use.",
     };
   }

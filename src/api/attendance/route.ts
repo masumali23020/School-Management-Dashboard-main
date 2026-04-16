@@ -1,7 +1,7 @@
 // app/api/attendance/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import  prisma  from "@/lib/db";
 
 // Zod schema for API validation
 const attendanceApiSchema = z.object({

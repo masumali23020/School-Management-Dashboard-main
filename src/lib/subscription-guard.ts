@@ -78,22 +78,38 @@ export function checkSchoolStatus(school: {
 
 import { NextResponse } from "next/server";
 
+// ─── API Route guard (use in Route Handlers) ──────────────────────────────────
+
 export function guardFeatureAccess(
-  plan: PlanType,
+  plan: PlanType | undefined | null, // এখানে undefined এবং null এলাউ করা হলো
   feature: Feature
 ): NextResponse | null {
-  if (!canAccessFeature(plan, feature)) {
+  
+  // ১. যদি প্ল্যান না থাকে (যেমন নতুন ইউজার বা ডাটাবেজ এরর)
+  if (!plan) {
     return NextResponse.json(
       {
-        error:       "PLAN_INSUFFICIENT",
-        message:     `This feature requires the ${requiredPlanFor(feature)} plan or higher.`,
-        requiredPlan: requiredPlanFor(feature),
-        currentPlan:  plan,
+        error: "PLAN_REQUIRED",
+        message: "কোনো সাবস্ক্রিপশন প্ল্যান খুঁজে পাওয়া যায়নি।",
       },
       { status: 403 }
     );
   }
-  return null; // access granted
+
+  // ২. যদি প্ল্যান থাকে কিন্তু ফিচারটির এক্সেস না থাকে
+  if (!canAccessFeature(plan, feature)) {
+    return NextResponse.json(
+      {
+        error: "PLAN_INSUFFICIENT",
+        message: `এই ফিচারটি ব্যবহার করতে ${requiredPlanFor(feature)} বা তার উপরের প্ল্যান প্রয়োজন।`,
+        requiredPlan: requiredPlanFor(feature),
+        currentPlan: plan,
+      },
+      { status: 403 }
+    );
+  }
+
+  return null; // Access granted
 }
 
 // ─── Usage examples (not exported, for documentation only) ────────────────────

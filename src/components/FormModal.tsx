@@ -27,11 +27,14 @@ import { deleteGrade } from "@/Actions/GradeActions/GradeActions";
 import { deleteExamAction } from "@/Actions/ExamAction/Examactions";
 import { deleteParent } from "@/Actions/ParentActions/ParentActions";
 import { deleteStaff } from "@/Actions/staff/StaffAction";
+import { deletCashier } from "@/Actions/cashier/CashierActions";
+
 
 
 
 
 // USE LAZY LOADING
+// import CashierForm from "./forms/Cashierform";
 // import StaffForm from "./forms/StaffForm";
 // import AttendanceForm from "./forms/AttendanceForm";
 // import ClassForm from "./forms/ClassForm";
@@ -48,6 +51,9 @@ const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
 });
 
 const StaffForm = dynamic(() => import("./forms/StaffForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const CashierForm = dynamic(() => import("./forms/Cashierform"), {
   loading: () => <h1>Loading...</h1>,
 });
 const StudentForm = dynamic(() => import("./forms/StudentForm"), {
@@ -102,6 +108,7 @@ const deleteActionMap = {
   assignment: deleteAssignment,
   result: deleteResult,
   staff: deleteStaff,
+  cashier: deletCashier,
   // attendance: deleteSubject,
   event: deleteEvent,
   grade: deleteGrade,
@@ -126,6 +133,14 @@ const forms: {
   ),
   staff: (setOpen, relatedData, type, data) => (
     <StaffForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  cashier: (setOpen, relatedData, type, data) => (
+    <CashierForm
       type={type}
       data={data}
       setOpen={setOpen}

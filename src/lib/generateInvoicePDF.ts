@@ -24,6 +24,8 @@ export type InvoiceData = {
   schoolAddress?:  string;
   schoolPhone?:    string;
   schoolEmail?:    string;
+   collectedBy?: string;      // Keep for backward compatibility
+
 };
 
 const METHOD_LABEL: Record<string, string> = {

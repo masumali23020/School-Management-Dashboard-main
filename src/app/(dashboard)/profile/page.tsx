@@ -28,5 +28,6 @@ export default async function SchoolProfilePage() {
 
   if (!school) redirect("/not-found");
 
-  return <SchoolProfileClient school={school} role={role} />;
+  // ✅ Prisma result কে SchoolWithCount type-এ cast করা
+  return <SchoolProfileClient school={school } role={role as string} />;
 }

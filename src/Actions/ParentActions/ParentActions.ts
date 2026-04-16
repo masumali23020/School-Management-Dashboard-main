@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import prisma from "@/lib/db";
 import { parentSchema, type ParentSchema } from "@/lib/FormValidationSchema";
 import { requireSession } from "@/lib/get-session";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type ActionState = { success: boolean; error: boolean; message?: string };
 
@@ -15,8 +16,7 @@ export const createParent = async (
   data: ParentSchema
 ): Promise<ActionState> => {
   try {
-    const session = await requireSession(["ADMIN"]);
-    const { schoolId } = session;
+ const {schoolId} = await getUserRoleAuth();
 
     // Server-side re-validate
     const parsed = parentSchema.safeParse(data);
@@ -41,7 +41,7 @@ export const createParent = async (
     const existingUser = await prisma.parent.findFirst({
       where: { 
         username: d.username,
-        schoolId: schoolId,
+        schoolId: Number(schoolId),
       },
     });
     
@@ -53,7 +53,7 @@ export const createParent = async (
     const existingPhone = await prisma.parent.findFirst({
       where: { 
         phone: d.phone,
-        schoolId: schoolId,
+        schoolId: Number(schoolId)
       },
     });
     
@@ -70,7 +70,7 @@ export const createParent = async (
       const existingEmail = await prisma.parent.findFirst({
         where: { 
           email: d.email,
-          schoolId: schoolId,
+          schoolId: Number(schoolId)
         },
       });
       
@@ -89,7 +89,7 @@ export const createParent = async (
     const parent = await prisma.parent.create({
       data: {
         id: `parent_${nanoid(12)}`,
-        schoolId: schoolId,
+        schoolId: Number(schoolId),
         username: d.username,
         password: hashedPassword,
         name: d.name,
@@ -106,7 +106,7 @@ export const createParent = async (
       const students = await prisma.student.findMany({
         where: {
           id: { in: d.studentIds },
-          schoolId: schoolId,
+          schoolId: Number(schoolId),
         },
         select: { id: true }
       });
@@ -390,25 +390,36 @@ export const getAllParents = async () => {
 
 export const getParentById = async (id: string) => {
   try {
-    const session = await requireSession(["ADMIN", "TEACHER", "PARENT"]);
-    const { schoolId } = session;
+    const { schoolId } = await getUserRoleAuth();
 
     const parent = await prisma.parent.findFirst({
       where: {
         id: id,
-        schoolId: schoolId,
+        schoolId: Number(schoolId),
       },
       include: {
         students: {
           include: {
             class: true,
             grade: true,
-            attendances: true,
+            attendances: {
+              take: 10,
+              orderBy: { date: "desc" },
+            },
             results: {
               include: {
-                exam: true,
-                subject: true,
+                exam: {
+                  include: {
+                    lesson: {
+                      include: {
+                        subject: true, // Subject is accessed through exam -> lesson -> subject
+                      },
+                    },
+                  },
+                },
               },
+              take: 20,
+              orderBy: { exam: { startTime: "desc" } },
             },
           },
         },

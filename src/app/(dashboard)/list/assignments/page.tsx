@@ -1,5 +1,5 @@
 
-import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { Assignment, Class, Employee, Prisma, Subject} from "@prisma/client";
 import Image from "next/image";
 
 import FormModal from "../../../../components/FormModal";
@@ -16,7 +16,7 @@ type AssignmentList = Assignment & {
   lesson: {
     subject: Subject;
     class: Class;
-    teacher: Teacher;
+    teacher: Employee;
   };
 };
 

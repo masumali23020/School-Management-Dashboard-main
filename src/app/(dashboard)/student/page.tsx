@@ -40,7 +40,7 @@ const StudentPage = async () => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
           <h2 className="text-yellow-600 font-semibold">No Class Assigned</h2>
           <p className="text-yellow-500 mt-1">
-            You haven't been assigned to a class yet. Please contact your administrator.
+            You have not been assigned to a class yet. Please contact your administrator.
           </p>
         </div>
       </div>

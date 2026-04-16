@@ -1,9 +1,8 @@
 // app/(admin)/admin/dashboard/page.tsx
-// School Admin Dashboard — shows school stats, recent activity
 
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/get-session";
-import  prisma  from "@/lib/db";
+import prisma from "@/lib/db";
 import Link from "next/link";
 import { signOut } from "@/auth";
 import Menu from "@/components/Menu";
@@ -27,7 +26,7 @@ export default async function AdminDashboard() {
   ] = await Promise.all([
     // School info
     prisma.school.findUnique({
-      where:   { id: schoolId },
+      where: { id: schoolId },
       include: { plan: true },
     }),
     // Counts
@@ -37,18 +36,17 @@ export default async function AdminDashboard() {
     prisma.subject.count({ where: { schoolId } }),
     // Recent 5 students
     prisma.student.findMany({
-      where:   { schoolId },
-      take:    5,
+      where: { schoolId },
+      take: 5,
       orderBy: { createdAt: "desc" },
       include: { class: true, grade: true },
     }),
     // Recent 5 fee payments
     prisma.feePayment.findMany({
-      // where:   { schoolId },
-      take:    5,
+      take: 5,
       orderBy: { paidAt: "desc" },
       include: {
-        student:          { select: { name: true, surname: true } },
+        student: { select: { name: true, surname: true } },
         classFeeStructure: { include: { feeType: true } },
       },
     }),
@@ -58,11 +56,50 @@ export default async function AdminDashboard() {
 
   const currentMonth = new Date().toLocaleString("en-BD", { month: "long", year: "numeric" });
 
-  console.log("Dashboard data:",school )
+  // ─── Sub-components defined inside ────────────────────────────────────────────
+  const StatCard = ({ label, value, icon, color, href }: {
+    label: string; value: number; icon: string; color: string; href: string;
+  }) => (
+    <Link href={href} className="stat-card">
+      <div className="stat-top">
+        <span className="stat-icon">{icon}</span>
+        <span className="stat-label">{label}</span>
+      </div>
+      <p className="stat-value" style={{ color }}>{value}</p>
+      <p className="stat-arrow">View all →</p>
+    </Link>
+  );
+
+// string-এর সাথে undefined যোগ করা হয়েছে
+const PlanBadge = ({ plan }: { plan: string | undefined }) => {
+  const map: Record<string, string> = {
+    FREE: "background:#1c1c2e;color:#818cf8;border:1px solid #312e81",
+    STANDARD: "background:#0c2340;color:#60a5fa;border:1px solid #1e3a5f",
+    POPULAR: "background:#1a1200;color:#fbbf24;border:1px solid #78350f",
+  };
+
+  // যদি plan না থাকে, তবে 'FREE' স্টাইল দেখাবে
+  const currentPlan = plan ?? "FREE";
+  const styleStr = map[currentPlan] ?? map.FREE;
+
+  return (
+    <span style={{
+      ...Object.fromEntries(styleStr.split(";").map(s => s.split(":") as [string, string])),
+      padding: ".2rem .7rem", 
+      borderRadius: "999px",
+      fontSize: ".65rem", 
+      fontFamily: "'Courier New',monospace",
+      fontWeight: "700", 
+      letterSpacing: ".06em",
+      textTransform: "uppercase" // দেখতে সুন্দর লাগবে
+    }}>
+      {currentPlan}
+    </span>
+  );
+};
 
   return (
     <div className="dash mx-auto">
-
       {/* ── Topbar ── */}
       <header className="topbar">
         <div className="topbar-left">
@@ -87,139 +124,136 @@ export default async function AdminDashboard() {
           </form>
         </div>
       </header>
-  
+
       <div className="flex">
-
-       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
-        <Link
-          href={`/${school?.slug || ""}/`}
-          className="flex items-center justify-center lg:justify-start gap-2"
-        >
-          <Image src="/logo.png" alt="logo" width={32} height={32} />
-          <span className="hidden lg:block font-bold">{school?.shortName || school?.schoolName}</span>
-        </Link>
-        <Menu user={user} />
-      </div>
-
-      <main className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]  overflow-scroll flex flex-col"> 
-
-        {/* ── Welcome ── */}
-        <div className="welcome">
-          <div>
-            <h1>Welcome back, {name.split(" ")[0]} 👋</h1>
-            <p>{currentMonth} &nbsp;·&nbsp; Admin Dashboard</p>
-          </div>
-          <Link href="/admin/students/new" className="new-btn">
-            + Add Student
+        <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
+          <Link
+            href="/"
+            className="flex items-center justify-center lg:justify-start gap-2"
+          >
+            <Image src="/logo.png" alt="logo" width={32} height={32} />
+            <span className="hidden lg:block font-bold">{school?.shortName || school?.schoolName}</span>
           </Link>
+          <Menu user={user} />
         </div>
 
-        {/* ── Stats Grid ── */}
-        <div className="stats-grid">
-          <StatCard
-            label="Total Students" value={totalStudents}
-            icon="🎓" color="#3b82f6"
-            href="/admin/students"
-          />
-          <StatCard
-            label="Employees" value={totalEmployees}
-            icon="👨‍🏫" color="#8b5cf6"
-            href="/admin/users"
-          />
-          <StatCard
-            label="Classes" value={totalClasses}
-            icon="🏛" color="#06b6d4"
-            href="/admin/classes"
-          />
-          <StatCard
-            label="Subjects" value={totalSubjects}
-            icon="📚" color="#f59e0b"
-            href="/admin/subjects"
-          />
-        </div>
-
-        {/* ── Two column layout ── */}
-        <div className="two-col">
-
-          {/* Recent Students */}
-          <section className="panel">
-            <div className="panel-header">
-              <h2>Recent Students</h2>
-              <Link href="/admin/students" className="panel-link">View all →</Link>
+        <main className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] overflow-scroll flex flex-col">
+          {/* ── Welcome ── */}
+          <div className="welcome">
+            <div>
+              <h1>Welcome back, {name.split(" ")[0]} 👋</h1>
+              <p>{currentMonth} &nbsp;·&nbsp; Admin Dashboard</p>
             </div>
-            <div className="student-list">
-              {recentStudents.length === 0 && (
-                <p className="empty">No students yet.</p>
-              )}
-              {recentStudents.map((s) => (
-                <div key={s.id} className="student-row">
-                  <div className="student-avatar">
-                    {s.name[0]}{s.surname[0]}
-                  </div>
-                  <div className="student-info">
-                    <p className="student-name">{s.name} {s.surname}</p>
-                    <p className="student-meta">{s.class.name} &nbsp;·&nbsp; Grade {s.grade.level}</p>
-                  </div>
-                  <span className={`sex-badge ${s.sex === "MALE" ? "male" : "female"}`}>
-                    {s.sex === "MALE" ? "♂" : "♀"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Recent Fee Payments */}
-          <section className="panel">
-            <div className="panel-header">
-              <h2>Recent Payments</h2>
-              <Link href="/cashier/fees" className="panel-link">View all →</Link>
-            </div>
-            <div className="fee-list">
-              {recentPayments.length === 0 && (
-                <p className="empty">No payments yet.</p>
-              )}
-              {recentPayments.map((p) => (
-                <div key={p.id} className="fee-row">
-                  <div className="fee-info">
-                    <p className="fee-name">
-                      {p.student.name} {p.student.surname}
-                    </p>
-                    <p className="fee-meta">
-                      {p.classFeeStructure.feeType.name} &nbsp;·&nbsp;
-                      {new Date(p.paidAt).toLocaleDateString("en-BD")}
-                    </p>
-                  </div>
-                  <span className="fee-amount">৳{p.amountPaid.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        {/* ── Quick Actions ── */}
-        <section className="quick-actions">
-          <h2 className="section-title">Quick Actions</h2>
-          <div className="actions-grid">
-            {[
-              { href: "/admin/students/new",     icon: "🎓", label: "Add Student"     },
-              { href: "/admin/users/new",         icon: "👤", label: "Add Employee"    },
-              { href: "/admin/classes",           icon: "🏛",  label: "Manage Classes"  },
-              { href: "/cashier/fees",            icon: "💳", label: "Collect Fee"     },
-              { href: "/admin/announcements/new", icon: "📢", label: "Announcement"    },
-              { href: "/admin/settings",          icon: "⚙️", label: "Settings"        },
-            ].map((a) => (
-              <Link key={a.href} href={a.href} className="action-card">
-                <span className="action-icon">{a.icon}</span>
-                <span className="action-label">{a.label}</span>
-              </Link>
-            ))}
+            <Link href="/admin/students/new" className="new-btn">
+              + Add Student
+            </Link>
           </div>
-        </section>
 
-      </main>
+          {/* ── Stats Grid ── */}
+          <div className="stats-grid">
+            <StatCard
+              label="Total Students" value={totalStudents}
+              icon="🎓" color="#3b82f6"
+              href="/admin/students"
+            />
+            <StatCard
+              label="Employees" value={totalEmployees}
+              icon="👨‍🏫" color="#8b5cf6"
+              href="/admin/users"
+            />
+            <StatCard
+              label="Classes" value={totalClasses}
+              icon="🏛" color="#06b6d4"
+              href="/admin/classes"
+            />
+            <StatCard
+              label="Subjects" value={totalSubjects}
+              icon="📚" color="#f59e0b"
+              href="/admin/subjects"
+            />
+          </div>
+
+          {/* ── Two column layout ── */}
+          <div className="two-col">
+            {/* Recent Students */}
+            <section className="panel">
+              <div className="panel-header">
+                <h2>Recent Students</h2>
+                <Link href="/admin/students" className="panel-link">View all →</Link>
+              </div>
+              <div className="student-list">
+                {recentStudents.length === 0 && (
+                  <p className="empty">No students yet.</p>
+                )}
+                {recentStudents.map((s) => (
+                  <div key={s.id} className="student-row">
+                    <div className="student-avatar">
+                      {s.name[0]}{s.surname[0]}
+                    </div>
+                    <div className="student-info">
+                      <p className="student-name">{s.name} {s.surname}</p>
+                      <p className="student-meta">{s.class.name} &nbsp;·&nbsp; Grade {s.grade.level}</p>
+                    </div>
+                    <span className={`sex-badge ${s.sex === "MALE" ? "male" : "female"}`}>
+                      {s.sex === "MALE" ? "♂" : "♀"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Recent Fee Payments */}
+            <section className="panel">
+              <div className="panel-header">
+                <h2>Recent Payments</h2>
+                <Link href="/cashier/fees" className="panel-link">View all →</Link>
+              </div>
+              <div className="fee-list">
+                {recentPayments.length === 0 && (
+                  <p className="empty">No payments yet.</p>
+                )}
+                {recentPayments.map((p) => (
+                  <div key={p.id} className="fee-row">
+                    <div className="fee-info">
+                      <p className="fee-name">
+                        {p.student.name} {p.student.surname}
+                      </p>
+                      <p className="fee-meta">
+                        {p.classFeeStructure.feeType.name} &nbsp;·&nbsp;
+                        {new Date(p.paidAt).toLocaleDateString("en-BD")}
+                      </p>
+                    </div>
+                    <span className="fee-amount">৳{p.amountPaid.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* ── Quick Actions ── */}
+          <section className="quick-actions">
+            <h2 className="section-title">Quick Actions</h2>
+            <div className="actions-grid">
+              {[
+                { href: "/admin/students/new", icon: "🎓", label: "Add Student" },
+                { href: "/admin/users/new", icon: "👤", label: "Add Employee" },
+                { href: "/admin/classes", icon: "🏛", label: "Manage Classes" },
+                { href: "/cashier/fees", icon: "💳", label: "Collect Fee" },
+                { href: "/admin/announcements/new", icon: "📢", label: "Announcement" },
+                { href: "/admin/settings", icon: "⚙️", label: "Settings" },
+              ].map((a) => (
+                <Link key={a.href} href={a.href} className="action-card">
+                  <span className="action-icon">{a.icon}</span>
+                  <span className="action-label">{a.label}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </main>
       </div>
 
       <style>{`
+        /* Your styles here - keep them as they were */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         .dash { min-height: 100vh; background: #070809; color: #f9fafb; font-family: 'Georgia', serif; }
 
@@ -383,42 +417,5 @@ export default async function AdminDashboard() {
         }
       `}</style>
     </div>
-  );
-}
-
-// ─── Sub-components ────────────────────────────────────────────────────────────
-function StatCard({
-  label, value, icon, color, href,
-}: {
-  label: string; value: number; icon: string; color: string; href: string;
-}) {
-  return (
-    <Link href={href} className="stat-card">
-      <div className="stat-top">
-        <span className="stat-icon">{icon}</span>
-        <span className="stat-label">{label}</span>
-      </div>
-      <p className="stat-value" style={{ color }}>{value}</p>
-      <p className="stat-arrow">View all →</p>
-    </Link>
-  );
-}
-
-export function PlanBadge({ plan }: { plan: string }) {
-  const map: Record<string, string> = {
-    FREE:     "background:#1c1c2e;color:#818cf8;border:1px solid #312e81",
-    STANDARD: "background:#0c2340;color:#60a5fa;border:1px solid #1e3a5f",
-    POPULAR:  "background:#1a1200;color:#fbbf24;border:1px solid #78350f",
-  };
-  const style = map[plan] ?? map.FREE;
-  return (
-    <span style={{
-      ...Object.fromEntries(style.split(";").map(s => s.split(":") as [string, string])),
-      padding: ".2rem .7rem", borderRadius: "999px",
-      fontSize: ".65rem", fontFamily: "'Courier New',monospace",
-      fontWeight: "700", letterSpacing: ".06em",
-    }}>
-      {plan}
-    </span>
   );
 }

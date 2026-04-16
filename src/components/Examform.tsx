@@ -1,36 +1,18 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useState, useTransition } from "react";
-import { useFormState } from "react-dom";
-import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
-import { Loader2, CheckSquare, Square, Users, BookOpen } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import InputField from "./InputField";
+
+
+import { Dispatch, SetStateAction, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { createExam, updateExam } from "@/Actions/ExamAction/examActionFormModal";
+import { CheckSquare, Square } from "lucide-react";
 import { examSchema, ExamSchema } from "@/lib/FormValidationSchema";
-import { getSubjectsForClass } from "@/app/actions/examActions/examActions";
+import InputField from "./InputField";
 
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type ClassOption = {
-  id: number;
-  name: string;
-  gradeLevel: number;
-};
-
-// ── Create schema (just 3 fields) ─────────────────────────────────────────────
-
-const createSchema = z.object({
-  title: z.string().min(1, { message: "Exam title is required!" }),
-  startTime: z.coerce.date({ message: "Start date is required!" }),
-  endTime: z.coerce.date({ message: "End date is required!" }),
-});
-type CreateSchema = z.infer<typeof createSchema>;
-
-// ── Root ──────────────────────────────────────────────────────────────────────
+type ClassOption = { id: number; name: string; gradeLevel: number };
 
 const ExamForm = ({
   type,
@@ -41,362 +23,227 @@ const ExamForm = ({
   type: "create" | "update";
   data?: any;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  relatedData?: { classes?: ClassOption[] };
+  relatedData?: any;
 }) => {
-  const router = useRouter();
-
-  if (type === "update") {
-    return <UpdateExamForm data={data} setOpen={setOpen} router={router} />;
-  }
-  return (
-    <CreateExamForm
-      setOpen={setOpen}
-      router={router}
-      classes={relatedData?.classes ?? []}
-    />
-  );
-};
-
-export default ExamForm;
-
-// ── CREATE ────────────────────────────────────────────────────────────────────
-
-function CreateExamForm({
-  setOpen,
-  router,
-  classes,
-}: {
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  router: ReturnType<typeof useRouter>;
-  classes: ClassOption[];
-}) {
-  const [selectAll, setSelectAll] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(
-    new Set(classes.map((c) => c.id))
-  );
-  const [submitting, setSubmitting] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CreateSchema>({ resolver: zodResolver(createSchema) });
-
-  // ── Toggle a single class ─────────────────────────────────────────────────
-  const toggleClass = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      // sync selectAll state
-      setSelectAll(next.size === classes.length);
-      return next;
-    });
-  };
-
-  // ── Toggle all ────────────────────────────────────────────────────────────
-  const handleToggleAll = () => {
-    if (selectAll) {
-      setSelectedIds(new Set());
-      setSelectAll(false);
-    } else {
-      setSelectedIds(new Set(classes.map((c) => c.id)));
-      setSelectAll(true);
-    }
-  };
-
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const onSubmit = handleSubmit(async (values) => {
-    if (selectedIds.size === 0) {
-      toast.error("Please select at least one class");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // For each selected class, fetch subjects then build payload
-      const classBlocks = await Promise.all(
-        classes
-          .filter((c) => selectedIds.has(c.id))
-          .map(async (cls) => {
-            const subjects = await getSubjectsForClass(cls.id);
-            const primary = cls.gradeLevel <= 5;
-            return {
-              classId: cls.id,
-              className: cls.name,
-              gradeLevel: cls.gradeLevel,
-              subjects: subjects.map((s) => ({
-                ...s,
-                title: values.title,           // same title for all
-                mcqMarks: primary ? null : 30,
-                writtenMarks: primary ? 100 : 60,
-                practicalMarks: null,
-                totalMarks: primary ? 100 : 90,
-                include: true,
-              })),
-            };
-          })
-      );
-
-      const totalSubjects = classBlocks.reduce(
-        (acc, b) => acc + b.subjects.length,
-        0
-      );
-
-      if (totalSubjects === 0) {
-        toast.error("No subjects/lessons found for the selected classes");
-        return;
-      }
-
-      const result = await createMultiClassExams({
-        startTime: values.startTime,
-        endTime: values.endTime,
-        academicYear: "2024",
-        classes: classBlocks,
-      });
-
-      if (result.success) {
-        toast(
-          `✅ ${result.created} exam(s) created across ${classBlocks.length} class(es)!`
-        );
-        setOpen(false);
-        router.refresh();
-      } else {
-        toast.error(result.message ?? "Something went wrong");
-      }
-    } catch (e) {
-      toast.error("Failed to create exams");
-    } finally {
-      setSubmitting(false);
-    }
-  });
-
-  return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Create a new exam</h1>
-
-      {/* ── Three main inputs ─────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
-        <InputField
-          label="Exam Title"
-          name="title"
-          register={register}
-          error={errors.title}
-          placeholder="e.g. Mid-Term Exam 2024"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <InputField
-            label="Start Date"
-            name="startTime"
-            register={register}
-            error={errors.startTime}
-            type="datetime-local"
-          />
-          <InputField
-            label="End Date"
-            name="endTime"
-            register={register}
-            error={errors.endTime}
-            type="datetime-local"
-          />
-        </div>
-      </div>
-
-      {/* ── Class selector ────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-            Select Classes
-          </label>
-          {/* All Classes toggle */}
-          <button
-            type="button"
-            onClick={handleToggleAll}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
-              selectAll
-                ? "border-blue-500 bg-blue-500 text-white"
-                : "border-blue-200 bg-blue-50 text-blue-600 hover:border-blue-400"
-            }`}
-          >
-            {selectAll ? (
-              <CheckSquare className="h-3.5 w-3.5" />
-            ) : (
-              <Square className="h-3.5 w-3.5" />
-            )}
-            All Classes
-          </button>
-        </div>
-
-        {/* Class pills */}
-        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200 max-h-40 overflow-y-auto">
-          {classes.map((cls) => {
-            const checked = selectedIds.has(cls.id);
-            const primary = cls.gradeLevel <= 5;
-            return (
-              <button
-                key={cls.id}
-                type="button"
-                onClick={() => toggleClass(cls.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all select-none ${
-                  checked
-                    ? "border-blue-400 bg-blue-50 text-blue-700"
-                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
-                }`}
-              >
-                {checked ? (
-                  <CheckSquare className="h-3.5 w-3.5 flex-shrink-0" />
-                ) : (
-                  <Square className="h-3.5 w-3.5 flex-shrink-0 text-gray-300" />
-                )}
-                {cls.name}
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-xs ${
-                    primary
-                      ? "bg-green-100 text-green-600"
-                      : "bg-purple-100 text-purple-600"
-                  }`}
-                >
-                  G{cls.gradeLevel}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selection summary */}
-        <p className="text-xs text-gray-400">
-          {selectedIds.size === 0
-            ? "No class selected"
-            : selectedIds.size === classes.length
-            ? `All ${classes.length} classes selected`
-            : `${selectedIds.size} of ${classes.length} classes selected`}
-        </p>
-      </div>
-
-      {/* ── Submit ────────────────────────────────────────────────────────── */}
-      <button
-        type="submit"
-        disabled={submitting || selectedIds.size === 0}
-        className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Creating exams…
-          </>
-        ) : (
-          <>
-            <BookOpen className="h-4 w-4" />
-            Create Exam
-          </>
-        )}
-      </button>
-    </form>
-  );
-}
-
-// ── UPDATE ────────────────────────────────────────────────────────────────────
-
-function UpdateExamForm({
-  data,
-  setOpen,
-  router,
-}: {
-  data: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  router: ReturnType<typeof useRouter>;
-}) {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<ExamSchema>({
     resolver: zodResolver(examSchema),
-    defaultValues: {
-      id: data?.id,
-      title: data?.title,
-      startTime: data?.startTime,
-      endTime: data?.endTime,
-      totalMarks: data?.totalMarks ?? 100,
-      mcqMarks: data?.mcqMarks ?? null,
-      writtenMarks: data?.writtenMarks ?? null,
-      practicalMarks: data?.practicalMarks ?? null,
-    },
   });
 
-  const [state, formAction] = useFormState(updateExam, {
-    success: false,
-    error: false,
-  });
+  const classes: ClassOption[] = relatedData?.classes || [];
 
-  const onSubmit = handleSubmit((values) => formAction(values));
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    new Set(classes.map((c) => c.id))
+  );
 
-  useEffect(() => {
-    if (state.success) {
-      toast("Exam updated successfully!");
-      setOpen(false);
-      router.refresh();
+  // ✅ useFormState এর বদলে useTransition ব্যবহার করুন
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const allSelected = selectedIds.size === classes.length && classes.length > 0;
+
+  const toggleAll = () =>
+    setSelectedIds(
+      allSelected ? new Set() : new Set(classes.map((c) => c.id))
+    );
+
+  const toggleOne = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // ✅ সঠিকভাবে action call করুন
+  const onSubmit = handleSubmit((formData) => {
+    console.log("=== Form Submit ===");
+    console.log("formData:", formData);
+    console.log("selectedIds:", Array.from(selectedIds));
+
+    if (selectedIds.size === 0) {
+      toast.error("কমপক্ষে একটি class select করুন!");
+      return;
     }
-    if (state.error) toast.error("Failed to update exam");
-  }, [state]);
+
+    const payload = {
+      ...formData,
+      classIds: Array.from(selectedIds),
+    };
+
+    console.log("payload:", payload);
+
+    startTransition(async () => {
+      try {
+        const result = type === "create"
+          ? await createExam({ success: false, error: false }, payload)
+          : await updateExam({ success: false, error: false }, payload);
+
+        console.log("Result:", result);
+
+        if (result.success) {
+          toast.success(
+            result.message ||
+            `Exam has been ${type === "create" ? "created" : "updated"}!`
+          );
+          setOpen(false);
+          router.refresh();
+        } else {
+          toast.error(result.message || "Something went wrong!");
+        }
+      } catch (err) {
+        console.error("Submit error:", err);
+        toast.error("Something went wrong!");
+      }
+    });
+  });
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Update the exam</h1>
+    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+      <h1 className="text-xl font-semibold">
+        {type === "create" ? "Create a new exam" : "Update the exam"}
+      </h1>
 
-      {/* Context badges */}
-      {data?.lesson && (
-        <div className="flex gap-2 flex-wrap">
-          <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-medium">
-            {data.lesson.subject?.name}
-          </span>
-          <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
-            {data.lesson.class?.name}
-          </span>
-        </div>
-      )}
-
-      <input type="hidden" {...register("id")} />
-
-      <InputField
-        label="Exam Title"
-        name="title"
-        defaultValue={data?.title}
-        register={register}
-        error={errors.title}
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex justify-between flex-wrap gap-4">
+        <InputField
+          label="Exam title"
+          name="title"
+          defaultValue={data?.title}
+          register={register}
+          error={errors?.title}
+        />
         <InputField
           label="Start Date"
           name="startTime"
-          defaultValue={data?.startTime}
+          defaultValue={
+            data?.startTime
+              ? new Date(data.startTime).toISOString().slice(0, 16)
+              : ""
+          }
           register={register}
-          error={errors.startTime}
+          error={errors?.startTime}
           type="datetime-local"
         />
         <InputField
           label="End Date"
           name="endTime"
-          defaultValue={data?.endTime}
+          defaultValue={
+            data?.endTime
+              ? new Date(data.endTime).toISOString().slice(0, 16)
+              : ""
+          }
           register={register}
-          error={errors.endTime}
+          error={errors?.endTime}
           type="datetime-local"
         />
+        <InputField
+          label="Session (Year)"
+          name="session"
+          defaultValue={data?.session || new Date().getFullYear()}
+          register={register}
+          error={errors?.session}
+          type="number"
+        />
+
+        {data && (
+          <InputField
+            label=""
+            name="id"
+            defaultValue={data?.id}
+            register={register}
+            error={errors?.id}
+            type="hidden"
+          />
+        )}
       </div>
 
-      {state.error && (
-        <p className="text-sm text-red-500">Something went wrong!</p>
+      {/* ── Class Multi-Select ── */}
+      {classes.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">
+              Select Classes <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-400 font-normal ml-1">
+                ({selectedIds.size}/{classes.length} selected)
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={toggleAll}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border
+                          text-xs font-semibold transition-all ${
+                            allSelected
+                              ? "border-blue-500 bg-blue-500 text-white"
+                              : "border-blue-300 bg-blue-50 text-blue-600 hover:border-blue-500"
+                          }`}
+            >
+              {allSelected
+                ? <CheckSquare className="h-3.5 w-3.5" />
+                : <Square className="h-3.5 w-3.5" />}
+              All Classes
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-gray-50
+                          border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
+            {classes.map((cls) => {
+              const checked = selectedIds.has(cls.id);
+              const primary = cls.gradeLevel <= 5;
+              return (
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => toggleOne(cls.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border
+                              text-sm font-medium transition-all select-none ${
+                                checked
+                                  ? "border-blue-400 bg-blue-50 text-blue-700"
+                                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                              }`}
+                >
+                  {checked
+                    ? <CheckSquare className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                    : <Square className="h-4 w-4 flex-shrink-0 text-gray-300" />}
+                  <span className="truncate">{cls.name}</span>
+                  <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                    primary ? "bg-green-100 text-green-600" : "bg-purple-100 text-purple-600"
+                  }`}>
+                    G{cls.gradeLevel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedIds.size === 0 && (
+            <p className="text-xs text-red-400">
+              কমপক্ষে একটি class select করুন
+            </p>
+          )}
+        </div>
       )}
 
+      {/* ✅ isPending দিয়ে loading দেখান */}
       <button
         type="submit"
-        className="bg-blue-400 text-white py-2 px-4 rounded-md"
+        disabled={isPending}
+        className="bg-blue-400 text-white p-2 rounded-md disabled:opacity-50 
+                   flex items-center justify-center gap-2"
       >
-        Update
+        {isPending ? (
+          <>
+            <span className="w-4 h-4 border-2 border-white border-t-transparent 
+                             rounded-full animate-spin" />
+            Processing...
+          </>
+        ) : (
+          type === "create" ? "Create" : "Update"
+        )}
       </button>
     </form>
   );
-}
+};
+
+export default ExamForm;

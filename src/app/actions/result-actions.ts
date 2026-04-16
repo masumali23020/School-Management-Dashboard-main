@@ -2,12 +2,17 @@
 "use server";
 
 import prisma  from "@/lib/db";
+import { getUserRoleAuth } from "@/lib/logsessition";
 import { revalidatePath } from "next/cache";
 
 // ==================== GET CLASSES ====================
 export async function getClasses() {
+  const {schoolId} = await getUserRoleAuth()
   try {
     const classes = await prisma.class.findMany({
+      where: {
+        schoolId: Number(schoolId), // schoolId ফিল্টার যোগ করা হয়েছে
+      },
       include: {
         grade: {
           select: {
@@ -35,9 +40,10 @@ export async function getClasses() {
 
 // ==================== GET EXAMS BY CLASS ====================
 export async function getExamsByClass(classId: number) {
+    const {schoolId} = await getUserRoleAuth()
   try {
     const lessons = await prisma.lesson.findMany({
-      where: { classId: classId },
+      where: { classId: classId, schoolId: Number(schoolId) },
       select: { id: true }
     });
     
@@ -75,6 +81,7 @@ export async function getExamsByClass(classId: number) {
 
 // ==================== GET ASSIGNMENTS BY CLASS ====================
 export async function getAssignmentsByClass(classId: number) {
+    const {schoolId} = await getUserRoleAuth()
   try {
     const lessons = await prisma.lesson.findMany({
       where: { classId: classId },
@@ -103,7 +110,7 @@ export async function getAssignmentsByClass(classId: number) {
           }
         }
       },
-      orderBy: { startDate: "desc" }
+      orderBy: { dueDate: "desc" }
     });
     
     return { success: true, data: assignments };
@@ -114,60 +121,62 @@ export async function getAssignmentsByClass(classId: number) {
 }
 
 // ==================== GET SUBJECTS BY CLASS ====================
-export async function getSubjectsByClass(classId: number) {
-  try {
-    const classSubjects = await prisma.classSubjectTeacher.findMany({
-      where: { classId: classId },
-      include: {
-        subject: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    });
+// export async function getSubjectsByClass(classId: number) {
+//     const {schoolId} = await getUserRoleAuth()
+//   try {
+//     const classSubjects = await prisma.classSubjectTeacher.findMany({
+//       where: { classId: classId },
+//       include: {
+//         subject: {
+//           select: {
+//             id: true,
+//             name: true
+//           }
+//         }
+//       }
+//     });
     
-    const subjects = classSubjects.map(cs => cs.subject);
-    return { success: true, data: subjects };
-  } catch (error: any) {
-    console.error("❌ Error fetching subjects:", error);
-    return { success: false, error: "Failed to fetch subjects", data: [] };
-  }
-}
+//     const subjects = classSubjects.map(cs => cs.subject);
+//     return { success: true, data: subjects };
+//   } catch (error: any) {
+//     console.error("❌ Error fetching subjects:", error);
+//     return { success: false, error: "Failed to fetch subjects", data: [] };
+//   }
+// }
 
 // ==================== GET STUDENTS BY CLASS ====================
-export async function getStudentsByClass(classId: number) {
-  try {
-    console.log("🔍 Fetching students for class:", classId);
+// export async function getStudentsByClass(classId: number) {
+//     const {schoolId} = await getUserRoleAuth()
+//   try {
+//     console.log("🔍 Fetching students for class:", classId);
     
-    const students = await prisma.student.findMany({
-      where: { classId: classId },
-      select: {
-        id: true,
-        // rollNo: true,
-        name: true,
-        surname: true,
-        class: {
-          select: {
-            grade: {
-              select: {
-                level: true
-              }
-            }
-          }
-        }
-      },
-      // orderBy: { rollNo: "asc" }
-    });
+//     const students = await prisma.student.findMany({
+//       where: { classId: classId },
+//       select: {
+//         id: true,
+//         // rollNo: true,
+//         name: true,
+//         surname: true,
+//         class: {
+//           select: {
+//             grade: {
+//               select: {
+//                 level: true
+//               }
+//             }
+//           }
+//         }
+//       },
+//       // orderBy: { rollNo: "asc" }
+//     });
     
-    console.log(`✅ Found ${students.length} students`);
-    return { success: true, data: students };
-  } catch (error: any) {
-    console.error("❌ Error fetching students:", error);
-    return { success: false, error: "Failed to fetch students", data: [] };
-  }
-}
+//     console.log(`✅ Found ${students.length} students`);
+//     return { success: true, data: students };
+//   } catch (error: any) {
+//     console.error("❌ Error fetching students:", error);
+//     return { success: false, error: "Failed to fetch students", data: [] };
+//   }
+// }
 
 
 // ==================== SAVE/UPDATE EXAM RESULT ====================
@@ -175,107 +184,109 @@ export async function getStudentsByClass(classId: number) {
 // app/actions/result-actions.ts
 
 // ==================== SAVE/UPDATE ASSIGNMENT RESULT (FIXED) ====================
-export async function saveAssignmentResult(data: {
-  studentId: string;
-  assignmentId: number;
-  totalScore: number;
-}) {
-  try {
-    console.log("💾 Saving assignment result with data:", JSON.stringify(data, null, 2));
+// export async function saveAssignmentResult(data: {
+//   studentId: string;
+//   assignmentId: number;
+//   totalScore: number;
+// }) {
+//   try {
+//       const {schoolId} = await getUserRoleAuth()
+//     console.log("💾 Saving assignment result with data:", JSON.stringify(data, null, 2));
     
-    // Validate data
-    if (!data.studentId) {
-      throw new Error("Student ID is required");
-    }
-    if (!data.assignmentId) {
-      throw new Error("Assignment ID is required");
-    }
-    if (typeof data.totalScore !== 'number' || isNaN(data.totalScore)) {
-      throw new Error("Valid score is required");
-    }
+//     // Validate data
+//     if (!data.studentId) {
+//       throw new Error("Student ID is required");
+//     }
+//     if (!data.assignmentId) {
+//       throw new Error("Assignment ID is required");
+//     }
+//     if (typeof data.totalScore !== 'number' || isNaN(data.totalScore)) {
+//       throw new Error("Valid score is required");
+//     }
 
-    // Check if student exists
-    const student = await prisma.student.findUnique({
-      where: { id: data.studentId }
-    });
+//     // Check if student exists
+//     const student = await prisma.student.findUnique({
+//       where: { id: data.studentId }
+//     });
 
-    if (!student) {
-      throw new Error(`Student not found with ID: ${data.studentId}`);
-    }
+//     if (!student) {
+//       throw new Error(`Student not found with ID: ${data.studentId}`);
+//     }
 
-    // Check if assignment exists
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: data.assignmentId }
-    });
+//     // Check if assignment exists
+//     const assignment = await prisma.assignment.findUnique({
+//       where: { id: data.assignmentId }
+//     });
 
-    if (!assignment) {
-      throw new Error(`Assignment not found with ID: ${data.assignmentId}`);
-    }
+//     if (!assignment) {
+//       throw new Error(`Assignment not found with ID: ${data.assignmentId}`);
+//     }
 
-    console.log("✅ Student and assignment verified");
+//     console.log("✅ Student and assignment verified");
 
-    // Check if result exists
-    const existing = await prisma.result.findFirst({
-      where: {
-        studentId: data.studentId,
-        assignmentId: data.assignmentId
-      }
-    });
+//     // Check if result exists
+//     const existing = await prisma.result.findFirst({
+//       where: {
+//         studentId: data.studentId,
+//         assignmentId: data.assignmentId
+//       }
+//     });
 
-    let result;
-    let operation = 'created';
+//     let result;
+//     let operation = 'created';
 
-    if (existing) {
-      // UPDATE existing result
-      result = await prisma.result.update({
-        where: { id: existing.id },
-        data: {
-          score: data.totalScore,
-          totalScore: data.totalScore
-        }
-      });
-      operation = 'updated';
-      console.log(`✅ Updated result for student ${data.studentId}`);
-    } else {
-      // CREATE new result
-      result = await prisma.result.create({
-        data: {
-          score: data.totalScore,
-          totalScore: data.totalScore,
-          studentId: data.studentId,
-          assignmentId: data.assignmentId
-        }
-      });
-      console.log(`✅ Created result for student ${data.studentId}`);
-    }
+//     if (existing) {
+//       // UPDATE existing result
+//       result = await prisma.result.update({
+//         where: { id: existing.id },
+//         data: {
+//           score: data.totalScore,
+//           totalScore: data.totalScore
+//         }
+//       });
+//       operation = 'updated';
+//       console.log(`✅ Updated result for student ${data.studentId}`);
+//     } else {
+//       // CREATE new result
+//       result = await prisma.result.create({
+//         data: {
+//           score: data.totalScore,
+//           totalScore: data.totalScore,
+//           studentId: data.studentId,
+//           assignmentId: data.assignmentId
+          
+//         }
+//       });
+//       console.log(`✅ Created result for student ${data.studentId}`);
+//     }
 
-    // Revalidate the page
-    revalidatePath("/dashboard/results");
+//     // Revalidate the page
+//     revalidatePath("/dashboard/results");
     
-    return { 
-      success: true, 
-      data: {
-        id: result.id,
-        score: result.score,
-        totalScore: result.totalScore,
-        studentId: result.studentId,
-        assignmentId: result.assignmentId
-      },
-      operation,
-      message: `Result ${operation} successfully!`
-    };
-  } catch (error: any) {
-    console.error("❌ Error in saveAssignmentResult:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack
-    });
-    return { 
-      success: false, 
-      error: error.message || "Failed to save result" 
-    };
-  }
-}
+//     return { 
+//       success: true, 
+//       data: {
+//         id: result.id,
+//         score: result.score,
+//         totalScore: result.totalScore,
+//         studentId: result.studentId,
+//         assignmentId: result.assignmentId
+//       },
+//       operation,
+//       message: `Result ${operation} successfully!`
+//     };
+//   } catch (error: any) {
+//     console.error("❌ Error in saveAssignmentResult:", error);
+//     console.error("Error details:", {
+//       message: error.message,
+//       stack: error.stack
+//     });
+//     return { 
+//       success: false, 
+//       error: error.message || "Failed to save result" 
+//     };
+//   }
+// }
 
 
 
@@ -294,45 +305,51 @@ interface ResultSchema {
   writtenScore?: number | null;
   practicalScore?: number | null;
   totalScore?: number;
-  // grade?: string;
-  // remarks?: string;
+  grade?: string;
+  remarks?: string;
 }
 
 // CREATE Result
+
 export const createResult = async (
   currentState: CreateState,
   data: ResultSchema
 ) => {
   try {
-    // Check if result already exists
+    // ১. সেশন থেকে schoolId এবং ইউজার অথেন্টিকেশন চেক
+    const { schoolId } = await getUserRoleAuth();
+    if (!schoolId) {
+      return { success: false, error: true, message: "Unauthorized: School ID not found" };
+    }
+
+    // ২. সিকিউরিটি চেক: স্টুডেন্ট কি ওই স্কুলের কি না?
+    const student = await prisma.student.findFirst({
+      where: {
+        id: data.studentId,
+        schoolId: Number(schoolId),
+      },
+    });
+
+    if (!student) {
+      return { success: false, error: true, message: "Student not found in your school" };
+    }
+
+    // ৩. টোটাল স্কোর ক্যালকুলেশন
+    const totalScore = data.totalScore || 
+      (Number(data.mcqScore) || 0) + (Number(data.writtenScore) || 0) + (Number(data.practicalScore) || 0) || 
+      Number(data.score);
+
+    // ৪. বিদ্যমান রেজাল্ট চেক করা
     const existingResult = await prisma.result.findFirst({
       where: {
         studentId: data.studentId,
         ...(data.assignmentId ? { assignmentId: data.assignmentId } : {}),
-        ...(data.examId ? { examId: data.examId } : {})
-      }
+        ...(data.examId ? { examId: data.examId } : {}),
+      },
     });
 
-    // Calculate total score if not provided
-    const totalScore = data.totalScore || 
-      (data.mcqScore || 0) + (data.writtenScore || 0) + (data.practicalScore || 0) || 
-      data.score;
-
-    // Calculate grade based on score
-    // let grade = data.grade;
-    // if (!grade && totalScore) {
-    //   const percentage = (totalScore / 100) * 100; // Assuming total marks 100
-    //   if (percentage >= 80) grade = "A+";
-    //   else if (percentage >= 70) grade = "A";
-    //   else if (percentage >= 60) grade = "A-";
-    //   else if (percentage >= 50) grade = "B";
-    //   else if (percentage >= 40) grade = "C";
-    //   else if (percentage >= 33) grade = "D";
-    //   else grade = "F";
-    // }
-
     if (existingResult) {
-      // Update existing result
+      // ৫. আপডেট (Update)
       await prisma.result.update({
         where: { id: existingResult.id },
         data: {
@@ -341,25 +358,10 @@ export const createResult = async (
           writtenScore: data.writtenScore,
           practicalScore: data.practicalScore,
           totalScore: totalScore,
-          // grade: grade,
-          // remarks: data.remarks,
-        }
+        },
       });
-
-      // Revalidate the path
-      if (data.assignmentId) {
-        revalidatePath(`/list/assignments/${data.assignmentId}`);
-      } else if (data.examId) {
-        revalidatePath(`/list/exams/${data.examId}`);
-      }
-
-      return { 
-        success: true, 
-        error: false, 
-        message: "Result updated successfully" 
-      };
     } else {
-      // Create new result
+      // ৬. নতুন তৈরি (Create)
       await prisma.result.create({
         data: {
           studentId: data.studentId,
@@ -370,31 +372,33 @@ export const createResult = async (
           writtenScore: data.writtenScore,
           practicalScore: data.practicalScore,
           totalScore: totalScore,
-          // grade: grade,
-          // remarks: data.remarks,
-        }
+          schoolId
+        },
       });
-
-      // Revalidate the path
-      if (data.assignmentId) {
-        revalidatePath(`/list/assignments/${data.assignmentId}`);
-      } else if (data.examId) {
-        revalidatePath(`/list/exams/${data.examId}`);
-      }
-
-      return { 
-        success: true, 
-        error: false, 
-        message: "Result created successfully" 
-      };
     }
+
+    // ৭. রিভ্যালিডেশন (Revalidate Path)
+    if (data.assignmentId) {
+      revalidatePath(`/list/assignments/${data.assignmentId}`);
+    } else if (data.examId) {
+      revalidatePath(`/list/exams/${data.examId}`);
+    }
+    
+    // ড্যাশবোর্ড আপডেট করার জন্য
+    revalidatePath("/dashboard/results");
+
+    return { 
+      success: true, 
+      error: false, 
+      message: existingResult ? "Result updated successfully" : "Result created successfully" 
+    };
 
   } catch (err) {
     console.error("Error in createResult:", err);
     return { 
       success: false, 
       error: true, 
-      message: err instanceof Error ? err.message : "Failed to create result" 
+      message: err instanceof Error ? err.message : "Failed to process result" 
     };
   }
 };

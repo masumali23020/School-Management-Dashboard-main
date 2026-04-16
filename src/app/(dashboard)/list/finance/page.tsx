@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 
 export default async function FinancePage() {
   const { role } = await getUserRoleAuth();
-  if (!["admin", "cashier"].includes(role)) redirect("/");
+  if (!["admin", "cashier"].includes(role as string)) redirect("/");
 
   const academicYears = await getFinanceAcademicYears();
   const currentYear   = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;

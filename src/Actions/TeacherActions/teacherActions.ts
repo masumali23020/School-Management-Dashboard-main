@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import  prisma  from "@/lib/db";
 import { teacherSchema, type TeacherSchema } from "@/lib/FormValidationSchema";
 import { requireSession } from "@/lib/get-session";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type ActionState = { success: boolean; error: boolean; message?: string };
 
@@ -15,7 +16,7 @@ export const createTeacher = async (
   data: TeacherSchema
 ): Promise<ActionState> => {
   try {
-    const session = await requireSession(["ADMIN"]);
+    const session = await getUserRoleAuth();
     const { schoolId } = session;
 
     // Server-side re-validate
@@ -49,7 +50,7 @@ export const createTeacher = async (
     await prisma.employee.create({
       data: {
         id:        `emp_${nanoid(12)}`,
-        schoolId,
+        schoolId: Number(schoolId),
         username:  d.username,
         password:  hashedPassword,
         role:      "TEACHER",

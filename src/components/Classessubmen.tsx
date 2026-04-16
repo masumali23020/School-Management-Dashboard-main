@@ -1,11 +1,10 @@
-// components/Classessubmen.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, Plus } from "lucide-react";
 
 type ClassItem = {
   id: number;
@@ -37,38 +36,43 @@ export default function ClassesSubMenu({ classes, schoolId }: Props) {
   const isParentActive =
     pathname === "/list/classes" || pathname.startsWith("/list/classes/");
 
-  // Don't render if no classes
-  if (filteredClasses.length === 0) {
-    return null;
-  }
+  // Check if no classes available
+  const hasNoClasses = filteredClasses.length === 0;
 
   return (
     <div className="flex flex-col">
       {/* ── Parent "Classes" row ── */}
       <button
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => !hasNoClasses && setIsOpen((prev) => !prev)}
         className={`flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md transition-colors w-full
           ${
-            isParentActive
+            isParentActive && !hasNoClasses
               ? "bg-lamaSky text-blue-700 font-semibold"
+              : hasNoClasses
+              ? "opacity-60 cursor-default"
               : "hover:bg-lamaSkyLight"
           }`}
+        disabled={hasNoClasses}
       >
         <Image src="/class.png" alt="" width={20} height={20} />
 
         {/* Label + chevron — only visible on large screens */}
         <span className="hidden lg:flex items-center justify-between flex-1">
-          <span>Classes ({filteredClasses.length})</span>
-          {isOpen ? (
-            <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span>
+            Classes {!hasNoClasses && `(${filteredClasses.length})`}
+          </span>
+          {!hasNoClasses && (
+            isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+            )
           )}
         </span>
       </button>
 
       {/* ── Subcategory list ── */}
-      {isOpen && (
+      {isOpen && !hasNoClasses && (
         <div className="flex flex-col mt-0.5 ml-0 lg:ml-6 gap-0.5">
           {/* "All Classes" link */}
           <ClassLink
@@ -87,6 +91,24 @@ export default function ClassesSubMenu({ classes, schoolId }: Props) {
               badge={`G${cls.gradeLevel}`}
             />
           ))}
+        </div>
+      )}
+
+      {/* Show "Add Class" button when there are no classes */}
+      {hasNoClasses && (
+        <div className="hidden lg:block mt-2 ml-6">
+          <Link
+            href="/list/classes"
+            className="flex items-center gap-2 py-2 px-3 rounded-md bg-gradient-to-r from-lamaSky to-lamaSkyLight border border-lamaSky hover:shadow-md transition-all group"
+          >
+            <Plus className="h-4 w-4 text-blue-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-blue-700">
+                Add  Class
+              </span>
+            
+            </div>
+          </Link>
         </div>
       )}
     </div>

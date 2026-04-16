@@ -67,13 +67,55 @@ async function resolveEmployeeId(userId: string, schoolId: number): Promise<{ id
 
 async function generateSalaryInvoice(schoolId: number): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.employeeSalaryPayment.count({
-    where: {
-      schoolId,
-      invoiceNumber: { startsWith: `SAL-${year}-` },
-    },
-  });
-  return `SAL-${year}-${String(count + 1).padStart(5, "0")}`;
+  
+  // Use a transaction with retry logic to handle race conditions
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      // Get the current max invoice number for this year
+      const lastInvoice = await prisma.employeeSalaryPayment.findFirst({
+        where: {
+          schoolId,
+          invoiceNumber: { startsWith: `SAL-${year}-` },
+        },
+        orderBy: {
+          invoiceNumber: 'desc',
+        },
+        select: { invoiceNumber: true },
+      });
+      
+      let nextNumber = 1;
+      if (lastInvoice) {
+        const match = lastInvoice.invoiceNumber.match(/-(\d+)$/);
+        if (match) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+      
+      const invoiceNumber = `SAL-${year}-${String(nextNumber).padStart(5, "0")}`;
+      
+      // Check if this invoice number already exists (just in case)
+      const existing = await prisma.employeeSalaryPayment.findUnique({
+        where: { invoiceNumber },
+      });
+      
+      if (!existing) {
+        return invoiceNumber;
+      }
+      
+      attempts++;
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) throw error;
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  // Fallback with timestamp to ensure uniqueness
+  return `SAL-${year}-${Date.now()}`;
 }
 
 async function getProcessedByDetails(processedById: string): Promise<string> {
@@ -176,7 +218,7 @@ export async function upsertEmployeeSalaryStructure(data: {
         schoolId, // ← schema তে আছে কিন্তু relation নেই, direct value দিন
       },
     });
-    revalidatePath("/list/salary");
+    // revalidatePath("/list/salary");
     return { success: true, data: record };
   } catch (e: any) {
     console.error(e);
@@ -406,9 +448,9 @@ export async function recordSalaryPayment(data: {
       },
     });
 
-    revalidatePath("/list/salary");
-    revalidatePath("/list/salary/cashier");
-    revalidatePath("/list/salary/payments");
+    // revalidatePath("/list/salary");
+    // revalidatePath("/list/salary/cashier");
+    // revalidatePath("/list/salary/payments");
 
     return {
       success: true,

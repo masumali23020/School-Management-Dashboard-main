@@ -275,6 +275,7 @@ const ClassListPage = async ({
       {/* Warning for no data */}
       {classesData.length === 0 && (
         <div className="text-center py-8 text-gray-500">
+          <p className="text-teal-600 text-2xl">At first create some grade levels.</p>
           <p>No classes found for your school.</p>
           {role === "admin" && (
             <p className="text-sm mt-2">

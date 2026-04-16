@@ -15,6 +15,7 @@ const menuItems = [
       { icon: "/home.png", label: "Home", href: "/admin", visible: ["ADMIN", "TEACHER", "STAFF", "CASHIER"] },
       { icon: "/teacher.png", label: "Teachers", href: "/list/teachers", visible: ["ADMIN", "TEACHER"] },
       { icon: "/staff.png", label: "Staff", href: "/list/staff", visible: ["ADMIN", "STAFF"] },
+      { icon: "/cashier.png", label: "Cashier", href: "/list/cashier", visible: ["ADMIN", "CASHIER"] },
       { icon: "/student.png", label: "Students", href: "/list/students", visible: ["ADMIN", "TEACHER", "STAFF"] },
       { icon: "/subject.png", label: "Subjects", href: "/list/subjects", visible: ["ADMIN", "TEACHER"] },
       { icon: "/parent.png", label: "Parents", href: "/list/parents", visible: ["ADMIN", "TEACHER"] },
@@ -27,11 +28,11 @@ const menuItems = [
       { icon: "/calendar.png", label: "Events", href: "/list/events", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
       { icon: "/message.png", label: "Messages", href: "/list/messages", visible: ["ADMIN", "TEACHER", "STAFF", "STUDENT", "PARENT"] },
       { icon: "/message.png", label: "Reports", href: "/list/report", visible: ["ADMIN", "TEACHER", "STAFF", ] },
-      // { icon: "/cashier.png", label: "Accounting", href: "/list/fees/cashier", visible: ["ADMIN", "CASHIER"] },
-      // { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: ["ADMIN", "CASHIER"] },
-      // { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: ["ADMIN", "CASHIER"] },
-      // { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: ["ADMIN", "CASHIER"] },
-      // { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/cashier.png", label: "Accounting", href: "/list/fees/cashier", visible: ["CASHIER"] },
+      { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: [ "CASHIER"] },
+      { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: [ "CASHIER"] },
+      { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: [ "CASHIER"] },
+      { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: [ "CASHIER"] },
       { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["ADMIN", "CASHIER"] },
       { icon: "/results.png", label: "Results", href: "/result", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
     ],
@@ -53,6 +54,7 @@ const FEETYPE_VISIBLE = ["ADMIN", "CASHIER"];
 const Menu = async ({ user }: { user: any }) => {
   // Extract role and schoolId from user object
   const role = user?.role || "null";
+  console.log("Menu Component - User Role:", role);
   const schoolId = user?.schoolId;
 
   // Only fetch classes if user has permission AND has a schoolId

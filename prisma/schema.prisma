@@ -604,8 +604,10 @@ model Result {
   id             Int         @id @default(autoincrement())
   score          Int
   totalScore     Int
-  mcqScore       Int? // ← যোগ করুন
-  writtenScore   Int? // ← যোগ করুন
+  mcqScore       Int? 
+  writtenScore   Int? 
+ grade           String?   
+  remarks         String?
   practicalScore Int?
   examId         Int?
   exam           Exam?       @relation(fields: [examId], references: [id])
@@ -613,7 +615,7 @@ model Result {
   assignment     Assignment? @relation(fields: [assignmentId], references: [id])
   studentId      String
   student        Student     @relation(fields: [studentId], references: [id])
-  schoolId       Int // ← যোগ করো
+  schoolId       Int 
   school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, examId]) // Prevent duplicate results for same exam

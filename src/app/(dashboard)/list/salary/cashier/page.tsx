@@ -89,13 +89,14 @@ export default async function SalaryCashierPage() {
   ]);
 
   // Prepare school info for client
+// Prepare school info for client with default values for null fields
   const schoolInfo = {
     id: school.id,
     name: school.schoolName,
     shortName: school.shortName,
-    address: school.address,
-    phone: school.phone,
-    email: school.email,
+    address: school.address ?? "", 
+    phone: school.phone ?? "",     
+    email: school.email ?? "",    
     logoUrl: school.logoUrl,
     bannerUrl: school.bannerUrl,
     academicSession: school.academicSession,

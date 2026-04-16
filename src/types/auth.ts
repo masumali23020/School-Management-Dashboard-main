@@ -10,7 +10,8 @@ export type PlanType = "FREE" | "STANDARD" | "POPULAR";
 export type SessionUser = {
   id: string;
   name: string;
-  email: string;
+  userId: string;
+  email?: string;
   username?: string;
   role: UserRole;
   schoolId?: number;

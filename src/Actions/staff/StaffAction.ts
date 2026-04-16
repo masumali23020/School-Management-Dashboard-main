@@ -4,7 +4,7 @@
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import  prisma  from "@/lib/db";
-import { StaffSchema, teacherSchema, type TeacherSchema } from "@/lib/FormValidationSchema";
+import { staffSchema, StaffSchema, } from "@/lib/FormValidationSchema";
 import { requireSession } from "@/lib/get-session";
 
 type ActionState = { success: boolean; error: boolean; message?: string };
@@ -19,9 +19,9 @@ export const createStaff = async (
     const { schoolId } = session;
 
     // Server-side re-validate
-    const parsed = teacherSchema.safeParse(data);
+    const parsed = staffSchema.safeParse(data);
     if (!parsed.success) {
-      console.error("[createTeacher] Zod errors:", parsed.error.flatten());
+      console.error("[createStaff] Zod errors:", parsed.error.flatten());
       return {
         success: false,
         error: true,
@@ -49,7 +49,7 @@ export const createStaff = async (
     await prisma.employee.create({
       data: {
         id:        `emp_${nanoid(12)}`,
-        schoolId,
+        schoolId: Number(schoolId),
         username:  d.username,
         password:  hashedPassword,
         role:      "STAFF",
@@ -62,21 +62,18 @@ export const createStaff = async (
         bloodType: d.bloodType,
         sex:       d.sex,
         birthday:  new Date(d.birthday),   // ★ string → Date এখানে
-        subjects: {
-          connect: d.subjects?.map((id: string) => ({
-            id: parseInt(id),
-          })) ?? [],
-        },
+   
+
       },
     });
 
     return { success: true, error: false };
   } catch (err: unknown) {
-    console.error("[createTeacher]", err);
+    console.error("[createStaff]", err);
     if (isPrismaUniqueError(err)) {
       return { success: false, error: true, message: uniqueMessage(err) };
     }
-    return { success: false, error: true, message: "Failed to create teacher." };
+    return { success: false, error: true, message: "Failed to create staff." };
   }
 };
 
@@ -88,9 +85,9 @@ export const updateStaff = async (
   if (!data.id) return { success: false, error: true, message: "Missing ID." };
 
   try {
-    const parsed = teacherSchema.safeParse(data);
+    const parsed = staffSchema.safeParse(data);
     if (!parsed.success) {
-      console.error("[updateTeacher] Zod errors:", parsed.error.flatten());
+      console.error("[updateStaff] Zod errors:", parsed.error.flatten());
       return {
         success: false,
         error: true,
@@ -117,12 +114,9 @@ export const updateStaff = async (
         img:       d.img       || null,
         bloodType: d.bloodType,
         sex:       d.sex,
-        birthday:  new Date(d.birthday),   // ★ string → Date এখানে
-        subjects: {
-          set: d.subjects?.map((id: string) => ({
-            id: parseInt(id),
-          })) ?? [],
-        },
+        birthday:  new Date(d.birthday), 
+        role:      "STAFF",  // ★ string → Date এখানে
+      
       },
     });
 

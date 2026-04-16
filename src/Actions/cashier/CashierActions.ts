@@ -1,133 +1,162 @@
+
+// actions/TeacherActions/teacherActions.ts
 "use server";
 
-import prisma from "../../lib/db";
-import { CashierSchema } from "../../lib/FormValidationSchema";
-import { UserRole } from "@prisma/client";
-import { getUserRoleAuth } from "@/lib/logsessition";
+import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
-import { revalidatePath } from "next/cache";
+import  prisma  from "@/lib/db";
+import { cashierSchema, CashierSchema, staffSchema, StaffSchema, } from "@/lib/FormValidationSchema";
+import { requireSession } from "@/lib/get-session";
 
-type CreateState = { 
-  success: boolean; 
-  error: boolean; 
-  message?: string 
-};
+type ActionState = { success: boolean; error: boolean; message?: string };
 
-/**
- * ১. ক্যাশিয়ার তৈরি করা
- */
+// ─── CREATE ───────────────────────────────────────────────────────────────────
 export const createCashier = async (
-  prevState: CreateState,
+  _state: ActionState,
   data: CashierSchema
-) => {
+): Promise<ActionState> => {
   try {
-    const { schoolId } = await getUserRoleAuth();
+    const session = await requireSession(["ADMIN"]);
+    const { schoolId } = session;
 
-    if (!schoolId) {
-      return { success: false, error: true, message: "স্কুল আইডি পাওয়া যায়নি।" };
+    // Server-side re-validate
+    const parsed = cashierSchema.safeParse(data);
+    if (!parsed.success) {
+      console.error("[createCashier] Zod errors:", parsed.error.flatten());
+      return {
+        success: false,
+        error: true,
+        message: Object.values(parsed.error.flatten().fieldErrors)
+          .flat()
+          .join(", "),
+      };
     }
+
+    const d = parsed.data;
+
+    if (!d.password) {
+      return { success: false, error: true, message: "Password is required." };
+    }
+
+    const existing = await prisma.employee.findFirst({
+      where: { username: d.username },
+    });
+    if (existing) {
+      return { success: false, error: true, message: "Username already taken." };
+    }
+
+    const hashedPassword = await bcrypt.hash(d.password, 12);
 
     await prisma.employee.create({
       data: {
-        // আইডি জেনারেট করা (Prefix: emp_cash_)
-        id: `emp_cash_${nanoid(10)}`,
+        id:        `emp_${nanoid(12)}`,
         schoolId: Number(schoolId),
-        username: data.username,
-        password: data.password, // মনে রাখবেন: প্রোডাকশনে পাসওয়ার্ড হাশ (Hash) করা উচিত
-        role: UserRole.CASHIER,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
+        username:  d.username,
+        password:  hashedPassword,
+        role:      "CASHIER",
+        name:      d.name,
+        surname:   d.surname,
+        email:     d.email     || null,
+        phone:     d.phone     || null,
+        address:   d.address,
+        img:       d.img       || null,
+        bloodType: d.bloodType,
+        sex:       d.sex,
+        birthday:  new Date(d.birthday),   // ★ string → Date এখানে
+   
+
       },
     });
 
-    revalidatePath("/list/cashiers");
     return { success: true, error: false };
-  } catch (err) {
-    console.error("Create Cashier Error:", err);
-    return { success: false, error: true };
+  } catch (err: unknown) {
+    console.error("[createCashier]", err);
+    if (isPrismaUniqueError(err)) {
+      return { success: false, error: true, message: uniqueMessage(err) };
+    }
+    return { success: false, error: true, message: "Failed to create cashier." };
   }
 };
 
-/**
- * ২. ক্যাশিয়ার আপডেট করা
- */
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
 export const updateCashier = async (
-  prevState: CreateState,
+  _state: ActionState,
   data: CashierSchema
-) => {
-  if (!data.id) return { success: false, error: true, message: "ID missing" };
+): Promise<ActionState> => {
+  if (!data.id) return { success: false, error: true, message: "Missing ID." };
 
   try {
-    const { schoolId } = await getUserRoleAuth();
-
-    if (!schoolId) {
-      return { success: false, error: true };
+    const parsed = cashierSchema.safeParse(data);
+    if (!parsed.success) {
+      console.error("[updateCashier] Zod errors:", parsed.error.flatten());
+      return {
+        success: false,
+        error: true,
+        message: Object.values(parsed.error.flatten().fieldErrors)
+          .flat()
+          .join(", "),
+      };
     }
+
+    const d = parsed.data;
 
     await prisma.employee.update({
-      where: { 
-        id: data.id,
-        schoolId: Number(schoolId) // নিশ্চিত করা যে সে এই স্কুলেরই কর্মচারী
-      },
+      where: { id: data.id },
       data: {
-        username: data.username,
-        ...(data.password && { password: data.password }), // যদি নতুন পাসওয়ার্ড দেয়
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
+        username:  d.username,
+        ...(d.password && d.password.trim() !== "" && {
+          password: await bcrypt.hash(d.password, 12),
+        }),
+        name:      d.name,
+        surname:   d.surname,
+        email:     d.email     || null,
+        phone:     d.phone     || null,
+        address:   d.address,
+        img:       d.img       || null,
+        bloodType: d.bloodType,
+        sex:       d.sex,
+        birthday:  new Date(d.birthday), 
+        role:      "CASHIER",  // ★ string → Date এখানে
+      
       },
     });
 
-    revalidatePath("/list/cashiers");
     return { success: true, error: false };
-  } catch (err) {
-    console.error("Update Cashier Error:", err);
-    return { success: false, error: true };
-  }
-};
-
-/**
- * ৩. ক্যাশিয়ার ডিলিট করা
- */
-export const deleteCashier = async (
-  prevState: CreateState,
-  formData: FormData
-) => {
-  const id = formData.get("id") as string;
-
-  if (!id) return { success: false, error: true };
-
-  try {
-    const { schoolId } = await getUserRoleAuth();
-
-    if (!schoolId) {
-      return { success: false, error: true };
+  } catch (err: unknown) {
+    console.error("[updateStaff]", err);
+    if (isPrismaUniqueError(err)) {
+      return { success: false, error: true, message: uniqueMessage(err) };
     }
-
-    await prisma.employee.delete({
-      where: { 
-        id: id,
-        schoolId: Number(schoolId) // সিকিউরিটি চেক
-      },
-    });
-
-    revalidatePath("/list/cashiers");
-    return { success: true, error: false };
-  } catch (err) {
-    console.error("Delete Cashier Error:", err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: "Failed to update staff." };
   }
 };
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+export const deletCashier = async (
+  _state: ActionState,
+  formData: FormData
+): Promise<ActionState> => {
+  const id = formData.get("id") as string;
+  if (!id) return { success: false, error: true, message: "Missing ID." };
+  try {
+    await prisma.employee.delete({ where: { id } });
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("[deleteCashier]", err);
+    return { success: false, error: true, message: "Failed to delete staff." };
+  }
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function isPrismaUniqueError(err: unknown): boolean {
+  return typeof err === "object" && err !== null &&
+    "code" in err && (err as { code: string }).code === "P2002";
+}
+
+function uniqueMessage(err: unknown): string {
+  const target = (err as { meta?: { target?: string[] } }).meta?.target?.[0];
+  if (target === "username") return "Username already taken.";
+  if (target === "email")    return "Email already in use.";
+  if (target === "phone")    return "Phone number already in use.";
+  return "Duplicate entry detected.";
+}

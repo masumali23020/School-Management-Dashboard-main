@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 
 export default async function SalaryPaymentListPage() {
  const { role } = await getUserRoleAuth();
-  if (!["admin", "cashier"].includes(role)) redirect("/");
+  if (!["admin", "cashier"].includes(role as string)) redirect("/");
 
  
 

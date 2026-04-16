@@ -112,30 +112,41 @@ export default async function ContactPage({ params }: { params: { schoolSlug: st
           <div className="lg:col-span-2 space-y-4">
             <h2 className="text-xl font-bold text-[#1a365d] mb-6">যোগাযোগের তথ্য</h2>
 
-            {contactItems.map((item) => {
-              const value = settings?.[item.key];
-              if (!value) return null;
-              return (
-                <div
-                  key={item.key}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow"
-                >
-                  <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}
-                  >
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 text-gray-800 font-medium text-sm leading-relaxed">
-                      {value}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+         {contactItems.map((item) => {
+  // settings অবজেক্টকে Indexable টাইপে কাস্ট করা
+  const schoolSettings = settings as any; 
+  
+  // চেক করা যে কি-টি আমাদের সেটিংসে আছে কি না
+  // যেহেতু website আপনার স্কিমাতে নেই, তাই এটি সচরাচর slug বা অন্য কিছু হতে পারে
+  let value: string | null = null;
+
+  if (item.key === "website") {
+    value = settings.slug; // ওয়েবসাইট হিসেবে স্কুলের স্ল্যাগ বা ইউআরএল দেখানো
+  } else {
+    value = schoolSettings[item.key];
+  }
+
+  if (!value) return null;
+
+  return (
+    <div
+      key={item.key}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow"
+    >
+      <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
+        {item.icon}
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          {item.label}
+        </p>
+        <p className="mt-1 text-gray-800 font-medium text-sm leading-relaxed">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+})}
 
             {/* Facebook */}
             {/* {settings?.facebookPage && (

@@ -19,7 +19,7 @@ type ClassOption = { id: number; name: string; gradeLevel: number };
 type AssignmentRow = {
   id: number;
   title: string;
-  startDate: Date;
+  startDate?: Date;
   dueDate: Date;
   subjectName: string;
   teacherName: string;

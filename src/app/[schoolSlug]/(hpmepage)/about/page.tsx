@@ -84,32 +84,34 @@ export default async function AboutPage({ params }: { params: { schoolSlug: stri
     { label: "মোট শিক্ষক", value: teacherCount > 0 ? teacherCount.toLocaleString("bn-BD") : "৬৫+" },
     { label: "পাসের হার", value: settings?.passRate || "৯৮%" },
   ];
+// ৮. ডাইনামিক টিম (ডাটাবেজ থেকে - শিক্ষক ও স্টাফ)
+const team = await prisma.employee.findMany({
+  where: {
+    schoolId: schoolId,
+    role: { in: ["TEACHER", "STAFF", "ADMIN", "CASHIER"] }
+  },
+  select: {
+    name: true,
+    surname: true,
+    designation: true,
+    img: true,
+    role: true,
+  },
+  take: 3,
+});
 
-  // ৮. ডাইনামিক টিম (ডাটাবেস থেকে - শিক্ষক ও স্টাফ)
-  const team = await prisma.employee.findMany({
-    where: {
-      schoolId: schoolId,
-      role: { in: ["TEACHER", "STAFF", "ADMIN", "CASHIER", ] }
-    },
-    select: {
-      name: true,
-      surname: true,
-      designation: true,
-      img: true,
-      role: true,
-    },
-    take: 3,
-  });
-
-  const teamMembers = team.length > 0 ? team.map(member => ({
+// এখানে টাইপ স্পষ্ট করে দেওয়া হয়েছে (img: string | null)
+const teamMembers: { name: string; role: string; initials: string; img: string | null }[] = 
+  team.length > 0 ? team.map(member => ({
     name: `${member.name} ${member.surname || ''}`,
     role: member.designation || (member.role === "TEACHER" ? "শিক্ষক" : "স্টাফ"),
     initials: member.name?.[0] || "প",
-    img: member.img,
+    img: member.img, // ডাটাবেজ থেকে আসা ইমেজ
   })) : [
-    { name: "মো. আবদুল করিম", role: "প্রধান শিক্ষক", initials: "আক" },
-    { name: "নাসরিন আক্তার", role: "সহকারী প্রধান শিক্ষক", initials: "না" },
-    { name: "রফিকুল ইসলাম", role: "অফিস সহকারী", initials: "রই" },
+    // ডিফল্ট ডাটায় img: null যোগ করা হয়েছে যাতে টাইপ মিলে যায়
+    { name: "মো. আবদুল করিম", role: "প্রধান শিক্ষক", initials: "আক", img: null },
+    { name: "নাসরিন আক্তার", role: "সহকারী প্রধান শিক্ষক", initials: "না", img: null },
+    { name: "রফিকুল ইসলাম", role: "অফিস সহকারী", initials: "রই", img: null },
   ];
 
   const currentYear = settings?.academicSession ?? new Date().getFullYear().toString();

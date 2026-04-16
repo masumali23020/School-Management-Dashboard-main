@@ -57,8 +57,9 @@ export default function PaymentListClient({
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+const fetchData = useCallback(async () => {
+  setLoading(true);
+  try {
     const res = await getAllPayments({
       studentName:   filterName   || undefined,
       classId:       filterClass  ? Number(filterClass) : undefined,
@@ -67,15 +68,28 @@ export default function PaymentListClient({
       fromDate:      filterFrom   || undefined,
       toDate:        filterTo     || undefined,
     });
+    
     if (res.success) {
       setPayments(res.data as PaymentRow[]);
-      setTotalAmount(res.totalAmount);
-      setTotalCount(res.count);
+      setTotalAmount(res.totalAmount ?? 0);  // Use nullish coalescing
+      setTotalCount(res.count ?? 0);         // Use nullish coalescing
+    } else {
+      // Handle error case
+      setPayments([]);
+      setTotalAmount(0);
+      setTotalCount(0);
+      console.error("Failed to fetch payments:", res.error);
     }
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    setPayments([]);
+    setTotalAmount(0);
+    setTotalCount(0);
+  } finally {
     setPage(1);
     setLoading(false);
-  }, [filterName, filterClass, filterYear, filterMethod, filterFrom, filterTo]);
-
+  }
+}, [filterName, filterClass, filterYear, filterMethod, filterFrom, filterTo]);
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSearch = () => fetchData();

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google"; // শুধুমাত্র Inter রাখুন
-import { ClerkProvider } from "@clerk/nextjs";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import "./globals.css";
@@ -20,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+
       <html lang="en">
         <body className={inter.className}>
           {children}
@@ -31,6 +30,6 @@ export default function RootLayout({
           />
         </body>
       </html>
-    </ClerkProvider>
+   
   );
 }

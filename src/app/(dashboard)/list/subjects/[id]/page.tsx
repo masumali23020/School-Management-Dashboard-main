@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/db";
-import { getUserRole } from "@/lib/utlis";
+
 import FormModal from "@/components/FormModal";
 import FormContainer from "@/components/FormContainer";
 import { getUserRoleAuth } from "@/lib/logsessition";
@@ -67,7 +67,7 @@ const SubjectDetailPage = async ({ params }: { params: { id: string } }) => {
           </Link>
           <div>
             <h1 className="text-2xl font-semibold">{subject.name}</h1>
-            <p className="text-gray-500 text-sm">Code: {subject.code || 'N/A'}</p>
+            
           </div>
         </div>
         {role === "admin" && (

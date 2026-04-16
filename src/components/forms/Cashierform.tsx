@@ -1,4 +1,4 @@
-// components/forms/StaffForm.tsx
+// components/forms/CashierForm.tsx
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,10 +11,11 @@ import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 
 import InputField from "../InputField";
-import { StaffSchema, staffSchema,  } from "@/lib/FormValidationSchema";
-import { createStaff, updateStaff } from "@/Actions/staff/StaffAction";
+import { cashierSchema, CashierSchema, StaffSchema, staffSchema,  } from "@/lib/FormValidationSchema";
+import { createCashier, updateCashier } from "@/Actions/cashier/CashierActions";
 
-const StaffForm = ({ setOpen, relatedData, type, data }: {
+
+const CashierForm = ({ setOpen, relatedData, type, data }: {
   type: "create" | "update";
   data?: any;
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -31,8 +32,8 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<StaffSchema>({
-    resolver: zodResolver(staffSchema),
+  } = useForm<CashierSchema>({
+    resolver: zodResolver(cashierSchema),
     defaultValues: {
       id:        data?.id ?? undefined,
       username:  data?.username   ?? "",
@@ -43,7 +44,7 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
       address:   data?.address    ?? "",
       bloodType: data?.bloodType  ?? "",
       sex:       data?.sex        ?? "MALE",
-      birthday:  data?.birthday
+        birthday:  data?.birthday
         ? new Date(data.birthday).toISOString().split("T")[0]
         : "",
       
@@ -52,12 +53,12 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
   });
 
   const [state, formAction] = useFormState(
-    type === "create" ? createStaff : updateStaff,
+    type === "create" ? createCashier : updateCashier,
     { success: false, error: false, message: "" }
   );
 
   const onSubmit = handleSubmit((formData) => {
-    const payload: StaffSchema = {
+    const payload: CashierSchema = {
       username: formData.username,
       name: formData.name,
       surname: formData.surname,
@@ -65,11 +66,8 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
       sex: formData.sex,
       birthday: formData.birthday,
       bloodType: formData.bloodType,
-      gradeId: formData.gradeId,
-      classId: formData.classId,
       email: formData.email || undefined,
       phone: formData.phone || undefined,
-      parentId: formData.parentId || undefined,
       img: imgUrl || "",
       password: formData.password || undefined,
     };
@@ -82,26 +80,26 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
     formAction(payload);
   });
 
-   const { staff } = relatedData;
-   console.log("Related staff relatedData:"); // Debug log
-   console.log("Related staff relatedData:", relatedData); // Debug log
-   console.log("Related staff data:", data); // Debug log
+   const { cashier } = relatedData;
+   console.log("Related cashier relatedData:"); // Debug log
+   console.log("Related cashier relatedData:", relatedData); // Debug log
+   console.log("Related cashier data:", data); // Debug log
 
   useEffect(() => {
     if (state.success) {
-      toast.success(`Staff ${type === "create" ? "created" : "updated"} successfully!`);
+      toast.success(`Cashier ${type === "create" ? "created" : "updated"} successfully!`);
       setOpen(false);
       router.refresh();
     }
     if (state.error) {
-      toast.error(state.message || `Failed to ${type === "create" ? "create" : "update"} Staff.`);
+      toast.error(state.message || `Failed to ${type === "create" ? "create" : "update"} cashier.`);
     }
   }, [state, router, setOpen, type]);
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new Staff" : "Update Staff"}
+        {type === "create" ? "Create a new Cashier" : "Update Cashier"}
       </h1>
 
       <span className="text-xs text-gray-400 font-medium">Authentication Information</span>
@@ -271,11 +269,11 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
           className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isUploading}
         >
-          {isUploading ? "Uploading Image..." : (type === "create" ? "Create Staff" : "Update Staff")}
+          {isUploading ? "Uploading Image..." : (type === "create" ? "Create Cashier" : "Update Cashier")}
         </button>
       </div>
     </form>
   );
 };
 
-export default StaffForm;
+export default CashierForm;

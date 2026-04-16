@@ -4,6 +4,7 @@
 import prisma from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { AnnouncementSchema, AssignmentSchema, EventSchema,  ExamSchema } from "../../lib/FormValidationSchema";
+import { getUserRoleAuth } from "@/lib/logsessition";
 
 type CreateState = { success: boolean; error: boolean; message?: string };
 
@@ -44,6 +45,7 @@ export const createResult = async (
 
     // Calculate grade based on score
     let grade = data.grade;
+    const {schoolId} = await getUserRoleAuth()
     if (!grade && totalScore) {
       const percentage = (totalScore / 100) * 100; // Assuming total marks 100
       if (percentage >= 80) grade = "A+";
@@ -94,8 +96,12 @@ export const createResult = async (
           writtenScore: data.writtenScore,
           practicalScore: data.practicalScore,
           totalScore: totalScore,
-          grade: grade,
+          grade: grade ,
           remarks: data.remarks,
+          schoolId: Number(schoolId) 
+
+         
+        
         }
       });
 
@@ -328,18 +334,7 @@ export const createAnnouncement = async (
   // const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
+    const {schoolId} = await getUserRoleAuth()
 
     await prisma.announcement.create({
       data: {
@@ -348,6 +343,8 @@ export const createAnnouncement = async (
         description: data.description,
         date: data?.date ,
         classId: data.classId,
+        schoolId: Number(schoolId)
+
         
 
       },
@@ -365,22 +362,9 @@ export const updateAnnouncement = async (
   currentState: CreateState,
   data: AnnouncementSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
 
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
 
     await prisma.announcement.update({
       where: {
