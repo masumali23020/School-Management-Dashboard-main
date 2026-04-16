@@ -21,7 +21,7 @@ import { deleteLesson } from "../Actions/loessonAction/LessonAction";
 
 import { deleteClassSubjectTeacher } from "@/Actions/ClassSubjectTeacherActions/ClassSubjectTeacherActions";
 
-import { deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
+import { deleteAnnouncement, deleteResult } from "@/Actions/AnnousmentAction/AnnousmentAction";
 import ParentForm from "./forms/ParentForm";
 import { deleteGrade } from "@/Actions/GradeActions/GradeActions";
 import { deleteExamAction } from "@/Actions/ExamAction/Examactions";
@@ -95,24 +95,22 @@ const ClassSubjectTeacherForm = dynamic(
   },
 );
 
-const deleteActionMap = {
+const deleteActionMap: Partial<Record<FormContainerProps['table'], any>> = {
   subject: deleteSubject,
   class: deleteClass,
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExamAction,
   classSubjectTeacher: deleteClassSubjectTeacher,
-  // TODO: OTHER DELETE ACTIONS
   parent: deleteParent,
   lesson: deleteLesson,
   assignment: deleteAssignment,
   result: deleteResult,
   staff: deleteStaff,
   cashier: deletCashier,
-  // attendance: deleteSubject,
   event: deleteEvent,
   grade: deleteGrade,
-  // announcement: deleteAnnouncement,
+  announcement: deleteAnnouncement,
 };
 
 const forms: {
