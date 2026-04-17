@@ -1,9 +1,10 @@
-import { SchoolSetting } from "@prisma/client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { School } from "@prisma/client";
 
 interface FooterProps {
-  settings: SchoolSetting | null;
+  settings: School | null;
 }
 
 export default function Footer({ settings }: FooterProps) {
@@ -102,29 +103,17 @@ export default function Footer({ settings }: FooterProps) {
                 </li>
               ))}
             </ul>
-            {settings?.website && (
-              <a
-                href={settings.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm text-sky-300 hover:text-white transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-                ওয়েবসাইট ভিজিট করুন
-              </a>
-            )}
+           
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-white/50 text-xs">
           <p>© {new Date().getFullYear()} {settings?.schoolName ?? "স্কুলের নাম"}। সর্বস্বত্ব সংরক্ষিত।</p>
-          {settings?.facebookPage && (
+          {/* {settings?.facebookPage && (
             <a href={settings.facebookPage} target="_blank" rel="noopener noreferrer" className="hover:text-sky-300 transition-colors">
               Facebook পেজ
             </a>
-          )}
+          )} */}
         </div>
       </div>
     </footer>

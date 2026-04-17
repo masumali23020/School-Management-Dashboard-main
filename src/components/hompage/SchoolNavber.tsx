@@ -1,6 +1,6 @@
 "use client";
 
-import { SchoolSetting } from "@prisma/client";
+import { School } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,7 +8,7 @@ import { useState } from "react";
 
 
 interface NavbarProps {
-  settings: SchoolSetting | null;
+  settings: School | null;
 }
 
 
@@ -57,11 +57,11 @@ export default function SchoolNavbar({ settings }: NavbarProps) {
             )}
           </div>
           <div className="hidden sm:flex items-center gap-3">
-            {settings?.facebookPage && (
+            {/* {settings?.facebookPage && (
               <a href={settings.facebookPage} target="_blank" rel="noopener noreferrer" className="hover:text-sky-300 transition-colors">
                 Facebook
               </a>
-            )}
+            )} */}
             <span className="text-white/40">|</span>
             <span>সেশন: {settings?.academicSession ?? "2024"}</span>
           </div>

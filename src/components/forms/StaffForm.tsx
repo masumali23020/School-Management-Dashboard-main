@@ -65,11 +65,11 @@ const StaffForm = ({ setOpen, relatedData, type, data }: {
       sex: formData.sex,
       birthday: formData.birthday,
       bloodType: formData.bloodType,
-      gradeId: formData.gradeId,
-      classId: formData.classId,
+
+   
       email: formData.email || undefined,
       phone: formData.phone || undefined,
-      parentId: formData.parentId || undefined,
+     
       img: imgUrl || "",
       password: formData.password || undefined,
     };

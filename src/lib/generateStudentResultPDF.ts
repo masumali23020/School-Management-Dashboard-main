@@ -1,3 +1,4 @@
+import { subjectSchema } from './FormValidationSchema';
 import jsPDF from "jspdf";
 import type { StudentResultData } from "@/Actions/ResultAction/resultSearchAction";
 
@@ -29,8 +30,7 @@ export function generateStudentResultPDF(data: StudentResultData): void {
   const MR = 14;
   let y = 16;
 
-  const school =
-    data.schoolName?.trim() || "School";
+  const school =    "School";
   const studentName = `${data.student.name} ${data.student.surname}`.trim();
   const isAdvanced = data.student.class.grade.level >= 6;
 
@@ -128,7 +128,8 @@ export function generateStudentResultPDF(data: StudentResultData): void {
     doc.setDrawColor(200, 200, 200);
     doc.rect(ML, y, PW - ML - MR, rowH, "S");
 
-    const max = r.maxMarks && r.maxMarks > 0 ? r.maxMarks : 100;
+    const max = r.totalScore && r.totalScore > 0 ? r.totalScore : 100;
+    // const max = r.totalScore && r.totalScore > 0 ? r.maxMarks : 100;
     const pct = (r.totalScore / max) * 100;
     x = ML + 2;
 

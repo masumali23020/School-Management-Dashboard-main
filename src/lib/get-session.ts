@@ -90,6 +90,7 @@ export async function requireSession(
         schoolLogo: dbUser.school.logoUrl || undefined,
         planType: dbUser.school.plan?.name,
         academicSession: dbUser.school.academicSession,
+        userId: dbUser.id
       };
       
       user = enhancedUser;

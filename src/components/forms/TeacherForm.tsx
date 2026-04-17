@@ -214,7 +214,7 @@ const TeacherForm = ({ setOpen, relatedData, type, data }: {
               defaultValue={data?.subjects?.map((s: { id: number }) => String(s.id)) ?? []}
             >
               {relatedData?.subjects?.length ? (
-                relatedData.subjects.map((s) => (
+                relatedData.subjects.map((s : any) => (
                   <option value={String(s.id)} key={s.id}>{s.name}</option>
                 ))
               ) : (

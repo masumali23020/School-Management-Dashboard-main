@@ -2,8 +2,8 @@
 // Full A4 Finance Report — Income vs Expense
 // Shows: summary cards, category breakdown, month-by-month table, full transactions
 
+import { FinanceSummary, FinanceTransaction } from "@/Actions/financeActions/financeActions";
 import jsPDF from "jspdf";
-import type { FinanceTransaction, FinanceSummary } from "@/Actions/FinanceActions/financeActions";
 
 export type FinanceReportOptions = {
   transactions:  FinanceTransaction[];

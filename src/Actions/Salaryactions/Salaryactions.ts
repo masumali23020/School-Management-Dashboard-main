@@ -540,7 +540,7 @@ export async function getAllSalaryPayments(params: {
       processedBy: p.processedBy
         ? `${p.processedBy.name} ${p.processedBy.surname ?? ""}`.trim()
         : "—",
-      
+      remarks: p.remarks ?? null,
     })),
   };
 }

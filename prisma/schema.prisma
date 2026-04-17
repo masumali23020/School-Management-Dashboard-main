@@ -606,7 +606,7 @@ model Result {
   totalScore     Int
   mcqScore       Int? 
   writtenScore   Int? 
- grade           String?   
+  grade           String?   
   remarks         String?
   practicalScore Int?
   examId         Int?

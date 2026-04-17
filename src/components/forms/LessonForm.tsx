@@ -23,7 +23,8 @@ const LessonForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
-  const [selectedClass, setSelectedClass] = useState<number>(data?.classId || "");
+
+const [selectedClass, setSelectedClass] = useState<number | string>(data?.classId || "");
   const [filteredAssignments, setFilteredAssignments] = useState<any[]>([]);
 
   const {
@@ -40,7 +41,7 @@ const LessonForm = ({
       day: data?.day || "",
       startTime: data?.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : "",
       endTime: data?.endTime ? new Date(data.endTime).toISOString().slice(0, 16) : "",
-      classId: data?.classId || "",
+      classId: data?.classId || undefined,
       subjectId: data?.subjectId || "",
       teacherId: data?.teacherId || "",
       classSubjectTeacherId: data?.classSubjectTeacherId || "",
@@ -74,7 +75,7 @@ const LessonForm = ({
           (a: any) => a.id === data.classSubjectTeacherId
         );
         if (!stillExists) {
-          setValue("classSubjectTeacherId", "");
+          setValue("classSubjectTeacherId", 0);
         }
       }
     } else {
@@ -118,7 +119,7 @@ const LessonForm = ({
           defaultValue={data?.name}
           register={register}
           error={errors?.name}
-          placeholder="e.g., Chapter 1: Introduction"
+          
         />
 
         {/* Day Selection */}
