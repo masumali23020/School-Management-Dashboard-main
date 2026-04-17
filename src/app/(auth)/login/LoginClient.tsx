@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { AUTH_ERROR_MESSAGES, parseSignInError } from "@/types/auth";
-import { authDebugClient } from "@/lib/auth-debug";
+
 
 export default function LoginClient() {
   const searchParams = useSearchParams();
@@ -77,7 +77,7 @@ export default function LoginClient() {
   }
 
   return (
-    <main className="root">
+    <main className="bg-slate-200">
       <div className="card">
 
         <div className="brand">
@@ -93,7 +93,7 @@ export default function LoginClient() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex items-center">
 
           <input
             name="schoolId"
