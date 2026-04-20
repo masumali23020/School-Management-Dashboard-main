@@ -104,13 +104,41 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ═══ BRANCH B: School Users ═════════════════════════════════════════════════
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  // Role and plan are injected by auth.ts → authorized() callback as headers
+  // 2. Public Path Check
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  if (isPublic) return NextResponse.next();
+
   const role = req.headers.get("x-user-role") as UserRole | null;
+  
   const planType = req.headers.get("x-user-plan") as PlanType | null;
+
   const hasSession = !!role;
+
+  // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
+  // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
+  const isProtectedRoute = Object.keys(ROLE_ROUTES).some((route) => 
+    pathname.startsWith(route)
+  );
+
+  // যদি রুটটি প্রটেক্টেড না হয় (যেমন: /bagulat-high-school), তবে সেটা এক্সেস করতে দাও
+  if (!isProtectedRoute && pathname !== "/" && !pathname.startsWith('/superadmin')) {
+    return NextResponse.next();
+  }
+
+  // 4. লগইন করা থাকলে লগইন পেজ থেকে ড্যাশবোর্ডে পাঠানো
+  if (pathname === "/login" && role) {
+    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
+  }
+
+  // 5. প্রটেক্টেড রুট কিন্তু সেশন নেই -> লগইন এ পাঠাও
+  if (isProtectedRoute && !hasSession) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+
 
   // Redirect logged-in users away from login
   if (pathname === "/login" && role) {
