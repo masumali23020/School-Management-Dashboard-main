@@ -2,15 +2,14 @@
 // Multi-tenant, role-based authentication with single-query optimization
 
 import NextAuth, { type DefaultSession } from "next-auth";
+import { NextResponse } from "next/server";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import  prisma  from "@/lib/db";
+import prisma from "@/lib/db";
 import type { SessionUser, AuthError } from "@/types/auth";
 import { authDebugServer } from "@/lib/auth-debug";
 
 // ─── Module Augmentation ─────────────────────────────────────────────────────
-// Extend the built-in session/JWT types so TypeScript knows about our fields.
-
 declare module "next-auth" {
   interface Session {
     user: SessionUser & DefaultSession["user"];
@@ -23,7 +22,6 @@ declare module "next-auth/jwt" {
 }
 
 // ─── Auth.js Configuration ───────────────────────────────────────────────────
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
@@ -81,21 +79,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           } as const;
 
-          // ── Step 1: Employee by username, else by internal id (e.g. emp_xxx) ─
+          // ── Step 1: Employee by username, else by internal id ────────────────
           let employee = await prisma.employee.findFirst({
-            where: {
-              username: loginKey,
-              schoolId: schoolIdNum,
-            },
+            where: { username: loginKey, schoolId: schoolIdNum },
             include: employeeInclude,
           });
 
           if (!employee) {
             employee = await prisma.employee.findFirst({
-              where: {
-                id: loginKey,
-                schoolId: schoolIdNum,
-              },
+              where: { id: loginKey, schoolId: schoolIdNum },
               include: employeeInclude,
             });
             if (employee) {
@@ -121,49 +113,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
           }
 
-          // ── Step 2: Student by username, else by student id ─────────────────
-          let student = await prisma.student.findFirst({
-            where: {
-              username: loginKey,
-              schoolId: schoolIdNum,
-            },
-            include: {
-              school: {
-                include: {
-                  plan: true,
-                  _count: {
-                    select: {
-                      students: true,
-                      employees: true,
-                    },
+          // ── Step 2: Student by username, else by student id ──────────────────
+          const studentInclude = {
+            school: {
+              include: {
+                plan: true,
+                _count: {
+                  select: {
+                    students: true,
+                    employees: true,
                   },
                 },
               },
             },
+          } as const;
+
+          let student = await prisma.student.findFirst({
+            where: { username: loginKey, schoolId: schoolIdNum },
+            include: studentInclude,
           });
 
           if (!student) {
             student = await prisma.student.findFirst({
-              where: {
-                id: loginKey,
-                schoolId: schoolIdNum,
-              },
-              include: {
-                school: {
-                  include: {
-                    plan: true,
-                    _count: {
-                      select: {
-                        students: true,
-                        employees: true,
-                      },
-                    },
-                  },
-                },
-              },
+              where: { id: loginKey, schoolId: schoolIdNum },
+              include: studentInclude,
             });
             if (student) {
-              authDebugServer("authorize: student match by id", { id: student.id });
+              authDebugServer("authorize: student match by id", {
+                id: student.id,
+              });
             }
           }
 
@@ -206,8 +184,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
 
-  // ── JWT Callback: persist custom fields into the token ──────────────────────
   callbacks: {
+    // ── Authorized Callback: injects role/plan as headers for middleware ────────
+    // This runs on the Edge and ONLY reads from the JWT token (no DB, no bcrypt).
+    // middleware.ts reads x-user-role and x-user-plan headers set here.
+    async authorized({ request, auth }) {
+      const response = NextResponse.next();
+      if (auth?.user?.role) {
+        response.headers.set("x-user-role", auth.user.role);
+      }
+      if (auth?.user?.planType) {
+        response.headers.set("x-user-plan", auth.user.planType);
+      }
+      return response;
+    },
+
+    // ── JWT Callback: persist custom fields into the token ───────────────────
     async jwt({ token, user }) {
       if (user) {
         const uid = user.userId ?? user.id;
@@ -221,7 +213,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
 
-    // ── Session Callback: expose token fields to the client session ────────────
+    // ── Session Callback: expose token fields to the client session ──────────
     async session({ session, token }) {
       const uid = token.userId as string;
       session.user.id = uid;
@@ -234,21 +226,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
 
-    // ── Redirect callback: keep it simple and defer to middleware/app pages for role-based routes
+    // ── Redirect callback ────────────────────────────────────────────────────
     async redirect({ url, baseUrl }) {
-      // On successful sign-in, landing route is controlled by middleware + frontend logic.
       return baseUrl;
     },
   },
 
   pages: {
     signIn: "/login",
-    error: "/login", // Redirect to login with ?error= param
+    error: "/login",
   },
 });
 
 // ─── Helper: Verify password + school status, then build the user object ──────
-
 interface VerifyInput {
   id: string;
   username: string;
@@ -287,9 +277,11 @@ async function verifyAndBuildUser(input: VerifyInput): Promise<SessionUser> {
 
   // Security check 3: plan limits must be respected
   const studentLimitReached =
-    school.plan.maxStudents > 0 && school._count.students >= school.plan.maxStudents;
+    school.plan.maxStudents > 0 &&
+    school._count.students >= school.plan.maxStudents;
   const employeeLimitReached =
-    school.plan.maxEmployees > 0 && school._count.employees >= school.plan.maxEmployees;
+    school.plan.maxEmployees > 0 &&
+    school._count.employees >= school.plan.maxEmployees;
 
   if (studentLimitReached || employeeLimitReached) {
     throw new Error("PLAN_LIMIT_REACHED" satisfies AuthError);
