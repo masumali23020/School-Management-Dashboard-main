@@ -1,12 +1,42 @@
 import { auth } from "@/auth";
 import { NextResponse, type NextRequest } from "next/server";
-import { jwtVerify } from "jose";
 import type { PlanType, UserRole } from "@/types/auth";
 import { canAccessFeature, type Feature } from "@/lib/subscription-guard";
 
-const SUPER_ADMIN_SECRET = new TextEncoder().encode(
-  process.env.SUPER_ADMIN_JWT_SECRET ?? process.env.AUTH_SECRET ?? "fallback-secret"
-);
+// 🔐 Secret
+const SECRET =
+  process.env.SUPER_ADMIN_JWT_SECRET ??
+  process.env.AUTH_SECRET ??
+  "fallback-secret";
+
+// 🔐 Minimal JWT Verify (HS256)
+async function verifyToken(token: string): Promise<boolean> {
+  try {
+    const [header, payload, signature] = token.split(".");
+    if (!header || !payload || !signature) return false;
+
+    const data = `${header}.${payload}`;
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      Uint8Array.from(atob(signature), c => c.charCodeAt(0)),
+      new TextEncoder().encode(data)
+    );
+
+    return valid;
+  } catch {
+    return false;
+  }
+}
 
 const ROLE_ROUTES: Record<string, UserRole[]> = {
   "/admin": ["ADMIN"],
@@ -32,53 +62,56 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   PARENT: "/parent",
 };
 
-// Simplified Public Routes check
 const PUBLIC_ROUTES = ["/login", "/api/auth", "/_next", "/favicon.ico"];
 const SUPER_ADMIN_PREFIX = "/superadmin";
 const SUPER_ADMIN_PUBLIC = "/superadmin/login";
 
-export default auth(async function middleware(req) {
+export default auth(async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const session = req.auth; // NextAuth v5 populates this
+  const session = req.auth;
 
-  // 1. BRANCH A: Super Admin Logic
+  // =========================
+  // 🔥 1. SUPER ADMIN
+  // =========================
   if (pathname.startsWith(SUPER_ADMIN_PREFIX)) {
     const token = req.cookies.get("superadmin_token")?.value;
 
     if (pathname === SUPER_ADMIN_PUBLIC) {
-      if (token) {
-        try {
-          await jwtVerify(token, SUPER_ADMIN_SECRET);
-          return NextResponse.redirect(new URL("/superadmin/dashboard", req.url));
-        } catch { /* Token invalid, allow login page */ }
+      if (token && (await verifyToken(token))) {
+        return NextResponse.redirect(
+          new URL("/superadmin/dashboard", req.url)
+        );
       }
       return NextResponse.next();
     }
 
-    if (!token) return NextResponse.redirect(new URL(SUPER_ADMIN_PUBLIC, req.url));
-
-    try {
-      await jwtVerify(token, SUPER_ADMIN_SECRET);
-      return NextResponse.next();
-    } catch {
-      const res = NextResponse.redirect(new URL(SUPER_ADMIN_PUBLIC, req.url));
-      res.cookies.set("superadmin_token", "", { maxAge: 0 }); // Use .set to clear
+    if (!token || !(await verifyToken(token))) {
+      const res = NextResponse.redirect(
+        new URL(SUPER_ADMIN_PUBLIC, req.url)
+      );
+      res.cookies.set("superadmin_token", "", { maxAge: 0 });
       return res;
     }
+
+    return NextResponse.next();
   }
 
-  // 2. BRANCH B: School User Logic
-  const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  // =========================
+  // 🔥 2. SCHOOL USER
+  // =========================
+  const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
 
-  // If logged in and hitting /login, send to dashboard
+  // Already logged in → redirect from login
   if (pathname === "/login" && session?.user?.role) {
     const role = session.user.role as keyof typeof ROLE_DASHBOARDS;
-    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
+    return NextResponse.redirect(
+      new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
+    );
   }
 
   if (isPublic) return NextResponse.next();
 
-  // Redirect to login if no session
+  // Not logged in
   if (!session?.user) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
@@ -88,19 +121,23 @@ export default auth(async function middleware(req) {
   const role = session.user.role as UserRole;
   const planType = session.user.planType as PlanType;
 
-  // Root redirect: / -> /admin/dashboard, etc.
+  // Root redirect
   if (pathname === "/") {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/login", req.url));
+    return NextResponse.redirect(
+      new URL(ROLE_DASHBOARDS[role] ?? "/login", req.url)
+    );
   }
 
-  // Role Access Control
+  // Role guard
   for (const [prefix, allowed] of Object.entries(ROLE_ROUTES)) {
     if (pathname.startsWith(prefix) && !allowed.includes(role)) {
-      return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
+      return NextResponse.redirect(
+        new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
+      );
     }
   }
 
-  // Subscription/Feature Access Control
+  // Feature guard
   for (const [prefix, feature] of Object.entries(FEATURE_ROUTES)) {
     if (pathname.startsWith(prefix) && !canAccessFeature(planType, feature)) {
       const upgradeUrl = new URL("/admin/billing", req.url);

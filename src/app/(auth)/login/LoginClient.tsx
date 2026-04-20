@@ -5,15 +5,18 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { AUTH_ERROR_MESSAGES, parseSignInError } from "@/types/auth";
 
-
 export default function LoginClient() {
   const searchParams = useSearchParams();
-  const callbackUrl  = searchParams.get("callbackUrl") ?? "";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "";
 
   const [isPending, startTransition] = useTransition();
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
-  const [form, setForm] = useState({ schoolId: "", username: "", password: "" });
+  const [form, setForm] = useState({
+    schoolId: "",
+    username: "",
+    password: "",
+  });
 
   useEffect(() => {
     const sid = searchParams.get("schoolId");
@@ -77,55 +80,82 @@ export default function LoginClient() {
   }
 
   return (
-    <main className="bg-slate-200">
-      <div className="card">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-300 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
 
-        <div className="brand">
-          <span className="brand-icon">🏫</span>
-          <h1>SchoolSaaS</h1>
-          <p>Multi-tenant School Management</p>
+        {/* Brand */}
+        <div className="text-center space-y-2">
+          <div className="text-4xl">🏫</div>
+          <h1 className="text-2xl font-bold text-gray-800">SchoolSaaS</h1>
+          <p className="text-sm text-gray-500">
+            Multi-tenant School Management System
+          </p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="err-banner">
-            <span className="err-dot">!</span>
+          <div className="bg-red-100 text-red-700 text-sm px-4 py-2 rounded-lg border border-red-300">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex items-center">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-          <input
-            name="schoolId"
-            placeholder="School ID"
-            value={form.schoolId}
-            onChange={handleChange}
-          />
+          <div>
+            <label className="text-sm text-gray-600">School ID</label>
+            <input
+              name="schoolId"
+              value={form.schoolId}
+              onChange={handleChange}
+              placeholder="Enter School ID"
+              className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
 
-          <input
-            name="username"
-            placeholder="Username"
-            value={form.username}
-            onChange={handleChange}
-          />
+          <div>
+            <label className="text-sm text-gray-600">Username</label>
+            <input
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Enter username"
+              className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
 
-          <input
-            name="password"
-            type={showPass ? "text" : "password"}
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-          />
+          <div className="relative">
+            <label className="text-sm text-gray-600">Password</label>
+            <input
+              name="password"
+              type={showPass ? "text" : "password"}
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Enter password"
+              className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-16"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass((v) => !v)}
+              className="absolute right-2 top-8 text-sm text-blue-600 hover:underline"
+            >
+              {showPass ? "Hide" : "Show"}
+            </button>
+          </div>
 
-          <button type="button" onClick={() => setShowPass(v => !v)}>
-            {showPass ? "hide" : "show"}
-          </button>
-
-          <button type="submit" disabled={isPending}>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+          >
             {isPending ? "Signing in..." : "Sign In"}
           </button>
-
         </form>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400">
+          © {new Date().getFullYear()} SchoolSaaS
+        </p>
       </div>
     </main>
   );

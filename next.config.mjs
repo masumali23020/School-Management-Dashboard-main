@@ -11,6 +11,10 @@ const nextConfig = {
             hostname: "res.cloudinary.com",
           },
           {
+            protocol: "https",
+            hostname: "learnwithsumit.com",
+          },
+          {
             protocol: "https", // এখানে আপনার http ছিল, তাই এরর দিচ্ছিল
             hostname: "images.unsplash.com",
           },

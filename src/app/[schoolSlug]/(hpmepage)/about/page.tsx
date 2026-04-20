@@ -79,7 +79,7 @@ export default async function AboutPage({ params }: { params: { schoolSlug: stri
 
   // ৭. ডাইনামিক স্ট্যাটস (ডাটাবেস থেকে আসল সংখ্যা)
   const stats = [
-    { label: "প্রতিষ্ঠাকাল", value: settings?.id || "১৯৯৪" },
+    { label: "প্রতিষ্ঠাকাল", value: settings.establishedYear || "১৯৯৪" },
     { label: "মোট শিক্ষার্থী", value: studentCount > 0 ? studentCount.toLocaleString("bn-BD") : "১,২০০+" },
     { label: "মোট শিক্ষক", value: teacherCount > 0 ? teacherCount.toLocaleString("bn-BD") : "৬৫+" },
     { label: "পাসের হার", value: settings?.passRate || "৯৮%" },
