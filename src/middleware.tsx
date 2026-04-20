@@ -66,7 +66,7 @@ const PUBLIC_ROUTES = ["/login", "/api/auth", "/_next", "/favicon.ico"];
 const SUPER_ADMIN_PREFIX = "/superadmin";
 const SUPER_ADMIN_PUBLIC = "/superadmin/login";
 
-export default auth(async function middleware(req: NextRequest) {
+export default auth(async function middleware(req) {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
