@@ -109,15 +109,22 @@ export default async function middleware(req: NextRequest) {
   // 2. Public Path Check
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
-const session = await auth();
+  const session = await auth();
   
   const role = session?.user?.role as UserRole | undefined;
-  const planType = session?.user?.planType as PlanType | undefined;
 
-  const hasSession = !!session;
+  // const role = req.headers.get("x-user-role") as UserRole | null;
+    const planType = session?.user?.planType as PlanType | undefined;
   
+  // const planType = req.headers.get("x-user-plan") as PlanType | null;
+
+  const hasSession = !!role;
+
+
   
 
+
+  // const hasSession = !!session;
 
   // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
   // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
