@@ -1,6 +1,7 @@
 // middleware.ts
 import { NextResponse, type NextRequest } from "next/server";
 import type { PlanType, UserRole } from "@/types/auth";
+import { auth } from "./auth";
 
 // ─── Native JWT verification (replaces jose) ──────────────────────────────────
 async function verifyJWT(token: string, secret: string): Promise<boolean> {
@@ -108,12 +109,15 @@ export default async function middleware(req: NextRequest) {
   // 2. Public Path Check
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
-
-  const role = req.headers.get("x-user-role") as UserRole | null;
+const session = await auth();
   
-  const planType = req.headers.get("x-user-plan") as PlanType | null;
+  const role = session?.user?.role as UserRole | undefined;
+  const planType = session?.user?.planType as PlanType | undefined;
 
-  const hasSession = !!role;
+  const hasSession = !!session;
+  
+  
+
 
   // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
   // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
