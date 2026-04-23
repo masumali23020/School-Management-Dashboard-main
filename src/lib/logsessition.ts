@@ -52,6 +52,7 @@ export async function getUserRoleAuth() {
 
   return {
     role: user?.role?.toLowerCase() || null,
+    schoolPlanType: user?.planType || null,
     userId: user?.id || null,
     schoolId: user?.schoolId || null,
     name: user?.name || null,

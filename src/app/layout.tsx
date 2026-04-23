@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"; // শুধুমাত্র Inter �
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,6 +29,13 @@ export default function RootLayout({
             autoClose={3000}
             theme="light"
           />
+          <Script id="sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js');
+            }
+          `}
+        </Script>
         </body>
       </html>
    

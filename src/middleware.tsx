@@ -1,200 +1,99 @@
-// middleware.ts
 import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt"; // এটি খুবই হালকা
 import type { PlanType, UserRole } from "@/types/auth";
-import { auth } from "./auth";
 
-// ─── Native JWT verification (replaces jose) ──────────────────────────────────
+// ─── Native JWT verification (Super Admin-এর জন্য আগের মতোই থাকবে) ──────────
 async function verifyJWT(token: string, secret: string): Promise<boolean> {
   try {
     const keyData = new TextEncoder().encode(secret);
-    const key = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-
+    const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
     const [headerB64, payloadB64, sigB64] = token.split(".");
     if (!headerB64 || !payloadB64 || !sigB64) return false;
-
     const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-    const sig = Uint8Array.from(
-      atob(sigB64.replace(/-/g, "+").replace(/_/g, "/")),
-      (c) => c.charCodeAt(0)
-    );
-
+    const sig = Uint8Array.from(atob(sigB64.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
     return await crypto.subtle.verify("HMAC", key, sig, data);
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-const SUPER_ADMIN_SECRET =
-  process.env.SUPER_ADMIN_JWT_SECRET ??
-  process.env.AUTH_SECRET ??
-  "fallback-secret";
-
-// ─── Route Config (no external imports) ───────────────────────────────────────
-type Feature =
-  | "sms_panel"
-  | "analytics"
-  | "advanced_reports"
-  | "custom_branding"
-  | "bulk_import"
-  | "api_access";
-
-const PLAN_LEVEL: Record<PlanType, number> = { FREE: 0, STANDARD: 1, POPULAR: 2 };
-
-const FEATURE_PLAN: Record<Feature, number> = {
-  sms_panel: 2,
-  analytics: 2,
-  advanced_reports: 1,
-  custom_branding: 2,
-  bulk_import: 1,
-  api_access: 1,
-};
-
-const ROLE_ROUTES: Record<string, UserRole[]> = {
-  "/admin": ["ADMIN"],
-  "/teacher": ["TEACHER", "ADMIN"],
-  "/cashier": ["CASHIER", "ADMIN"],
-  "/staff": ["STAFF", "ADMIN"],
-  "/student": ["STUDENT", "ADMIN"],
-};
-
-const FEATURE_ROUTES: Record<string, Feature> = {
-  "/admin/sms": "sms_panel",
-  "/admin/analytics": "analytics",
-  "/admin/reports": "advanced_reports",
-  "/admin/branding": "custom_branding",
-};
-
-const ROLE_DASHBOARDS: Record<string, string> = {
-  ADMIN: "/admin/dashboard",
-  TEACHER: "/teacher",
-  CASHIER: "/cashier",
-  STAFF: "/staff",
-  STUDENT: "/student",
-};
-
-const PUBLIC_PATHS = ["/login", "/api/auth", "/_next", "/favicon.ico"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/_next", "/favicon.ico", "/public"];
 const SUPER_PREFIX = "/superadmin";
 const SUPER_LOGIN = "/superadmin/login";
 
-// ─── Middleware ────────────────────────────────────────────────────────────────
+const PLAN_LEVEL: Record<string, number> = { FREE: 0, STANDARD: 1, POPULAR: 2 };
+const FEATURE_PLAN: Record<string, number> = { sms_panel: 2, analytics: 2, advanced_reports: 1, custom_branding: 2, bulk_import: 1, api_access: 1 };
+const ROLE_ROUTES: Record<string, UserRole[]> = { "/admin": ["ADMIN"], "/teacher": ["TEACHER", "ADMIN"], "/cashier": ["CASHIER", "ADMIN"], "/staff": ["STAFF", "ADMIN"], "/student": ["STUDENT", "ADMIN"] };
+const FEATURE_ROUTES: Record<string, string> = { "/admin/sms": "sms_panel", "/admin/analytics": "analytics", "/admin/reports": "advanced_reports", "/admin/branding": "custom_branding" };
+const ROLE_DASHBOARDS: Record<string, string> = { ADMIN: "/admin/dashboard", TEACHER: "/teacher", CASHIER: "/cashier", STAFF: "/staff", STUDENT: "/student" };
+
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ═══ BRANCH A: Super Admin ══════════════════════════════════════════════════
   if (pathname.startsWith(SUPER_PREFIX)) {
+    const superAdminSecret = process.env.SUPER_ADMIN_JWT_SECRET;
+    if (!superAdminSecret) return NextResponse.redirect(new URL("/", req.url));
     const token = req.cookies.get("superadmin_token")?.value;
 
     if (pathname === SUPER_LOGIN) {
-      if (token && (await verifyJWT(token, SUPER_ADMIN_SECRET))) {
-        return NextResponse.redirect(new URL("/superadmin/dashboard", req.url));
-      }
+      if (token && (await verifyJWT(token, superAdminSecret))) return NextResponse.redirect(new URL("/superadmin/dashboard", req.url));
       return NextResponse.next();
     }
-
-    if (!token || !(await verifyJWT(token, SUPER_ADMIN_SECRET))) {
+    if (!token || !(await verifyJWT(token, superAdminSecret))) {
       const res = NextResponse.redirect(new URL(SUPER_LOGIN, req.url));
-      res.cookies.set("superadmin_token", "", { maxAge: 0 });
+      res.cookies.delete("superadmin_token");
       return res;
     }
     return NextResponse.next();
   }
 
+  // ═══ BRANCH B: General Auth (Using getToken) ════════════════════════════════
+  // 'auth()' এর বদলে 'getToken' ব্যবহার করায় সাইজ অনেক কমে যাবে
+  const token = await getToken({ 
+    req, 
+    secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET 
+  });
 
-  // 2. Public Path Check
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-  if (isPublic) return NextResponse.next();
-  const session = await auth();
-  
-  const role = session?.user?.role as UserRole | undefined;
+  const role = token?.role as UserRole | undefined;
+  const planType = token?.planType as PlanType | undefined;
+  const hasSession = !!token;
 
-  // const role = req.headers.get("x-user-role") as UserRole | null;
-    const planType = session?.user?.planType as PlanType | undefined;
-  
-  // const planType = req.headers.get("x-user-plan") as PlanType | null;
+  const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isProtectedRoute = Object.keys(ROLE_ROUTES).some((route) => pathname.startsWith(route));
 
-  const hasSession = !!role;
+  if (pathname === "/login" && hasSession && role) {
+    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/admin/dashboard", req.url));
+  }
 
+  if (isPublicPath) return NextResponse.next();
 
-  
-
-
-  // const hasSession = !!session;
-
-  // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
-  // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
-  const isProtectedRoute = Object.keys(ROLE_ROUTES).some((route) => 
-    pathname.startsWith(route)
-  );
-
-  // যদি রুটটি প্রটেক্টেড না হয় (যেমন: /bagulat-high-school), তবে সেটা এক্সেস করতে দাও
   if (!isProtectedRoute && pathname !== "/" && !pathname.startsWith('/superadmin')) {
     return NextResponse.next();
   }
 
-  // 4. লগইন করা থাকলে লগইন পেজ থেকে ড্যাশবোর্ডে পাঠানো
-  if (pathname === "/login" && role) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
-  }
-
-  // 5. প্রটেক্টেড রুট কিন্তু সেশন নেই -> লগইন এ পাঠাও
-  if (isProtectedRoute && !hasSession) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-
-
-  // Redirect logged-in users away from login
-  if (pathname === "/login" && role) {
-    return NextResponse.redirect(
-      new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
-    );
-  }
-
-  if (isPublic) return NextResponse.next();
-
-  // No session → redirect to login
   if (!hasSession) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    if (isProtectedRoute || pathname === "/") loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Root redirect
-  if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(ROLE_DASHBOARDS[role] ?? "/login", req.url)
-    );
+  if (pathname === "/" && role) {
+    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/login", req.url));
   }
 
-  // Role check
-  for (const [prefix, allowed] of Object.entries(ROLE_ROUTES)) {
-    if (pathname.startsWith(prefix) && !allowed.includes(role)) {
-      return NextResponse.redirect(
-        new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
-      );
+  if (role) {
+    for (const [prefix, allowed] of Object.entries(ROLE_ROUTES)) {
+      if (pathname.startsWith(prefix) && !allowed.includes(role)) {
+        return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
+      }
     }
   }
 
-  // Feature / Plan check
   if (planType) {
     for (const [prefix, feature] of Object.entries(FEATURE_ROUTES)) {
       if (pathname.startsWith(prefix)) {
         const requiredLevel = FEATURE_PLAN[feature];
         const currentLevel = PLAN_LEVEL[planType] ?? 0;
-        if (currentLevel < requiredLevel) {
-          const upgradeUrl = new URL("/admin/billing", req.url);
-          upgradeUrl.searchParams.set("feature", feature);
-          upgradeUrl.searchParams.set("from", pathname);
-          return NextResponse.redirect(upgradeUrl);
-        }
+        if (currentLevel < requiredLevel) return NextResponse.redirect(new URL("/admin/billing", req.url));
       }
     }
   }
