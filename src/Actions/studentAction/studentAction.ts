@@ -8,6 +8,8 @@ import { studentSchema, type StudentSchema } from "@/lib/FormValidationSchema";
 import { requireSession } from "@/lib/get-session";
 import { revalidatePath } from "next/cache";
 import { getUserRoleAuth } from "@/lib/logsessition";
+import { sendSMS } from "@/lib/sms";
+
 
 type ActionState = { success: boolean; error: boolean; message?: string };
 
@@ -146,6 +148,20 @@ export const createStudent = async (
         parentId:  d.parentId  || null,
       },
     });
+
+    // --- SMS পাঠানোর কোড এখানে যোগ করুন ---
+  if (d.phone) {
+      // নাম্বার ফরমেট ঠিক করা (88 না থাকলে যোগ করা)
+      let receiverNumber = d.phone.trim();
+      if (!receiverNumber.startsWith("88")) {
+        receiverNumber = `88${receiverNumber}`;
+      }
+
+      const welcomeSMS = `Welcome ${d.name} to our school. Your username is: ${d.username}. Thank you.`;
+      
+      // ব্যাকগ্রাউন্ডে এসএমএস পাঠানো হচ্ছে
+      sendSMS(receiverNumber, welcomeSMS);
+    }
 
     // revalidatePath("/list/students");
     return { success: true, error: false, message: "Student created successfully" };

@@ -133,7 +133,7 @@ const TeacherListPage = async ({
                 }
               },
               {
-                surname: {
+                phone: {
                   contains: value,
                   mode: "insensitive"
                 }

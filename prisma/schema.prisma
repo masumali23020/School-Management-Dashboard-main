@@ -463,7 +463,7 @@ model FeePayment {
   id                  Int               @id @default(autoincrement())
   invoiceNumber       String            @unique
   studentId           String
-  student             Student           @relation(fields: [studentId], references: [id])
+  student             Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
   classId             Int
   class               Class             @relation(fields: [classId], references: [id])
   classFeeStructureId Int
@@ -495,6 +495,10 @@ model SMSLog {
   school     School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   receiverNo String
   message    String
+  messageType    String
+  recipientCount    Int
+  studentCount    Int
+  messageContent    String
   status     SMSStatus @default(PENDING)
   sentAt     DateTime  @default(now())
 
@@ -509,7 +513,7 @@ model SMSLog {
 model StudentClassHistory {
   id           Int      @id @default(autoincrement())
   studentId    String
-  student      Student  @relation(fields: [studentId], references: [id])
+  student      Student  @relation(fields: [studentId], references: [id],onDelete: Cascade)
   classId      Int
   class        Class    @relation(fields: [classId], references: [id])
   gradeId      Int
@@ -614,7 +618,7 @@ model Result {
   assignmentId   Int?
   assignment     Assignment? @relation(fields: [assignmentId], references: [id])
   studentId      String
-  student        Student     @relation(fields: [studentId], references: [id])
+  student        Student     @relation(fields: [studentId], references: [id],onDelete: Cascade)
   schoolId       Int 
   school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -631,7 +635,7 @@ model Attendance {
   date      DateTime
   present   Boolean
   studentId String
-  student   Student  @relation(fields: [studentId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id],onDelete: Cascade)
   lessonId  Int?
   lesson    Lesson?  @relation(fields: [lessonId], references: [id])
   schoolId  Int? // ← যোগ করো

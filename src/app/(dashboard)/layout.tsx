@@ -5,7 +5,7 @@ import Menu from "../../components/Menu";
 import { requireSession } from "@/lib/get-session";
 import prisma from "@/lib/db";
 import { AuthProvider } from "@/components/providers/auth-provider";
-import LiveSessionGuard from "@/components/auth/LiveSessionGuard";
+// import LiveSessionGuard from "@/components/auth/LiveSessionGuard";
 import Navbar from "@/components/Navbar";
 
 export default async function DashboardLayout({
@@ -36,7 +36,7 @@ export default async function DashboardLayout({
   
   return (
     <AuthProvider>
-      <LiveSessionGuard />
+      {/* <LiveSessionGuard /> */}
       <div className="flex dash">
         {/* LEFT */}
         

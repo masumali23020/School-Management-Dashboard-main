@@ -111,7 +111,32 @@ const columns = [
             };
             break;
           case "search":
-            query.name = { contains: value, mode: "insensitive" };
+            query.OR = [
+              {
+                name: {
+                  contains: value,
+                  mode: "insensitive"
+                }
+              },
+              {
+                phone: {
+                  contains: value,
+                  mode: "insensitive"
+                }
+              },
+              {
+                email: {
+                  contains: value,
+                  mode: "insensitive"
+                }
+              },
+              {
+                username: {
+                  contains: value,
+                  mode: "insensitive"
+                }
+              }
+            ];
             break;
           default:
             break;

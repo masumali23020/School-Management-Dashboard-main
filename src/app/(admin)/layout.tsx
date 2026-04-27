@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/get-session";
 import { AuthProvider } from "@/components/providers/auth-provider";
-import LiveSessionGuard from "@/components/auth/LiveSessionGuard";
+// import LiveSessionGuard from "@/components/auth/LiveSessionGuard";
 
 export default async function DashboardLayout({
   children,
@@ -11,7 +11,7 @@ export default async function DashboardLayout({
   
   return (
     <AuthProvider>
-      <LiveSessionGuard />
+      {/* <LiveSessionGuard /> */}
       <div>
         {children}
       </div>
