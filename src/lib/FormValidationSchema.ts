@@ -1,6 +1,60 @@
 // lib/FormValidationSchema.ts
 
-import { z } from "zod";
+import { z } from 'zod';
+
+// Phone number validation for Bangladesh
+export const phoneSchema = z.string()
+  .refine(
+    (val) => /^(\+8801|01)[3-9]\d{8}$/.test(val.replace(/[\s\-\(\)]/g, '')),
+    { message: 'Invalid Bangladesh phone number' }
+  );
+
+// SMS content validation
+export const messageSchema = z.string()
+  .min(1, 'Message cannot be empty')
+  .max(1000, 'Message too long (max 1000 chars)')
+  .refine(
+    (val) => !/[\u0000-\u001F\u007F-\u009F]/.test(val),
+    { message: 'Message contains invalid characters' }
+  );
+
+// Bulk send validation
+export const bulkSendSchema = z.object({
+  schoolId: z.number().int().positive(),
+  recipients: z.array(phoneSchema).min(1).max(1000),
+  message: messageSchema,
+  campaignId: z.number().int().optional(),
+  templateId: z.number().int().optional(),
+  scheduledFor: z.string().datetime().optional(),
+  deduplicate: z.boolean().default(true)
+});
+
+// Recharge validation
+export const rechargeSchema = z.object({
+  schoolId: z.number().int().positive(),
+  amount: z.number().positive().max(1000000, 'Amount too large'),
+  smsCount: z.number().int().positive().max(100000),
+  ratePerSMS: z.number().positive().max(10),
+  paymentMethod: z.enum(['CASH', 'MOBILE_BANKING', 'BANK_TRANSFER']),
+  transactionId: z.string().max(100).optional(),
+  note: z.string().max(500).optional()
+});
+
+// Template variable extraction helper
+export function extractTemplateVariables(content: string): string[] {
+  const matches = content.match(/\{(\w+)\}/g);
+  return matches ? [...new Set(matches.map(m => m.slice(1, -1)))] : [];
+}
+
+// Validate template variables match provided data
+export function validateTemplateData(
+  content: string, 
+  variables: Record<string, string>
+): { valid: boolean; missing: string[] } {
+  const required = extractTemplateVariables(content);
+  const missing = required.filter(v => !(v in variables));
+  return { valid: missing.length === 0, missing };
+}
 
 export const classSubjectTeacherSchema = z.object({
   id: z.number().optional(),

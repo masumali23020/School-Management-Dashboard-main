@@ -326,6 +326,47 @@ export async function POST(request: Request) {
     console.log(uniqueMessages[0]?.message);
     console.log("=" .repeat(50));
 
+    // ✅ CHECK SMS BALANCE BEFORE SENDING
+    const schoolId = students[0]?.school?.id;
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School not found" },
+        { status: 400 }
+      );
+    }
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { smsBalance: true }
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        { success: false, error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    const smsNeeded = uniqueMessages.length;
+    console.log(`💰 SMS Balance Check: Need ${smsNeeded}, Have ${school.smsBalance}`);
+
+    // ❌ CHECK IF BALANCE IS INSUFFICIENT
+    if (school.smsBalance < smsNeeded) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `❌ Insufficient SMS Balance!`,
+          details: `You need ${smsNeeded} SMS but only have ${school.smsBalance}. Please top up your SMS balance.`,
+          balanceRequired: smsNeeded,
+          balanceAvailable: school.smsBalance
+        },
+        { status: 402 }
+      );
+    }
+
+    // ✅ BALANCE IS SUFFICIENT, PROCEED
+    console.log(`✅ Balance OK: Proceeding with SMS send...`);
+
     // Check API credentials
     const BULK_SMS_API_KEY = process.env.BULK_SMS_API_KEY;
     const BULK_SMS_SENDER_ID = process.env.BULK_SMS_SENDER_ID;
@@ -400,9 +441,22 @@ export async function POST(request: Request) {
     // Update SMS log status
     if (response.ok) {
       try {
+        // ✅ DEDUCT SMS BALANCE AFTER SUCCESSFUL SEND
+        const updatedSchool = await prisma.school.update({
+          where: { id: schoolId },
+          data: {
+            smsBalance: {
+              decrement: smsNeeded
+            }
+          },
+          select: { smsBalance: true }
+        });
+
+        console.log(`💰 SMS Balance Updated: ${school.smsBalance} - ${smsNeeded} = ${updatedSchool.smsBalance}`);
+
         await prisma.sMSLog.updateMany({
           where: {
-            schoolId: students[0]?.school?.id || 1,
+            schoolId: schoolId,
             status: "PENDING",
           },
           data: {
@@ -411,12 +465,12 @@ export async function POST(request: Request) {
           },
         });
       } catch (updateError) {
-        console.error("Failed to update SMS log:", updateError);
+        console.error("Failed to update SMS log or balance:", updateError);
       }
 
       return NextResponse.json({
         success: true,
-        message: `SMS sent successfully to ${uniqueMessages.length} parents`,
+        message: `✅ SMS sent successfully to ${uniqueMessages.length} parents!`,
         sent: uniqueMessages.length,
         totalSelected: studentIds.length,
         withoutParentPhone: studentIds.length - studentsWithParentPhone.length,
@@ -424,6 +478,8 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
         response: result,
         sampleMessage: uniqueMessages[0]?.message?.substring(0, 200) + "...",
+        balanceRemaining: school.smsBalance - smsNeeded,
+        balanceUsed: smsNeeded
       });
     } else {
       return NextResponse.json(

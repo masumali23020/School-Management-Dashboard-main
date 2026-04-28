@@ -163,8 +163,11 @@ const SMSButton = ({
       const data = await response.json();
       
       if (response.ok) {
-        setFeedbackMessage(`✅ SMS sent to ${data.sent} parents!`);
+        setFeedbackMessage(`✅ SMS sent to ${data.sent} parents! Balance remaining: ${data.balanceRemaining}`);
         onSuccess();
+      } else if (response.status === 402) {
+        // Balance insufficient error
+        setFeedbackMessage(`❌ ${data.error}\n${data.details}`);
       } else {
         setFeedbackMessage(`❌ ${data.error}`);
       }
@@ -180,7 +183,7 @@ const SMSButton = ({
     <>
       {/* Feedback Toast */}
       {feedbackMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-white px-4 py-2 rounded-md shadow-lg border">
+        <div className="fixed top-4 right-4 z-50 bg-white px-4 py-3 rounded-md shadow-lg border border-gray-300 max-w-sm whitespace-pre-wrap text-sm">
           {feedbackMessage}
         </div>
       )}
