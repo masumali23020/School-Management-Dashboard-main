@@ -1,81 +1,59 @@
 // app/list/students/page.tsx
-import { Prisma } from "@prisma/client";
-import { itemPerPage } from "../../../../lib/setting";
-import prisma from "../../../../lib/db";
-import { getUserRoleAuth } from "@/lib/logsessition";
+import prisma from "@/lib/db"; // আপনার Prisma client এর পাথ অনুযায়ী পরিবর্তন করুন
 import StudentListClient from "./StudentListClient";
-
 
 const StudentListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { page, ...queryParams } = searchParams;
-  let p = page ? parseInt(page) : 1;
+  const { page, classId, sectionId, search } = searchParams;
+  const p = page ? parseInt(page) : 1;
 
-  const { role, schoolId } = await getUserRoleAuth();
+  // Prisma Filter Query তৈরি করা
+  const query: any = {};
 
-  if (!schoolId) {
-    return (
-      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-        <div className="text-center text-red-500">
-          <p>Error: No school associated with this account.</p>
-        </div>
-      </div>
-    );
+  if (classId) {
+    query.classId = parseInt(classId);
   }
 
-  const query: Prisma.StudentWhereInput = {
-    schoolId: Number(schoolId),
-  };
-
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.classId = parseInt(value);
-            break;
-          case "search":
-            query.OR = [
-              { name: { contains: value, mode: "insensitive" } },
-              { phone: { contains: value, mode: "insensitive" } },
-              { email: { contains: value, mode: "insensitive" } },
-              { username: { contains: value, mode: "insensitive" } },
-            ];
-            break;
-        }
-      }
-    }
+  // যদি আপনার মডেলে Section সরাসরি থাকে তবে এটি কাজ করবে
+  if (sectionId) {
+    query.class = {
+        id: parseInt(sectionId) // অথবা আপনার ডাটাবেস স্ট্রাকচার অনুযায়ী
+    };
   }
 
-  const [students, count] = await prisma.$transaction([
+  if (search) {
+    query.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { username: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  // ডাটাবেস থেকে একই সাথে স্টুডেন্ট, কাউন্ট এবং ক্লাসের লিস্ট আনা
+  const [students, count, classes] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
       include: {
         class: true,
-        parent: {
-          select: {
-            phone: true,
-            name: true,
-          },
-        },
+        parent: true,
       },
-      take: itemPerPage,
-      skip: itemPerPage * (p - 1),
+      take: 10,
+      skip: 10 * (p - 1),
     }),
     prisma.student.count({ where: query }),
+    prisma.class.findMany({
+        select: { id: true, name: true }
+    }),
   ]);
-
-  // Convert to plain objects
-  const plainStudents = JSON.parse(JSON.stringify(students));
 
   return (
     <StudentListClient
-      students={plainStudents}
+      students={JSON.parse(JSON.stringify(students))}
       count={count}
-      role={role}
+      classes={classes}
+      role="admin" // আপনার Auth logic অনুযায়ী এটি পরিবর্তন করুন
       page={p}
     />
   );
