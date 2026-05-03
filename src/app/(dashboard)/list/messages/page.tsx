@@ -52,7 +52,7 @@ const StudentListPage = async ({
     <StudentListClient
       students={JSON.parse(JSON.stringify(students))}
       count={count}
-      classes={classes}
+
       role="admin" // আপনার Auth logic অনুযায়ী এটি পরিবর্তন করুন
       page={p}
     />
