@@ -24,6 +24,9 @@ export type InvoiceData = {
   schoolAddress?:  string;
   schoolPhone?:    string;
   schoolEmail?:    string;
+  establishedYear?: string;
+  eiinNumber?:      string;
+  academicSession?: string;
    collectedBy?: string;      // Keep for backward compatibility
 
 };

@@ -11,7 +11,13 @@ export default async function PaymentListPage() {
   const school = await prisma.school.findUnique({
     where: { id: Number(schoolId) },
     select: {
-      name: true,
+      schoolName: true,
+      shortName: true,
+      logoUrl: true,
+      email: true,
+      establishedYear: true,
+      eiinNumber: true,
+      academicSession: true,
       address: true,
       phone: true,
     }
@@ -36,9 +42,13 @@ export default async function PaymentListPage() {
       academicYears={yearRows.map((r) => r.academicYear)}
       // ২. এখানে schoolInfo পাস করুন (এটিই মিসিং ছিল)
       schoolInfo={{
-        name: school?.name || "Unknown School",
+        name: school?.shortName || "Unknown School",
         address: school?.address || "No Address",
         phone: school?.phone || "No Phone",
+        email: school?.email || "No Email",
+        establishedYear: school?.establishedYear || "No Year",
+        eiinNumber: school?.eiinNumber || "No EIIN",
+        academicSession: school?.academicSession || "No Session",
       }}
     />
   );

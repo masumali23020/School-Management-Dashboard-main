@@ -38,7 +38,7 @@ export default function PaymentListClient({
 }: {
   classes: ClassItem[];
   academicYears: string[];
-  schoolInfo: { name: string; address: string; phone: string }
+  schoolInfo: { name: string; address: string; phone: string; email: string; establishedYear: string; eiinNumber: string; academicSession: string }
 }) {
   // ── Filters ────────────────────────────────────────────────────────────
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
@@ -121,6 +121,10 @@ const fetchData = useCallback(async () => {
       schoolName:    schoolInfo.name,
       schoolAddress: schoolInfo.address,
       schoolPhone:   schoolInfo.phone,
+      schoolEmail:   schoolInfo.email,
+      establishedYear: schoolInfo.establishedYear,
+      eiinNumber: schoolInfo.eiinNumber,
+      academicSession: schoolInfo.academicSession,
     } as InvoiceData);
   };
 
