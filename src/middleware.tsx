@@ -1,7 +1,7 @@
-// middleware.ts
+// middleware.ts — avoid importing ./auth (pulls Prisma into Edge); use getToken instead.
 import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 import type { PlanType, UserRole } from "@/types/auth";
-import { auth } from "./auth";
 
 // ─── Native JWT verification (replaces jose) ──────────────────────────────────
 async function verifyJWT(token: string, secret: string): Promise<boolean> {
@@ -30,10 +30,33 @@ async function verifyJWT(token: string, secret: string): Promise<boolean> {
   }
 }
 
+/** Same resolution as next-auth (see next-auth/lib/env.js): AUTH_SECRET || NEXTAUTH_SECRET */
+function authSecret(): string | undefined {
+  return process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+}
+
 const SUPER_ADMIN_SECRET =
   process.env.SUPER_ADMIN_JWT_SECRET ??
-  process.env.AUTH_SECRET ??
+  authSecret() ??
   "fallback-secret";
+
+/** Match Auth.js cookie names: __Secure- prefix only when the session cookie was set with secure: true */
+function useSecureSessionCookie(req: NextRequest): boolean {
+  return (
+    req.nextUrl.protocol === "https:" ||
+    req.headers.get("x-forwarded-proto") === "https"
+  );
+}
+
+/** Decode session JWT; retry alternate cookie mode if host/proto detection mismatches */
+async function getAuthJwt(req: NextRequest, secret: string) {
+  const https = useSecureSessionCookie(req);
+  let token = await getToken({ req, secret, secureCookie: https });
+  if (!token) {
+    token = await getToken({ req, secret, secureCookie: !https });
+  }
+  return token;
+}
 
 // ─── Route Config (no external imports) ───────────────────────────────────────
 type Feature =
@@ -109,22 +132,22 @@ export default async function middleware(req: NextRequest) {
   // 2. Public Path Check
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
-  const session = await auth();
-  
-  const role = session?.user?.role as UserRole | undefined;
 
-  // const role = req.headers.get("x-user-role") as UserRole | null;
-    const planType = session?.user?.planType as PlanType | undefined;
-  
-  // const planType = req.headers.get("x-user-plan") as PlanType | null;
+  const secret = authSecret();
+  if (!secret) {
+    console.error(
+      "[middleware] Set AUTH_SECRET or NEXTAUTH_SECRET (required to read the session cookie)."
+    );
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
 
+  const token = await getAuthJwt(req, secret);
+
+  const role = token?.role as UserRole | undefined;
+  const planType = token?.planType as PlanType | undefined;
   const hasSession = !!role;
-
-
-  
-
-
-  // const hasSession = !!session;
 
   // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
   // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
