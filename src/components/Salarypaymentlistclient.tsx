@@ -15,9 +15,9 @@ type SalaryTypeFilter = { id: number; name: string };
 type PaymentRow = {
   id:             number;
   invoiceNumber:  string;
-  teacherId:      string;
+  employeeId:     string;
   employeeName:    string;
-  teacherImg:     string | null;
+  employeeImg:    string | null;
   salaryTypeName: string;
   amountPaid:     number;
   paymentMethod:  string;

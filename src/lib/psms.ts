@@ -50,7 +50,11 @@ export async function sendBulkSMSToParents(
     select: {
       id: true,
       name: true,
-      parentPhone: true, // ← আপনার Prisma schema-তে parent phone field-এর নাম দিন
+      parent: {
+        select: {
+          phone: true,
+        },
+      },
     },
   });
 
@@ -58,11 +62,11 @@ export async function sendBulkSMSToParents(
   const skipped: string[] = [];
   const messages = students
     .filter((s) => {
-      if (!s.parentPhone) { skipped.push(s.name); return false; }
+      if (!s.parent?.phone) { skipped.push(s.name); return false; }
       return true;
     })
     .map((s) => ({
-      to: formatBDPhone(s.parentPhone!),
+      to: formatBDPhone(s.parent!.phone),
       message: getSMSMessage(smsType, s.name, customMessage),
     }));
 

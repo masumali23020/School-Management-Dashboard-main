@@ -551,11 +551,17 @@ for (const class_ of classes) {
   console.log("\n📱 Creating SMS logs...");
 
   for (let i = 0; i < 3; i++) {
+    const message = `Fee payment reminder for ${new Date().toLocaleString("default", { month: "long" })} month.`;
+
     await prisma.sMSLog.create({
       data: {
         schoolId: school.id,
         receiverNo: parents[i]?.phone || "01711000050",
-        message: `Fee payment reminder for ${new Date().toLocaleString("default", { month: "long" })} month.`,
+        message,
+        messageType: "fee-reminder",
+        recipientCount: 1,
+        studentCount: 1,
+        messageContent: message.substring(0, 100),
         status: "SENT",
       },
     });
