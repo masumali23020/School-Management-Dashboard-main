@@ -2,7 +2,6 @@
 // Multi-tenant, role-based authentication with single-query optimization
 
 import NextAuth, { type DefaultSession } from "next-auth";
-import { NextResponse } from "next/server";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
@@ -185,19 +184,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
 
   callbacks: {
-    // ── Authorized Callback: injects role/plan as headers for middleware ────────
-    // This runs on the Edge and ONLY reads from the JWT token (no DB, no bcrypt).
-    // middleware.ts reads x-user-role and x-user-plan headers set here.
-    async authorized({ request, auth }) {
-      const response = NextResponse.next();
-      if (auth?.user?.role) {
-        response.headers.set("x-user-role", auth.user.role);
-      }
-      if (auth?.user?.planType) {
-        response.headers.set("x-user-plan", auth.user.planType);
-      }
-      return response;
-    },
+    // Middleware reads the JWT via getToken() — no custom Response here (avoids
+    // interfering with auth routes when using `handlers` + SessionProvider).
+    authorized: async () => true,
 
     // ── JWT Callback: persist custom fields into the token ───────────────────
     async jwt({ token, user }) {

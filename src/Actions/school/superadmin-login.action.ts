@@ -6,7 +6,8 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { SignJWT } from "jose";
-import  prisma  from "@/lib/db";
+import prisma from "@/lib/db";
+import { superAdminJwtSecret } from "@/lib/superadmin-jwt-secret";
 import { z } from "zod";
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
@@ -15,10 +16,8 @@ const LoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// ─── JWT Secret ───────────────────────────────────────────────────────────────
-const SUPER_ADMIN_SECRET = new TextEncoder().encode(
-  process.env.SUPER_ADMIN_JWT_SECRET ?? process.env.AUTH_SECRET ?? "fallback-secret"
-);
+// ─── JWT Secret (same string as Edge middleware — see superAdminJwtSecret) ─────
+const SUPER_ADMIN_KEY = new TextEncoder().encode(superAdminJwtSecret());
 
 const COOKIE_NAME = "superadmin_token";
 
@@ -76,7 +75,7 @@ export async function superAdminLoginAction(
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("8h")
-    .sign(SUPER_ADMIN_SECRET);
+    .sign(SUPER_ADMIN_KEY);
 
   // 5. Set httpOnly cookie
   const cookieStore = await cookies();
@@ -94,7 +93,13 @@ export async function superAdminLoginAction(
 // ─── Logout Action ────────────────────────────────────────────────────────────
 export async function superAdminLogoutAction(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/superadmin",
+  });
 }
 
 // ─── Session Getter (use in Server Components & Route Handlers) ───────────────
@@ -113,7 +118,7 @@ export async function getSuperAdminSession(): Promise<SuperAdminSession | null> 
 
     if (!token) return null;
 
-    const { payload } = await jwtVerify(token, SUPER_ADMIN_SECRET);
+    const { payload } = await jwtVerify(token, SUPER_ADMIN_KEY);
 
     return {
       id:    payload.sub as string,

@@ -1,6 +1,7 @@
 // middleware.ts — avoid importing ./auth (pulls Prisma into Edge); use getToken instead.
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { superAdminJwtSecret } from "@/lib/superadmin-jwt-secret";
 import type { PlanType, UserRole } from "@/types/auth";
 
 // ─── Native JWT verification (replaces jose) ──────────────────────────────────
@@ -34,11 +35,6 @@ async function verifyJWT(token: string, secret: string): Promise<boolean> {
 function authSecret(): string | undefined {
   return process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 }
-
-const SUPER_ADMIN_SECRET =
-  process.env.SUPER_ADMIN_JWT_SECRET ??
-  authSecret() ??
-  "fallback-secret";
 
 /** Match Auth.js cookie names: __Secure- prefix only when the session cookie was set with secure: true */
 function useSecureSessionCookie(req: NextRequest): boolean {
@@ -111,18 +107,22 @@ export default async function middleware(req: NextRequest) {
 
   // ═══ BRANCH A: Super Admin ══════════════════════════════════════════════════
   if (pathname.startsWith(SUPER_PREFIX)) {
+    const superSecret = superAdminJwtSecret();
     const token = req.cookies.get("superadmin_token")?.value;
 
     if (pathname === SUPER_LOGIN) {
-      if (token && (await verifyJWT(token, SUPER_ADMIN_SECRET))) {
+      if (token && (await verifyJWT(token, superSecret))) {
         return NextResponse.redirect(new URL("/superadmin/dashboard", req.url));
       }
       return NextResponse.next();
     }
 
-    if (!token || !(await verifyJWT(token, SUPER_ADMIN_SECRET))) {
+    if (!token || !(await verifyJWT(token, superSecret))) {
       const res = NextResponse.redirect(new URL(SUPER_LOGIN, req.url));
-      res.cookies.set("superadmin_token", "", { maxAge: 0 });
+      res.cookies.set("superadmin_token", "", {
+        maxAge: 0,
+        path: "/superadmin",
+      });
       return res;
     }
     return NextResponse.next();
@@ -226,5 +226,7 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|public/).*)"],
+  matcher: [
+    "/((?!api/|_next/static|_next/image|favicon.ico|public/).*)",
+  ],
 };

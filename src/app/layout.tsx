@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import "./globals.css";
 import Script from "next/script";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default function RootLayout({
 
       <html lang="en">
         <body className={inter.className}>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <ToastContainer 
             position="top-right"
             autoClose={3000}
