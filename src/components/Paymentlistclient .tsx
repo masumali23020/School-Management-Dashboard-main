@@ -34,9 +34,11 @@ const METHOD_COLOR: Record<string, string> = {
 export default function PaymentListClient({
   classes,
   academicYears,
+  schoolInfo,
 }: {
   classes: ClassItem[];
   academicYears: string[];
+  schoolInfo: { name: string; address: string; phone: string }
 }) {
   // ── Filters ────────────────────────────────────────────────────────────
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
@@ -116,9 +118,9 @@ const fetchData = useCallback(async () => {
       paidAt:        p.paidAt,
       collectedBy:   p.collectedBy,
       remarks:       p.remarks,
-      schoolName:    "Your School Name",
-      schoolAddress: "School Address, City",
-      schoolPhone:   "01XXXXXXXXX",
+      schoolName:    schoolInfo.name,
+      schoolAddress: schoolInfo.address,
+      schoolPhone:   schoolInfo.phone,
     } as InvoiceData);
   };
 
