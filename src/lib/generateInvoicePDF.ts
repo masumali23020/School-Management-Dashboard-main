@@ -44,7 +44,6 @@ function amountInWords(n: number): string {
   if (n < 10000000) return amountInWords(Math.floor(n/100000)) + " Lakh" + (n%100000 ? " " + amountInWords(n%100000) : "");
   return amountInWords(Math.floor(n/10000000)) + " Crore" + (n%10000000 ? " " + amountInWords(n%10000000) : "");
 }
-
 export function generateInvoicePDF(inv: InvoiceData): void {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const PW = 210;
