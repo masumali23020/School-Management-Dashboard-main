@@ -507,7 +507,7 @@ model SMSLog {
   @@index([sentAt])
 }
 
-// --- ACADEMIC RECORDS ---
+// --- ACADEMIC RECORD ---
 
 // REMOVED redundant schoolId from StudentClassHistory (accessible via Student)
 model StudentClassHistory {
