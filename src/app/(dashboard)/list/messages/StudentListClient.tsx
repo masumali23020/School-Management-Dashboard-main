@@ -289,7 +289,7 @@ const StudentListClient = ({
   if (!mounted) {
     return <div>Loading...</div>;
   }
-
+// sdfsdfsd  
   const columns = [
     { header: "Select", accessor: "select", className: "w-12" },
     { header: "Info", accessor: "info" },
