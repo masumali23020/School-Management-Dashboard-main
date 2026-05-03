@@ -77,15 +77,93 @@ function buildMessage(
     ? `Exam : ${examInfo.title}\nDate : ${new Date(examInfo.startTime).toLocaleDateString("en-BD")}`
     : null;
 
-  const tpl: Record<string, (string | null)[]> = {
-    "exam-fee":      [`Dear ${parentName},`, ``, `Exam fees for your child are due. Please pay at your earliest convenience.`, ``, info, examLine, ``, sig],
-    "meeting":       [`Dear ${parentName},`, ``, `You are invited to a parents-teacher meeting for your child.`, ``, info, ``, `Please attend on the scheduled date.`, sig],
-    "school-notice": [`Dear ${parentName},`, ``, `Important school notice for your child.`, ``, info, ``, `Please check the school notice board or contact the class teacher.`, sig],
-    "result":        [`Dear ${parentName},`, ``, `Exam results have been published.`, ``, info, examLine, ``, `Visit the student portal or contact school for details.`, sig],
-    "attendance":    [`Dear ${parentName},`, ``, `Attendance alert. Please ensure regular attendance.`, ``, info, ``, `Contact the class teacher for attendance details.`, sig],
-    "fee-reminder":  [`Dear ${parentName},`, ``, `Fee payment reminder. Please clear outstanding fees.`, ``, info, ``, `Contact the school office for details.`, sig],
-    "custom":        [customMessage || "Message from school", ``, info, ``, sig],
-  };
+const tpl: Record<string, (string | null)[]> = {
+  "exam-fee": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `সশ্রদ্ধ অবগতির জন্য জানানো যাচ্ছে যে, আপনার সন্তানের আসন্ন পরীক্ষার ফি পরিশোধের সময় নির্ধারিত হয়েছে।`,
+    `বিদ্যালয়ের একাডেমিক কার্যক্রম সুষ্ঠুভাবে পরিচালনার স্বার্থে নির্ধারিত সময়ের মধ্যে ফি পরিশোধ করার জন্য বিশেষভাবে অনুরোধ করা হচ্ছে।`,
+    ``,
+    info,
+    examLine,
+    ``,
+    `আপনার মূল্যবান সহযোগিতার জন্য বিদ্যালয় কর্তৃপক্ষ আন্তরিকভাবে কৃতজ্ঞ।`,
+    sig
+  ],
+
+  "meeting": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `আপনার সন্তানের শিক্ষাগত অগ্রগতি ও সার্বিক উন্নয়ন নিয়ে গুরুত্বপূর্ণ আলোচনা করার লক্ষ্যে একটি অভিভাবক-শিক্ষক সভার আয়োজন করা হয়েছে।`,
+    ``,
+    info,
+    ``,
+    `উক্ত সভায় আপনার সম্মানিত উপস্থিতি একান্তভাবে কাম্য।`,
+    `আপনার উপস্থিতি আপনার সন্তানের উন্নয়নে গুরুত্বপূর্ণ ভূমিকা রাখবে।`,
+    sig
+  ],
+
+  "school-notice": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `আপনার সন্তানের জন্য একটি গুরুত্বপূর্ণ বিদ্যালয় সংক্রান্ত বিজ্ঞপ্তি প্রদান করা হয়েছে।`,
+    ``,
+    info,
+    ``,
+    `বিস্তারিত জানার জন্য অনুগ্রহ করে বিদ্যালয়ের নোটিশ বোর্ড পরিদর্শন করুন অথবা সংশ্লিষ্ট শ্রেণি শিক্ষকের সাথে যোগাযোগ করুন।`,
+    sig
+  ],
+
+  "result": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `আনন্দের সাথে জানানো যাচ্ছে যে, আপনার সন্তানের পরীক্ষার ফলাফল প্রকাশিত হয়েছে।`,
+    ``,
+    info,
+    examLine,
+    ``,
+    `ফলাফলের বিস্তারিত জানতে স্টুডেন্ট পোর্টাল ভিজিট করুন অথবা বিদ্যালয়ের সাথে যোগাযোগ করুন।`,
+    `আপনার সন্তানের ধারাবাহিক সাফল্য কামনা করছি।`,
+    sig
+  ],
+
+  "attendance": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `আপনার সন্তানের উপস্থিতি সম্পর্কে অবহিত করা যাচ্ছে যে, নিয়মিত বিদ্যালয়ে উপস্থিতি নিশ্চিত করা অত্যন্ত গুরুত্বপূর্ণ।`,
+    ``,
+    info,
+    ``,
+    `নিয়মিত উপস্থিতি শিক্ষার ধারাবাহিকতা বজায় রাখতে সহায়ক।`,
+    `বিস্তারিত জানার জন্য অনুগ্রহ করে শ্রেণি শিক্ষকের সাথে যোগাযোগ করুন।`,
+    sig
+  ],
+
+  "fee-reminder": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    `এটি আপনার সন্তানের বকেয়া ফি পরিশোধের জন্য একটি বিনীত স্মারক।`,
+    `বিদ্যালয়ের কার্যক্রম সুষ্ঠুভাবে পরিচালনার স্বার্থে অনুগ্রহ করে দ্রুত বকেয়া ফি পরিশোধ করার জন্য বিশেষভাবে অনুরোধ করা হচ্ছে।`,
+    ``,
+    info,
+    ``,
+    `প্রয়োজনে বিস্তারিত জানার জন্য বিদ্যালয় অফিসে যোগাযোগ করুন।`,
+    `আপনার সহযোগিতা আমাদের জন্য অত্যন্ত মূল্যবান।`,
+    sig
+  ],
+
+  "custom": [
+    `সম্মানিত অভিভাবক ${parentName},`,
+    ``,
+    customMessage || "বিদ্যালয় থেকে একটি গুরুত্বপূর্ণ বার্তা প্রদান করা হচ্ছে।",
+    ``,
+    info,
+    ``,
+    `ধন্যবাদান্তে,`,
+    `বিদ্যালয় কর্তৃপক্ষ`,
+    sig
+  ],
+};
 
   return (tpl[messageType] ?? tpl["school-notice"])
     .filter((l): l is string => l !== null && l !== undefined)
