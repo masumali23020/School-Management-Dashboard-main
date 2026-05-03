@@ -19,10 +19,24 @@ export default async function CashierPage() {
       include: { grade: true },
       orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
     }),
-    prisma.school.findUnique({
-      where: { id: Number(schoolId) },
-      select: { academicSession: true },
-    }),
+ 
+
+      // ১. ডাটাবেস থেকে স্কুলের তথ্য নিয়ে আসুন
+   prisma.school.findUnique({
+    where: { id: Number(schoolId) },
+    select: {
+      schoolName: true,
+      shortName: true,
+      logoUrl: true,
+      email: true,
+      establishedYear: true,
+      eiinNumber: true,
+      academicSession: true,
+      address: true,
+      phone: true,
+    }
+  })
+    
   ]);
 
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
@@ -35,6 +49,15 @@ export default async function CashierPage() {
         name: c.name,
         gradeLevel: c.grade.level,
       }))}
+      schoolInfo={{
+        name: school?.shortName || "Unknown School",
+        address: school?.address || "No Address",
+        phone: school?.phone || "No Phone",
+        email: school?.email || "No Email",
+        establishedYear: school?.establishedYear || "No Year",
+        eiinNumber: school?.eiinNumber || "No EIIN",
+        academicSession: school?.academicSession || "No Session",
+      }}
       defaultSession={defaultSession}
     />
   );

@@ -28,7 +28,7 @@ const METHOD_LABEL: Record<string, string> = {
 const MONTHS = ["January","February","March","April","May","June",
                 "July","August","September","October","November","December"];
 
-export default function CashierClient({ classes, defaultSession }: { classes: ClassItem[]; defaultSession: string }) {
+export default function CashierClient({ classes, defaultSession,schoolInfo }: { classes: ClassItem[]; defaultSession: string; schoolInfo: any }) {
   const [isPending, startTransition] = useTransition();
   const [selectedSession, setSelectedSession] = useState(defaultSession);
   const [availableSessions, setAvailableSessions] = useState<string[]>([defaultSession]);
@@ -129,9 +129,13 @@ export default function CashierClient({ classes, defaultSession }: { classes: Cl
       academicYear:  lastInvoice.academicYear,
       paidAt:        lastInvoice.paidAt,
       collectedBy:   lastInvoice.collectedBy,
-      schoolName:    "Your School Name",
-      schoolAddress: "School Address, City",
-      schoolPhone:   "01XXXXXXXXX",
+      schoolName:    schoolInfo.name,
+      schoolAddress: schoolInfo.address,
+      schoolPhone:   schoolInfo.phone,
+      schoolEmail:   schoolInfo.email,
+      establishedYear: schoolInfo.establishedYear,
+      eiinNumber:      schoolInfo.eiinNumber,
+      academicSession: schoolInfo.academicSession,
     } as InvoiceData);
   };
 

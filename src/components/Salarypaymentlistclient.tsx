@@ -15,9 +15,9 @@ type SalaryTypeFilter = { id: number; name: string };
 type PaymentRow = {
   id:             number;
   invoiceNumber:  string;
-  employeeId:     string;
+  teacherId:      string;
   employeeName:    string;
-  employeeImg:    string | null;
+  teacherImg:     string | null;
   salaryTypeName: string;
   amountPaid:     number;
   paymentMethod:  string;
@@ -45,9 +45,16 @@ const MONTHS = [
 export default function SalaryPaymentListClient({
   salaryTypes,
   academicYears,
+  schoolInfo,
+  loginusername
 }: {
   salaryTypes:   SalaryTypeFilter[];
   academicYears: string[];
+  
+  loginusername: string;
+    schoolInfo: any
+
+  
 }) {
   // ── FIX: mounted gate ─────────────────────────────────────────────────────
   // Server renders a skeleton. Client takes over after mount.
@@ -100,7 +107,11 @@ const fetchData = useCallback(async () => {
   if (res.success) {
     const formatted: PaymentRow[] = res.data.map((item) => ({
       ...item,
+      teacherId: item.employeeId,
+      teacherImg: item.employeeImg,
       amountPaid: Number(item.amountPaid),
+      monthLabel: MONTHS[new Date(item.paidAt).getMonth()],
+
     }));
 
     setPayments(formatted);
@@ -151,9 +162,10 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
   if (res.success && res.data) {
     const pdfData = {
       ...convertDecimalsToNumbers(res.data),
-      schoolName: "Your School Name",
-      schoolAddress: "School Address, City",
-      schoolPhone: "01XXXXXXXXX",
+      schoolName: schoolInfo.name || "Your School Name",
+      schoolAddress: schoolInfo.address || "School Address, City",
+      schoolPhone: schoolInfo.phone || "01XXXXXXXXX",
+      loginusername: loginusername || "Unknown User",
     };
     
     generateSalaryPDF(pdfData);
@@ -195,10 +207,10 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
         filterMethod:  filterMethod ? METHOD_LABEL[filterMethod] ?? filterMethod : undefined,
         fromDate:      filterFrom     || undefined,
         toDate:        filterTo       || undefined,
-        schoolName:    "Your School Name",
-        schoolAddress: "School Address, City",
-        schoolPhone:   "01XXXXXXXXX",
-        generatedBy:   "Admin",
+        schoolName:    schoolInfo.name || "Your School Name",
+        schoolAddress: schoolInfo.address || "School Address, City",
+        schoolPhone:   schoolInfo.phone || "01XXXXXXXXX",
+        generatedBy:   loginusername || "Unknown User",
       });
     } catch {
       alert("PDF generation failed.");

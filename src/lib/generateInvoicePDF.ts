@@ -27,7 +27,7 @@ export type InvoiceData = {
   establishedYear?: string;
   eiinNumber?:      string;
   academicSession?: string;
-   collectedBy?: string;      // Keep for backward compatibility
+  collectedBy?: string;      // Keep for backward compatibility
 
 };
 

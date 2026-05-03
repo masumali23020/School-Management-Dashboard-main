@@ -63,6 +63,8 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
     schoolAddress: inv.schoolAddress?.trim() || "School Address, City",
     schoolPhone: inv.schoolPhone?.trim() || "01XXXXXXXXX",
     schoolEmail: inv.schoolEmail?.trim() || "info@school.com",
+    schoolLogo: inv.schoolLogo?.trim() || undefined,
+    
   };
   
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
