@@ -1,17 +1,18 @@
-"use client"
+"use client";
 
-import { signOut } from "next-auth/react"
+import { signOut } from "next-auth/react";
 
 export function SignOutButton() {
   return (
     <button
-     onClick={() => signOut({ 
-  callbackUrl: "/", 
-  redirect: true 
-})}
+      onClick={() =>
+        signOut({
+          callbackUrl: process.env.NEXT_PUBLIC_APP_URL,
+        })
+      }
       className="text-xs bg-gray-200 px-2 py-1 rounded"
     >
       Logout
     </button>
-  )
+  );
 }
