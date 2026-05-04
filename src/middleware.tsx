@@ -161,9 +161,11 @@ export default async function middleware(req: NextRequest) {
   }
 
   // 4. লগইন করা থাকলে লগইন পেজ থেকে ড্যাশবোর্ডে পাঠানো
-  if (pathname === "/login" && role) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] ?? "/", req.url));
-  }
+if (pathname === "/login" && role) {
+  return NextResponse.redirect(
+    new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
+  );
+}
 
   // 5. প্রটেক্টেড রুট কিন্তু সেশন নেই -> লগইন এ পাঠাও
   if (isProtectedRoute && !hasSession) {
