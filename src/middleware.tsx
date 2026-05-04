@@ -147,7 +147,7 @@ export default async function middleware(req: NextRequest) {
 
   const role = token?.role as UserRole | undefined;
   const planType = token?.planType as PlanType | undefined;
-  const hasSession = !!role;
+  const hasSession = !!token?.userId;
 
   // 3. ডায়নামিক পাবলিক রুট হ্যান্ডলিং (School Slug)
   // চেক করুন রুটটি প্রটেক্টেড কি না। যদি প্রটেক্টেড না হয়, তবে সেটা পাবলিক।
@@ -163,7 +163,7 @@ export default async function middleware(req: NextRequest) {
   // 4. লগইন করা থাকলে লগইন পেজ থেকে ড্যাশবোর্ডে পাঠানো
 if (pathname === "/login" && role) {
   return NextResponse.redirect(
-    new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
+    new URL(ROLE_DASHBOARDS[role as string] ?? "/", req.url)
   );
 }
 
@@ -186,24 +186,24 @@ if (pathname === "/login" && role) {
   if (isPublic) return NextResponse.next();
 
   // No session → redirect to login
-  if (!hasSession) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+if (!hasSession) {
+  const loginUrl = new URL("/login", req.url);
+  loginUrl.searchParams.set("callbackUrl", pathname);
+  return NextResponse.redirect(loginUrl);
+}
 
   // Root redirect
   if (pathname === "/") {
     return NextResponse.redirect(
-      new URL(ROLE_DASHBOARDS[role] ?? "/login", req.url)
+      new URL(ROLE_DASHBOARDS[role as string] ?? "/login", req.url)
     );
   }
 
   // Role check
   for (const [prefix, allowed] of Object.entries(ROLE_ROUTES)) {
-    if (pathname.startsWith(prefix) && !allowed.includes(role)) {
+    if (pathname.startsWith(prefix) && !allowed.includes(role as UserRole)) {
       return NextResponse.redirect(
-        new URL(ROLE_DASHBOARDS[role] ?? "/", req.url)
+        new URL(ROLE_DASHBOARDS[role as string] ?? "/", req.url)
       );
     }
   }
