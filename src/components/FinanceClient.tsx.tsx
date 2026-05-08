@@ -23,46 +23,10 @@ const TYPE_PILL: Record<string, string> = {
 
 const PAGE_SIZE = 25;
 
-// ── Mini bar chart ─────────────────────────────────────────────────────────
-function MiniBarChart({ data }: { data: { month: string; income: number; expense: number }[] }) {
-  if (data.length === 0) return null;
-  const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1);
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" /> Income</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> Expense</span>
-      </div>
-      <div className="flex items-end gap-1.5 h-28 overflow-x-auto pb-1">
-        {data.map(d => {
-          const incH = Math.round((d.income  / maxVal) * 96);
-          const expH = Math.round((d.expense / maxVal) * 96);
-          return (
-            <div key={d.month} className="flex flex-col items-center gap-0.5 flex-shrink-0" style={{ minWidth: 32 }}>
-              <div className="flex items-end gap-0.5 h-24">
-                <div
-                  title={`Income: ৳${d.income.toLocaleString()}`}
-                  className="w-3.5 rounded-t bg-emerald-500 transition-all cursor-pointer hover:bg-emerald-600"
-                  style={{ height: incH || 2 }}
-                />
-                <div
-                  title={`Expense: ৳${d.expense.toLocaleString()}`}
-                  className="w-3.5 rounded-t bg-red-400 transition-all cursor-pointer hover:bg-red-500"
-                  style={{ height: expH || 2 }}
-                />
-              </div>
-              <span className="text-xs text-gray-400" style={{ fontSize: 9 }}>{d.month.slice(0,3)}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function FinanceClient({ academicYears }: { academicYears: string[] }) {
+export default function  FinanceClient({ academicYears,schoolInfo,loginusername }: { academicYears: string[]; schoolInfo: any; loginusername: string }) {
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -114,10 +78,10 @@ export default function FinanceClient({ academicYears }: { academicYears: string
         filterType:   filterType  || undefined,
         fromDate:     filterFrom  || undefined,
         toDate:       filterTo    || undefined,
-        schoolName:   "Your School Name",
-        schoolAddress:"School Address, City",
-        schoolPhone:  "01XXXXXXXXX",
-        generatedBy:  "Admin",
+        schoolName:   schoolInfo.name || "Unknown School",
+        schoolAddress: schoolInfo.address || "School Address, City",
+        schoolPhone:  schoolInfo.phone || "01XXXXXXXXX",
+        generatedBy:  loginusername || "Admin",
       });
     } catch { alert("PDF generation failed."); }
     setPdfLoading(false);
@@ -168,89 +132,8 @@ export default function FinanceClient({ academicYears }: { academicYears: string
         </button>
       </div>
 
-      {/* ── Summary cards ── */}
-      {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Income */}
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Total Income</p>
-              <span className="text-xl">📈</span>
-            </div>
-            <p className="text-3xl font-bold">৳{summary.totalIncome.toLocaleString()}</p>
-            <p className="text-xs text-emerald-200 mt-1">{summary.incomeCount} transactions</p>
-            <div className="mt-3 space-y-1">
-              {summary.incomeByCategory.slice(0, 3).map(c => (
-                <div key={c.category} className="flex justify-between text-xs">
-                  <span className="text-emerald-100 truncate max-w-[120px]">{c.category}</span>
-                  <span className="text-white font-medium">৳{c.total.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Expense */}
-          <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-5 text-white shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-red-100 uppercase tracking-wider">Total Expense</p>
-              <span className="text-xl">📉</span>
-            </div>
-            <p className="text-3xl font-bold">৳{summary.totalExpense.toLocaleString()}</p>
-            <p className="text-xs text-red-200 mt-1">{summary.expenseCount} transactions</p>
-            <div className="mt-3 space-y-1">
-              {summary.expenseByCategory.slice(0, 3).map(c => (
-                <div key={c.category} className="flex justify-between text-xs">
-                  <span className="text-red-100 truncate max-w-[120px]">{c.category}</span>
-                  <span className="text-white font-medium">৳{c.total.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Net */}
-          <div className={`rounded-2xl p-5 text-white shadow-sm bg-gradient-to-br ${
-            summary.netBalance >= 0
-              ? "from-blue-600 to-indigo-700"
-              : "from-orange-500 to-amber-600"
-          }`}>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold uppercase tracking-wider opacity-80">
-                {summary.netBalance >= 0 ? "Net Surplus" : "Net Deficit"}
-              </p>
-              <span className="text-xl">{summary.netBalance >= 0 ? "✅" : "⚠️"}</span>
-            </div>
-            <p className="text-3xl font-bold">৳{Math.abs(summary.netBalance).toLocaleString()}</p>
-            <p className="text-xs mt-1 opacity-70">
-              {summary.netBalance >= 0
-                ? `Income exceeds expense by ৳${summary.netBalance.toLocaleString()}`
-                : `Expense exceeds income by ৳${Math.abs(summary.netBalance).toLocaleString()}`}
-            </p>
-            {/* Progress bar */}
-            {summary.totalIncome > 0 && (
-              <div className="mt-3">
-                <div className="flex justify-between text-xs mb-1 opacity-70">
-                  <span>Income used for expense</span>
-                  <span>{Math.min(100, Math.round(summary.totalExpense / summary.totalIncome * 100))}%</span>
-                </div>
-                <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white/70 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.round(summary.totalExpense / summary.totalIncome * 100))}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Chart ── */}
-      {summary && summary.monthly.length > 0 && (
-        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">📊 Monthly Income vs Expense</h3>
-          <MiniBarChart data={summary.monthly} />
-        </div>
-      )}
+  
 
       {/* ── Filters ── */}
       <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
@@ -265,8 +148,10 @@ export default function FinanceClient({ academicYears }: { academicYears: string
           <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">Income & Expense</option>
-            <option value="INCOME">Income only</option>
+            <option value="INCOME">Dhan</option>
             <option value="EXPENSE">Expense only</option>
+            <option value="EXPENSE">student Fees</option>
+            <option value="EXPENSE">Salary</option>
           </select>
 
           <div className="flex flex-col gap-0.5">

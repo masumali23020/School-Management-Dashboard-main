@@ -32,7 +32,11 @@ const menuItems = [
       { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: [ "CASHIER"] },
       { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: [ "CASHIER"] },
       { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: [ "CASHIER"] },
-      { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: [ "CASHIER"] },
+      { icon: "/collections.png", label: "Collection Categories", href: "/list/collection-categories", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/collections.png", label: "Collections", href: "/list/collections", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/expenses.png", label: "Expense Categories", href: "/list/expense-categories", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/expenses.png", label: "Expenses", href: "/list/expenses", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["ADMIN", "CASHIER"] },
       { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["ADMIN", "CASHIER"] },
       { icon: "/results.png", label: "Results", href: "/result", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
     ],
@@ -101,7 +105,7 @@ const Menu = async ({ user }: { user: any }) => {
             </span>
 
             {visibleItems.map((item) => (
-              <div key={item.label}>
+              <div key={`${item.label}-${item.href}`}>
                 {/* Inject Classes submenu just before Lessons */}
                 {item.label === "Parents" && CLASSES_VISIBLE.includes(role) && (
                   <ClassesSubMenu key="classes-submenu" classes={classes} schoolId={schoolId} />

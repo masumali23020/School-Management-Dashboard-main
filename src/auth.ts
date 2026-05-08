@@ -216,9 +216,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     // ── Redirect callback ────────────────────────────────────────────────────
-    async redirect({ url, baseUrl }) {
-      return baseUrl;
-    },
+    // ── Redirect callback ────────────────────────────────────────────────────
+async redirect({ url, baseUrl }) {
+  // যদি url কোনো রিলেটিভ পাথ হয় (/dashboard), তবে বেস ইউআরএল এর সাথে যোগ হবে
+  if (url.startsWith("/")) return `${baseUrl}${url}`;
+  
+  // যদি url অলরেডি একই অরিজিনে থাকে, তবে সেখানে যাবে
+  else if (new URL(url).origin === baseUrl) return url;
+  
+  return baseUrl;
+},
   },
 
   pages: {

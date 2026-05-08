@@ -5,6 +5,7 @@ import CountChartContinar from "../../../components/CountChartContinar";
 import EvenClenderContainer from "../../../components/EvenClenderContainer";
 import EventCalendar from "../../../components/EventCalendar";
 import FinanceChart from "../../../components/FinanceChart";
+import FinanceSummaryCards from "../../../components/FinanceSummaryCards";
 import UserCard from "../../../components/UserCard";
 
 
@@ -17,6 +18,9 @@ const AdminPage  = ({
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* LEFT */}
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
+        {/* SUMMARY CARDS */}
+        <FinanceSummaryCards />
+
         {/* USER CARDS */}
         <div className="flex gap-4 justify-between flex-wrap">
           <UserCard type="staff" />

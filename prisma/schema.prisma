@@ -123,6 +123,11 @@ model School {
   classFeeStructures    ClassFeeStructure[]
   subscriptionPayments  SubscriptionPayment[]
 
+  collections        Collection[]
+  collectionCategories CollectionCategory[]
+  expenses           Expense[]
+  expenseCategories  ExpenseCategory[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -182,6 +187,9 @@ model Employee {
   designation String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  collectedFunds Collection[] @relation("CollectionCollector")
+  expensesMade   Expense[]    @relation("ExpenseSpender")
 
   subjects          Subject[]
   lessons           Lesson[]
@@ -684,4 +692,82 @@ model Announcement {
   @@index([classId])
   @@index([date])
   @@index([isPublic])
+}
+// --- GENERAL COLLECTION & FUND MANAGEMENT ---
+
+model CollectionCategory {
+  id          Int          @id @default(autoincrement())
+  schoolId    Int
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String       // উদা: ঈদ কালেকশন, লিল্লাহ ফান্ড, মসজিদ ফান্ড
+  description String?
+  isActive    Boolean      @default(true)
+  collections Collection[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([schoolId, name])
+  @@unique([id, schoolId])
+  @@index([schoolId])
+}
+
+model Collection {
+  id            Int                @id @default(autoincrement())
+  schoolId      Int
+  school        School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  categoryId    Int
+  category      CollectionCategory @relation(fields: [categoryId, schoolId], references: [id, schoolId])
+  amount        Decimal            @db.Decimal(10, 2)
+  donorName     String?            // যে টাকা দিচ্ছে তার নাম (ঐচ্ছিক)
+  phone         String?            // মোবাইল নম্বর (ঐচ্ছিক)
+  paymentMethod PaymentMethod      @default(CASH)
+  receivedById  String
+  receivedBy    Employee           @relation("CollectionCollector", fields: [receivedById], references: [id])
+  date          DateTime           @default(now())
+  remarks       String?            // কোনো বিশেষ নোট
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([schoolId])
+  @@index([categoryId])
+  @@index([date])
+}
+
+// --- EXPENSE MANAGEMENT ---
+
+model ExpenseCategory {
+  id          Int       @id @default(autoincrement())
+  schoolId    Int
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String    // উদা: গাড়ি ভাড়া, নাস্তা, বিদ্যুৎ বিল
+  description String?
+  isActive    Boolean   @default(true)
+  expenses    Expense[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([schoolId, name])
+  @@unique([id, schoolId])
+  @@index([schoolId])
+}
+
+model Expense {
+  id            Int             @id @default(autoincrement())
+  schoolId      Int
+  school        School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  categoryId    Int
+  category      ExpenseCategory @relation(fields: [categoryId, schoolId], references: [id, schoolId])
+  title         String?
+  amount        Decimal         @db.Decimal(10, 2)
+  description   String?         // কি কারণে খরচ হলো তার বিস্তারিত
+  spentById     String?
+  spentBy       Employee?       @relation("ExpenseSpender", fields: [spentById], references: [id])
+  date          DateTime        @default(now())
+  paymentMethod PaymentMethod   @default(CASH)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([schoolId])
+  @@index([categoryId])
+  @@index([date])
 }

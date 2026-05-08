@@ -59,10 +59,10 @@ export function generateSalaryReportPDF(opts: SalaryReportOptions): void {
     payments,
     filterMonth, filterYear, filterTeacher, filterType, filterMethod,
     fromDate, toDate,
-    schoolName    = "Your School Name",
-    schoolAddress = "School Address, City",
-    schoolPhone   = "01XXXXXXXXX",
-    generatedBy   = "Admin",
+    schoolName    = opts.schoolName || "Your School Name",
+    schoolAddress = opts.schoolAddress || "School Address, City",
+    schoolPhone   = opts.schoolPhone || "01XXXXXXXXX",
+    generatedBy   = opts.generatedBy || "Admin",
   } = opts;
 
   const doc  = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });

@@ -1,9 +1,5 @@
-import React from 'react'
+import FinanceDashboardClient from "@/components/finance/FinanceDashboardClient";
 
-const ReportListPage = () => {
-  return (
-    <div>ReportListPage</div>
-  )
+export default function FinancePage() {
+  return <FinanceDashboardClient />;
 }
-
-export default ReportListPage
