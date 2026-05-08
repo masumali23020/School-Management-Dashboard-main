@@ -68,16 +68,24 @@ export default function FinanceEntityPageClient({ entity }: FinanceEntityPageCli
     setIsLoading(false);
   }, [loadBootstrap, loadTable]);
 
-  const handleDelete = useCallback(
-    async (entry: FinanceEntry) => {
-      const result =
-        entry.type === "COLLECTION" ? await deleteCollectionAction(entry.id) : await deleteExpenseAction(entry.id);
-      if (!result.success) return toast.error(result.message);
-      toast.success(result.message);
-      await refreshAll();
-    },
-    [refreshAll]
-  );
+const handleDelete = useCallback(
+  async (entry: FinanceEntry) => {
+    const result =
+      entry.type === "COLLECTION"
+        ? await deleteCollectionAction(entry.id)
+        : await deleteExpenseAction(entry.id);
+
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message);
+
+    await refreshAll();
+  },
+  [refreshAll]
+);
 
   useEffect(() => {
     refreshAll();

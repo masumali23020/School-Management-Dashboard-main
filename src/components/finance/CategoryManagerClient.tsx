@@ -60,8 +60,11 @@ export default function CategoryManagerClient({ type }: CategoryManagerClientPro
     [rows, search]
   );
 
-  const handleSubmit = (values: CollectionCategoryInput | ExpenseCategoryInput) => {
-    startTransition(async () => {
+const handleSubmit = (
+  values: CollectionCategoryInput | ExpenseCategoryInput
+) => {
+  startTransition(() => {
+    void (async () => {
       const response =
         editingId !== null
           ? isCollection
@@ -70,14 +73,27 @@ export default function CategoryManagerClient({ type }: CategoryManagerClientPro
           : isCollection
             ? await createCollectionCategory(values)
             : await createExpenseCategory(values);
-      if (!response.success) return toast.error(response.message);
+
+      if (!response.success) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success(response.message);
+
       setOpen(false);
       setEditingId(null);
-      form.reset({ name: "", description: "", isActive: true });
+
+      form.reset({
+        name: "",
+        description: "",
+        isActive: true,
+      });
+
       await loadRows();
-    });
-  };
+    })();
+  });
+};
 
   const handleEdit = (row: FinanceCategory) => {
     setEditingId(row.id);
@@ -89,14 +105,24 @@ export default function CategoryManagerClient({ type }: CategoryManagerClientPro
     setOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    startTransition(async () => {
-      const response = isCollection ? await deleteCollectionCategory(id) : await deleteExpenseCategory(id);
-      if (!response.success) return toast.error(response.message);
+const handleDelete = (id: number) => {
+  startTransition(() => {
+    void (async () => {
+      const response = isCollection
+        ? await deleteCollectionCategory(id)
+        : await deleteExpenseCategory(id);
+
+      if (!response.success) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success(response.message);
+
       await loadRows();
-    });
-  };
+    })();
+  });
+};
 
   return (
     <div className="space-y-6 p-4">
