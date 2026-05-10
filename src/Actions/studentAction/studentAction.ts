@@ -146,6 +146,8 @@ export const createStudent = async (
         gradeId:   d.gradeId,
         classId:   d.classId,
         parentId:  d.parentId  || null,
+        advance:   d.advance,
+        discount:  d.discount,
       },
     });
 
@@ -319,6 +321,8 @@ export const updateStudent = async (
         gradeId:   d.gradeId,
         classId:   d.classId,
         parentId:  d.parentId  || null,
+        advance:   d.advance,
+        discount:  d.discount,
       },
     });
 

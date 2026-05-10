@@ -56,6 +56,8 @@ const StudentForm = ({ setOpen, relatedData, type, data }: Props) => {
       classId:   data?.classId    ?? 0,
       parentId:  data?.parentId   ?? "",
       password:  "",
+      advance:   data?.advance    ?? 0.0,
+      discount:  data?.discount   ?? 0.0,
     },
   });
 
@@ -80,6 +82,8 @@ const StudentForm = ({ setOpen, relatedData, type, data }: Props) => {
       parentId: formData.parentId || undefined,
       img: imgUrl || "",
       password: formData.password || undefined,
+      advance: formData.advance,
+      discount: formData.discount,
     };
     
     // Only add id for update
@@ -125,6 +129,8 @@ const StudentForm = ({ setOpen, relatedData, type, data }: Props) => {
         <InputField label="Phone"       name="phone"     defaultValue={data?.phone}     register={register} error={errors.phone} />
         <InputField label="Address"     name="address"   defaultValue={data?.address}   register={register} error={errors.address} />
         <InputField label="Blood Type"  name="bloodType" defaultValue={data?.bloodType} register={register} error={errors.bloodType} />
+        <InputField label="Advance"     name="advance"   defaultValue={data?.advance}   register={register} error={errors.advance} />
+        <InputField label="Discount"    name="discount"  defaultValue={data?.discount}  register={register} error={errors.discount} />
         <InputField
           label="Birthday" name="birthday" type="date"
           defaultValue={data?.birthday ? new Date(data.birthday).toISOString().split("T")[0] : ""}
@@ -321,7 +327,7 @@ const StudentForm = ({ setOpen, relatedData, type, data }: Props) => {
           className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isUploading}
         >
-          {isUploading ? "Uploading Image..." : (type === "create" ? "Create Teacher" : "Update Teacher")}
+          {isUploading ? "Uploading Image..." : (type === "create" ? "Create Student" : "Update Student")}
         </button>
       </div>
     </form>

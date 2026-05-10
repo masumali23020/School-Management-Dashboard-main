@@ -98,6 +98,10 @@ model School {
   isActive   Boolean          @default(true)
   smsBalance Int              @default(0)
   expiredAt  DateTime?
+  mealTypes       MealType[]
+  mealAttendances MealAttendance[]
+  mealPayments    MealPayment[]
+  dailyMenus      DailyMenu[]
 
   employees             Employee[]
   students              Student[]
@@ -188,6 +192,9 @@ model Employee {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  servedMeals    MealAttendance[] @relation("MealServer")
+  
+
   collectedFunds Collection[] @relation("CollectionCollector")
   expensesMade   Expense[]    @relation("ExpenseSpender")
 
@@ -221,6 +228,13 @@ model Student {
   sex       UserSex
   birthday  DateTime
   createdAt DateTime @default(now())
+
+  discount  Float    @default(0.0) 
+  advance   Float    @default(0.0)
+
+
+  mealAttendances MealAttendance[]
+  mealPayments    MealPayment[]
 
   parentId String?
   parent   Parent? @relation(fields: [parentId], references: [id])
@@ -770,4 +784,78 @@ model Expense {
   @@index([schoolId])
   @@index([categoryId])
   @@index([date])
+}
+
+
+// --- MEAL MANAGEMENT SYSTEM (EXTENDED) ---
+
+model MealType {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String   // Breakfast, Lunch, Dinner, Guest Meal
+  rate        Decimal  @db.Decimal(10, 2)
+  guestRate   Decimal? @db.Decimal(10, 2) // গেস্টদের জন্য আলাদা দাম থাকলে
+  isActive    Boolean  @default(true)
+  meals       MealAttendance[]
+  
+  @@unique([schoolId, name])
+}
+
+model MealAttendance {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mealTypeId  Int
+  mealType    MealType @relation(fields: [mealTypeId], references: [id])
+  
+  date        DateTime @default(now())
+  isGuest     Boolean  @default(false) // এটি গেস্ট মিল কি না
+  quantity    Int      @default(1)
+  appliedRate Decimal  @db.Decimal(10, 2) // এন্ট্রি করার সময়কার দাম
+  
+  status      MealStatus @default(CONSUMED) // নিচে Enum দেখুন
+  servedById  String?
+  // এখানে @relation("MealServer") যোগ করতে হবে
+  servedBy    Employee? @relation("MealServer", fields: [servedById], references: [id])
+  
+  @@index([studentId, date])
+}
+
+enum MealStatus {
+  CONSUMED  // খেয়েছে
+  CANCELED  // আগে থেকে বন্ধ ছিল
+  WASTED    // মিল রান্না হয়েছিল কিন্তু খায়নি (ফাইন হতে পারে)
+}
+
+// মিল পেমেন্ট ট্র্যাকিং (মেইল বিল পেমেন্ট বা অ্যাডভান্স জমা)
+model MealPayment {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(10, 2)
+  date          DateTime @default(now())
+  paymentMethod PaymentMethod
+  monthLabel    String?  // যেমন: "May 2026"
+  remarks       String?
+
+  @@index([studentId])
+}
+
+model DailyMenu {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  date        DateTime
+  mealTypeId  Int
+  menuItems   String   // উদা: "ভাত, মাছ, সবজি"
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([schoolId, date, mealTypeId]) // একই স্কুলে একই সময়ে দুইবার মেনু হবে না
 }

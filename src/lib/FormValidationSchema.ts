@@ -1,6 +1,123 @@
-// lib/FormValidationSchema.ts
+// src/lib/validators/meal.ts
+import { z } from "zod";
 
-import { z } from 'zod';
+// ── MealType validators ──────────────────────────────────────────────────────
+
+export const MealTypeSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name too long"),
+  rate: z
+    .string()
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
+      message: "Rate must be a positive number",
+    })
+    .transform((v) => v),
+  guestRate: z
+    .string()
+    .optional()
+    .refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), {
+      message: "Guest rate must be a non-negative number",
+    }),
+  isActive: z.boolean().default(true),
+});
+
+export type MealTypeInput = z.infer<typeof MealTypeSchema>;
+
+// ── MealAttendance validators ────────────────────────────────────────────────
+
+export const MealEntrySchema = z.object({
+  studentId: z.string().min(1, "Please select a student"),
+  // className: z.string().min(1, "Please select a class"),
+  // name: z.string().min(1, "Please select a name"),
+  mealTypeId: z
+    .number({ required_error: "Meal type is required" })
+   ,
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format")
+    .refine(
+      (d) => {
+        const date = new Date(d);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        return date <= today;
+      },
+      { message: "Cannot log meals for future dates" }
+    ),
+  isGuest: z.boolean().default(false),
+  quantity: z
+    .number()
+    .int()
+    .min(1, "Quantity must be at least 1")
+    .max(10, "Quantity seems too high")
+    .default(1),
+  status: z.enum(["CONSUMED", "CANCELED", "WASTED"]).default("CONSUMED"),
+});
+
+export type MealEntryInput = z.infer<typeof MealEntrySchema>;
+
+// ── Bulk meal entry ──────────────────────────────────────────────────────────
+
+export const BulkMealEntrySchema = z.object({
+
+  isGuest: z.boolean().default(false),
+  quantity: z
+    .number()
+    .int()
+    .min(1, "Quantity must be at least 1")
+    .max(10, "Quantity seems too high")
+    .default(1),
+
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  mealTypeIds: z
+    .array(z.number().int().positive())
+    .min(1, "Select at least one meal type"),
+  studentIds: z
+    .array(z.string().min(1))
+    .min(1, "Select at least one student"),
+  status: z.enum(["CONSUMED", "CANCELED", "WASTED"]).default("CONSUMED"),
+});
+
+export type BulkMealEntryInput = z.infer<typeof BulkMealEntrySchema>;
+
+// ── Monthly bill query ───────────────────────────────────────────────────────
+
+export const MonthlyBillQuerySchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  year: z
+    .number()
+    .int()
+    .min(2020, "Year too far in the past")
+    .max(new Date().getFullYear() + 1),
+  month: z.number().int().min(1).max(12),
+});
+
+export type MonthlyBillQuery = z.infer<typeof MonthlyBillQuerySchema>;
+
+// ── MealPayment validator ────────────────────────────────────────────────────
+
+export const MealPaymentSchema = z.object({
+  studentId: z.string().min(1, "Please select a student"),
+  amount: z
+    .string()
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
+      message: "Amount must be a positive number",
+    }),
+  paymentMethod: z.enum([
+    "CASH",
+    "BANK_TRANSFER",
+    "MOBILE_BANKING",
+    
+  ]),
+  monthLabel: z.string().optional(),
+  remarks: z.string().max(500).optional(),
+});
+
+export type MealPaymentInput = z.infer<typeof MealPaymentSchema>;
 
 // Phone number validation for Bangladesh
 export const phoneSchema = z.string()
@@ -309,8 +426,11 @@ export const studentSchema = z.object({
   birthday:  z.string().min(1, "Birthday is required"),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
+  discount: z.coerce.number().min(1, { message: "Discount is required!" }),
+  advance: z.coerce.number().default(0.0),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
   parentId: z.string().optional(),
+  
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;

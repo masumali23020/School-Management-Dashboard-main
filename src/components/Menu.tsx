@@ -6,6 +6,8 @@ import ClassesSubMenu from "./Classessubmen";
 import ResultsSubMenu from "./Resultssubmenu ";
 import FeetypeSubMenu from "./FeetypeSubMenu";
 import PaymentSubMenu from "./PaymentSubMenu";
+import CollectionSubMenu from "./CollectionSubmenu";
+import ExpenseSubMenu from "./ExpenseSubMenu";
 
 // Define menu items with role visibility
 const menuItems = [
@@ -32,10 +34,12 @@ const menuItems = [
       { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: [ "CASHIER"] },
       { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: [ "CASHIER"] },
       { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: [ "CASHIER"] },
-      { icon: "/collections.png", label: "Collection Categories", href: "/list/collection-categories", visible: ["ADMIN", "CASHIER"] },
-      { icon: "/collections.png", label: "Collections", href: "/list/collections", visible: ["ADMIN", "CASHIER"] },
-      { icon: "/expenses.png", label: "Expense Categories", href: "/list/expense-categories", visible: ["ADMIN", "CASHIER"] },
-      { icon: "/expenses.png", label: "Expenses", href: "/list/expenses", visible: ["ADMIN", "CASHIER"] },
+      // { icon: "/collections.png", label: "Collection Categories", href: "/list/collection-categories", visible: ["ADMIN", "CASHIER"] },
+      // { icon: "/collections.png", label: "Collections", href: "/list/collections", visible: ["ADMIN", "CASHIER"] },
+      // { icon: "/expenses.png", label: "Expense Categories", href: "/list/expense-categories", visible: ["ADMIN", "CASHIER"] },
+      // { icon: "/expenses.png", label: "Expenses", href: "/list/expenses", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Meals", href: "/list/meals", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Payment", href: "/list/payment", visible: ["ADMIN", "CASHIER"] },
       { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["ADMIN", "CASHIER"] },
       { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["ADMIN", "CASHIER"] },
       { icon: "/results.png", label: "Results", href: "/result", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },
@@ -122,6 +126,12 @@ const Menu = async ({ user }: { user: any }) => {
             
                 {item.label === "Messages" && FEETYPE_VISIBLE.includes(role) && (
                   <PaymentSubMenu key="payment-submenu" schoolId={schoolId} role={role} />
+                )}
+                {item.label === "Messages" && FEETYPE_VISIBLE.includes(role) && (
+                  <CollectionSubMenu key="collection-submenu" schoolId={schoolId} role={role} />
+                )}
+                {item.label === "Messages" && FEETYPE_VISIBLE.includes(role) && (
+                  <ExpenseSubMenu key="expense-submenu" schoolId={schoolId} role={role} />
                 )}
 
                 <MenuLink item={item} />

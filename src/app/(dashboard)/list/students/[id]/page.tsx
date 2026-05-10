@@ -13,10 +13,14 @@ import StudentAttendanceCard from "../../../../../components/StudentAttendanceCa
 import { Suspense } from "react";
 import BigCalendarContainer from "../../../../../components/BigCalendarContainer";
 import { getUserRoleAuth } from "@/lib/logsessition";
+import MonthlyMealStudent from "@/components/monthlyMealStudent";
 const SingleStudentPage = async ({
   params: { id },
+  searchParams
+  
 }: {
   params: { id: string };
+  searchParams: { [key: string]: string | undefined };
 }) => {
 
   const { role} =await getUserRoleAuth(); 
@@ -153,11 +157,16 @@ const SingleStudentPage = async ({
           </div>
         </div>
         {/* BOTTOM */}
+    
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Student&apos;s Schedule</h1>
           <BigCalendarContainer type="classId" id={student.class.id} />
         </div>
+        <MonthlyMealStudent 
+          searchParams={{ ...searchParams, studentId: id }} 
+        />
       </div>
+
       {/* RIGHT */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
         <div className="bg-white p-4 rounded-md">
@@ -194,6 +203,11 @@ const SingleStudentPage = async ({
               Student&apos;s Results
             </Link>
           </div>
+        </div>
+
+            <div className="flex justify-between items-center ">
+         <p className="p-3 rounded-md bg-lamaSkyLight">Discount: {student.discount}</p>
+         <p className="p-3 rounded-md bg-lamaYellowLight">Advance: {student.advance}</p>
         </div>
         <Performance />
         <Announcements />

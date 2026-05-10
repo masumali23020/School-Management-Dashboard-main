@@ -129,7 +129,7 @@ const handleDelete = (id: number) => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{isCollection ? "Collection Categories" : "Expense Categories"}</CardTitle>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog  open={open} onOpenChange={setOpen} >
             <DialogTrigger asChild>
               <Button
                 onClick={() => {
@@ -140,7 +140,7 @@ const handleDelete = (id: number) => {
                 Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-slate-50 border-none shadow-xl sm:max-w-[425px] rounded-md" >
               <DialogHeader>
                 <DialogTitle>{editingId ? "Update Category" : "Create Category"}</DialogTitle>
               </DialogHeader>
