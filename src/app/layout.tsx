@@ -13,6 +13,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "AmarSchool",
   description: "Next.js School Management System",
+   manifest: "/manifest.json",
+};
+export const viewport = {
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
