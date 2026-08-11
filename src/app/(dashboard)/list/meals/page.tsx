@@ -150,9 +150,9 @@ export default async function MealsPage() {
       </Suspense>
 
       {/* Tabs */}
-      <Tabs defaultValue="entry" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="entry" className="gap-1.5">
+      <Tabs defaultValue="entry" className="space-y-11 md:space-y-4">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-3 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="entry" className="gap-1.5 ">
             <UtensilsCrossed className="h-4 w-4" />
             <span className="hidden sm:inline">Single entry</span>
             <span className="sm:hidden">Entry</span>
@@ -181,7 +181,7 @@ export default async function MealsPage() {
 
         {/* Single entry */}
         <TabsContent value="entry">
-          <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_300px]  ">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Log a meal</CardTitle>
@@ -274,6 +274,7 @@ export default async function MealsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+           
               <MealPaymentDialog students={studentList} school={school as any} />
             </CardContent>
           </Card> 

@@ -39,7 +39,7 @@ const menuItems = [
       // { icon: "/expenses.png", label: "Expense Categories", href: "/list/expense-categories", visible: ["ADMIN", "CASHIER"] },
       // { icon: "/expenses.png", label: "Expenses", href: "/list/expenses", visible: ["ADMIN", "CASHIER"] },
       { icon: "/fees.png", label: "Meals", href: "/list/meals", visible: ["ADMIN", "CASHIER"] },
-      { icon: "/fees.png", label: "Payment", href: "/list/payment", visible: ["ADMIN", "CASHIER"] },
+      { icon: "/fees.png", label: "Meal Attendance", href: "/list/MealAttendance", visible: ["ADMIN", "CASHIER"] },
       { icon: "/fees.png", label: "Student Payments", href: "/list/fees/payments", visible: ["ADMIN", "CASHIER"] },
       { icon: "/finance.png", label: "Finance", href: "/list/finance", visible: ["ADMIN", "CASHIER"] },
       { icon: "/results.png", label: "Results", href: "/result", visible: ["ADMIN", "TEACHER", "STUDENT", "PARENT"] },

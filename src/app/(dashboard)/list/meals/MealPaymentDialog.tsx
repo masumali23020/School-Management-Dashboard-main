@@ -194,7 +194,7 @@ const onSubmit = async (values: RecordPaymentInput) => {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-400">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Receipt className="h-5 w-5 text-muted-foreground" />
@@ -206,67 +206,240 @@ const onSubmit = async (values: RecordPaymentInput) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
 
             {/* Student */}
-            <FormField control={form.control} name="studentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select student…" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {students.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                          {s.rollNumber && (
-                            <span className="ml-1.5 text-xs text-muted-foreground">
-                              #{s.rollNumber}
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+  control={form.control}
+  name="studentId"
+  render={({ field }) => (
+    <FormItem className="space-y-2">
+      <FormLabel className="text-sm font-semibold text-gray-700">
+        Student
+      </FormLabel>
+
+      <Select onValueChange={field.onChange} value={field.value}>
+        <FormControl>
+          <SelectTrigger
+            className="
+              h-11
+              rounded-xl
+              border-gray-300
+              bg-white
+              shadow-sm
+              transition-all
+              duration-200
+              hover:border-blue-400
+              focus:ring-2
+              focus:ring-blue-500
+              focus:border-blue-500
+            "
+          >
+            <SelectValue placeholder="Select a student..." />
+          </SelectTrigger>
+        </FormControl>
+
+        <SelectContent
+          className="
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            shadow-xl
+            p-2
+          "
+        >
+          {students.map((s) => (
+            <SelectItem
+              key={s.id}
+              value={s.id}
+              className="
+                rounded-lg
+                px-3
+                py-2
+                cursor-pointer
+                transition-all
+                duration-200
+                hover:bg-blue-50
+                focus:bg-blue-100
+                data-[state=checked]:bg-blue-600
+                data-[state=checked]:text-white
+              "
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium">{s.name}</span>
+
+                {s.rollNumber && (
+                  <span
+                    className="
+                      text-xs
+                      rounded-full
+                      bg-gray-100
+                      px-2
+                      py-0.5
+                      text-gray-600
+                    "
+                  >
+                    #{s.rollNumber}
+                  </span>
+                )}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
             {/* Month + Year */}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="month"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Month</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {MONTHS.map((m, i) => (
-                          <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField control={form.control} name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {[NOW_YEAR - 1, NOW_YEAR, NOW_YEAR + 1].map((y) => (
-                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+           {/* Month + Year */}
+<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+  {/* Month */}
+  <FormField
+    control={form.control}
+    name="month"
+    render={({ field }) => (
+      <FormItem className="space-y-2">
+        <FormLabel className="text-sm font-semibold text-gray-700">
+          Month
+        </FormLabel>
+
+        <Select
+          onValueChange={(v) => field.onChange(Number(v))}
+          value={String(field.value)}
+        >
+          <FormControl>
+            <SelectTrigger
+              className="
+                h-11
+                rounded-xl
+                border-gray-300
+                bg-white
+                shadow-sm
+                transition-all
+                duration-200
+                hover:border-blue-400
+                focus:border-blue-500
+                focus:ring-2
+                focus:ring-blue-500
+              "
+            >
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+          </FormControl>
+
+          <SelectContent
+            className="
+              rounded-xl
+              border
+              border-gray-200
+              bg-white
+              p-2
+              shadow-xl
+              max-h-72
+            "
+          >
+            {MONTHS.map((m, i) => (
+              <SelectItem
+                key={i + 1}
+                value={String(i + 1)}
+                className="
+                  rounded-lg
+                  px-3
+                  py-2
+                  cursor-pointer
+                  transition-all
+                  duration-200
+                  hover:bg-blue-50
+                  focus:bg-blue-100
+                  data-[state=checked]:bg-blue-600
+                  data-[state=checked]:text-white
+                "
+              >
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+
+  {/* Year */}
+  <FormField
+    control={form.control}
+    name="year"
+    render={({ field }) => (
+      <FormItem className="space-y-2">
+        <FormLabel className="text-sm font-semibold text-gray-700">
+          Year
+        </FormLabel>
+
+        <Select
+          onValueChange={(v) => field.onChange(Number(v))}
+          value={String(field.value)}
+        >
+          <FormControl>
+            <SelectTrigger
+              className="
+                h-11
+                rounded-xl
+                border-gray-300
+                bg-white
+                shadow-sm
+                transition-all
+                duration-200
+                hover:border-blue-400
+                focus:border-blue-500
+                focus:ring-2
+                focus:ring-blue-500
+              "
+            >
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+          </FormControl>
+
+          <SelectContent
+            className="
+              rounded-xl
+              border
+              border-gray-200
+              bg-white
+              p-2
+              shadow-xl
+              max-h-72
+            "
+          >
+            {[NOW_YEAR - 1, NOW_YEAR, NOW_YEAR + 1].map((y) => (
+              <SelectItem
+                key={y}
+                value={String(y)}
+                className="
+                  rounded-lg
+                  px-3
+                  py-2
+                  cursor-pointer
+                  transition-all
+                  duration-200
+                  hover:bg-blue-50
+                  focus:bg-blue-100
+                  data-[state=checked]:bg-blue-600
+                  data-[state=checked]:text-white
+                "
+              >
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
 
             {/* Loading */}
             {isFetching && (
@@ -390,22 +563,76 @@ const onSubmit = async (values: RecordPaymentInput) => {
                   </FormItem>
                 )}
               />
-              <FormField control={form.control} name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment method</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {PAYMENT_METHODS.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+  control={form.control}
+  name="paymentMethod"
+  render={({ field }) => (
+    <FormItem className="space-y-2">
+      <FormLabel className="text-sm font-semibold text-gray-700">
+        Payment Method
+      </FormLabel>
+
+      <Select onValueChange={field.onChange} value={field.value}>
+        <FormControl>
+          <SelectTrigger
+            className="
+              h-11
+              rounded-xl
+              border-gray-300
+              bg-white
+              shadow-sm
+              transition-all
+              duration-200
+              hover:border-blue-400
+              focus:border-blue-500
+              focus:ring-2
+              focus:ring-blue-500
+            "
+          >
+            <SelectValue placeholder="Select payment method" />
+          </SelectTrigger>
+        </FormControl>
+
+        <SelectContent
+          className="
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            p-2
+            shadow-xl
+            max-h-72
+          "
+        >
+          {PAYMENT_METHODS.map((m) => (
+            <SelectItem
+              key={m.value}
+              value={m.value}
+              className="
+                rounded-lg
+                px-3
+                py-2
+                cursor-pointer
+                transition-all
+                duration-200
+                hover:bg-blue-50
+                focus:bg-blue-100
+                data-[state=checked]:bg-blue-600
+                data-[state=checked]:text-white
+              "
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium">{m.label}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
             </div>
 
             <FormField control={form.control} name="remarks"
