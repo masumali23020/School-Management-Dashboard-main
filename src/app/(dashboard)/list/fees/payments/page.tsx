@@ -49,6 +49,7 @@ export default async function PaymentListPage() {
         establishedYear: school?.establishedYear || "No Year",
         eiinNumber: school?.eiinNumber || "No EIIN",
         academicSession: school?.academicSession || "No Session",
+        logoUrl: school?.logoUrl || "No Logo",
       }}
     />
   );

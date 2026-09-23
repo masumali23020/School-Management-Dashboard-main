@@ -38,7 +38,7 @@ const [selectedClass, setSelectedClass] = useState<number | string>(data?.classI
     defaultValues: {
       id: data?.id,
       name: data?.name || "",
-      day: data?.day || "",
+      day: data?.day ? data.day.toUpperCase() : "", 
       startTime: data?.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : "",
       endTime: data?.endTime ? new Date(data.endTime).toISOString().slice(0, 16) : "",
       classId: data?.classId || undefined,
@@ -61,6 +61,9 @@ const [selectedClass, setSelectedClass] = useState<number | string>(data?.classI
 
   // Watch for class changes to filter assignments
   const watchClassId = watch("classId");
+
+
+  
 
   useEffect(() => {
     if (watchClassId && relatedData?.assignments) {
@@ -125,7 +128,7 @@ const [selectedClass, setSelectedClass] = useState<number | string>(data?.classI
         {/* Day Selection */}
         <div className="flex flex-col gap-2">
           <label className="text-xs text-gray-500 font-medium">
-            Day <span className="text-red-500">*</span>
+            Day <span className="text-red-500">*</span> <span className="text-cyan-600">{data?.day} </span>
           </label>
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full bg-white"

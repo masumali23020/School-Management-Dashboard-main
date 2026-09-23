@@ -91,7 +91,7 @@ export async function    getFinanceData(params: {
   month?: string;
   fromDate?: string;
   toDate?: string;
-  type?: "INCOME" | "EXPENSE" | "";
+  type?: "INCOME" | "EXPENSE" | "STUDENT_FEE" | "SALARY" | "";
 }) {
   try {
     const { schoolId } = await requireRoleAndSchool("admin", "cashier");
@@ -413,12 +413,18 @@ export async function    getFinanceData(params: {
     // ────────────────────────────────────────
     let allRows: FinanceTransaction[] = [];
 
-    if (!params.type || params.type === "INCOME") {
-      allRows.push(...incomeRows);
-    }
+    if (params.type === "STUDENT_FEE") {
+      allRows.push(...feeIncomeRows);
+    } else if (params.type === "SALARY") {
+      allRows.push(...salaryExpenseRows);
+    } else {
+      if (!params.type || params.type === "INCOME") {
+        allRows.push(...incomeRows);
+      }
 
-    if (!params.type || params.type === "EXPENSE") {
-      allRows.push(...expenseRows);
+      if (!params.type || params.type === "EXPENSE") {
+        allRows.push(...expenseRows);
+      }
     }
 
     // ────────────────────────────────────────

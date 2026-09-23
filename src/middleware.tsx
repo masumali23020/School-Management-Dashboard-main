@@ -80,6 +80,7 @@ const ROLE_ROUTES: Record<string, UserRole[]> = {
   "/cashier": ["CASHIER", "ADMIN"],
   "/staff": ["STAFF", "ADMIN"],
   "/student": ["STUDENT", "ADMIN"],
+  "/parent": ["PARENT", "ADMIN"],
 };
 
 const FEATURE_ROUTES: Record<string, Feature> = {
@@ -95,6 +96,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   CASHIER: "/cashier",
   STAFF: "/staff",
   STUDENT: "/student",
+  PARENT: "/parent",
 };
 
 const PUBLIC_PATHS = ["/login", "/api/auth", "/_next", "/favicon.ico"];

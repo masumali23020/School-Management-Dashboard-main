@@ -10,6 +10,7 @@ import {
   recordSalaryPayment,
 } from "@/Actions/Salaryactions/Salaryactions";
 import { generateSalaryPDF, SalaryInvoiceData } from "@/lib/Generatesalarypdf";
+import { loadSchoolLogoDataUrl } from "@/lib/admission/pdf/pdf-assets";
 
 type SalaryTypeItem = { id: number; name: string; isRecurring: boolean };
 type SalaryStructureItem = {
@@ -270,6 +271,8 @@ const handleDownloadPDF = async (payment: SalaryStatusItem['payments'][0] & {
       academicSession: schoolInfo.academicSession || currentYear,
     };
 
+    const schoolLogo = await loadSchoolLogoDataUrl(schoolInfo.logoUrl || "");
+
     await generateSalaryPDF({
       invoiceNumber: payment.invoiceNumber,
       employeeId: selected?.id || '',
@@ -291,6 +294,7 @@ const handleDownloadPDF = async (payment: SalaryStatusItem['payments'][0] & {
       schoolAddress: schoolData.address,
       schoolPhone: schoolData.phone,
       schoolEmail: schoolData.email,
+      schoolLogo: schoolLogo || undefined,
     });
   } catch (error) {
     console.error('Error generating PDF:', error);

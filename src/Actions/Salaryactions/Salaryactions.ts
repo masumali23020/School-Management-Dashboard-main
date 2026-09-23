@@ -480,6 +480,7 @@ export async function getAllSalaryPayments(params: {
   fromDate?: string;
   toDate?: string;
   paymentMethod?: string;
+  employeeRole?: string;
 }) {
   const { schoolId } = await requireRole("ADMIN", "CASHIER");
 
@@ -498,14 +499,15 @@ export async function getAllSalaryPayments(params: {
     }
   }
 
-  if (params.teacherName) {
-    where.employee = {
-      schoolId,
-      OR: [
+  if (params.teacherName || params.employeeRole) {
+    where.employee = { schoolId };
+    if (params.employeeRole) where.employee.role = params.employeeRole;
+    if (params.teacherName) {
+      where.employee.OR = [
         { name: { contains: params.teacherName, mode: "insensitive" } },
         { surname: { contains: params.teacherName, mode: "insensitive" } },
-      ],
-    };
+      ];
+    }
   }
 
   const payments = await prisma.employeeSalaryPayment.findMany({
@@ -531,6 +533,7 @@ export async function getAllSalaryPayments(params: {
       employeeId: p.employeeId,
       employeeName: `${p.employee.name} ${p.employee.surname ?? ""}`.trim(),
       employeeImg: p.employee.img,
+      employeeRole: p.employee.role as string,
       salaryTypeName: p.salaryType.name,
       amountPaid: Number(p.amountPaid),
       paymentMethod: p.paymentMethod as string,
@@ -566,7 +569,7 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
   // School info আনুন
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { schoolName: true, address: true, phone: true },
+    select: { schoolName: true, address: true, phone: true, email: true, logoUrl: true },
   });
 
   let processedByName = "—";
@@ -599,6 +602,8 @@ export async function getFullSalaryInvoiceForPDF(invoiceNumber: string) {
       schoolName: school?.schoolName ?? "School Name",
       schoolAddress: school?.address ?? "School Address",
       schoolPhone: school?.phone ?? "—",
+      schoolEmail: school?.email ?? "—",
+      schoolLogoUrl: school?.logoUrl ?? "—",
     },
   };
 }

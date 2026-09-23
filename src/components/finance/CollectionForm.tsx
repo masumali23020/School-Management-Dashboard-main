@@ -107,13 +107,13 @@ export function CollectionForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen} >
+      <DialogTrigger asChild >
         <Button variant={type === "edit" ? "outline" : "default"}>
           {triggerLabel || (isCollection ? "Add Collection" : "Add Expense")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bg-slate-200 p-4">
         <DialogHeader>
           <DialogTitle>
             {type === "edit"
@@ -129,7 +129,7 @@ export function CollectionForm({
 
         {isCollection ? (
           <Form {...collectionForm}>
-            <form className="space-y-3" onSubmit={collectionForm.handleSubmit(handleCollectionSubmit)}>
+            <form className="space-y-3 " onSubmit={collectionForm.handleSubmit(handleCollectionSubmit)}>
               <FormField
                 control={collectionForm.control}
                 name="amount"

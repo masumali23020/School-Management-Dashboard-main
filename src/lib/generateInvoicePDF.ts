@@ -24,6 +24,7 @@ export type InvoiceData = {
   schoolAddress?:  string;
   schoolPhone?:    string;
   schoolEmail?:    string;
+  schoolLogoUrl?:  string;
   establishedYear?: string;
   eiinNumber?:      string;
   academicSession?: string;
@@ -56,6 +57,7 @@ export function generateInvoicePDF(inv: InvoiceData): void {
   const schoolAddress = inv.schoolAddress ?? "School Address, City";
   const schoolPhone   = inv.schoolPhone   ?? "01XXXXXXXXX";
   const schoolEmail   = inv.schoolEmail   ?? "";
+  const schoolLogoUrl = inv.schoolLogoUrl ?? "";
 
   const paidDate     = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
   const paidDateLong = new Date(inv.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
@@ -82,15 +84,17 @@ export function generateInvoicePDF(inv: InvoiceData): void {
     let y    = yStart + 6;
 
     // Header
-    doc.setDrawColor(100, 100, 200);
-    doc.setLineWidth(0.5);
-    doc.circle(x + 10, y + 6, 10);
-    doc.setFontSize(6);
-    doc.setTextColor(80, 80, 180);
-    doc.setFont("helvetica", "bold");
-    doc.text("LOGO", x + 10, y + 7, { align: "center" });
-    doc.circle(x + CW - 10, y + 6, 10);
-    doc.text("LOGO", x + CW - 10, y + 7, { align: "center" });
+  
+    
+    doc.addImage(
+      schoolLogoUrl,
+      "JPEG",
+      x + 2,
+      y - 2,
+      20,
+      20
+    );
+
 
     doc.setFontSize(15);
     doc.setTextColor(20, 20, 20);

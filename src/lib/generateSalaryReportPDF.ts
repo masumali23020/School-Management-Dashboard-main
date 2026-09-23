@@ -33,6 +33,8 @@ export type SalaryReportOptions = {
   schoolName?:   string;
   schoolAddress?: string;
   schoolPhone?:  string;
+  schoolEmail?:  string;
+  schoolLogoUrl?: string;
   // Who generated
   generatedBy?:  string;
 };
@@ -62,7 +64,10 @@ export function generateSalaryReportPDF(opts: SalaryReportOptions): void {
     schoolName    = opts.schoolName || "Your School Name",
     schoolAddress = opts.schoolAddress || "School Address, City",
     schoolPhone   = opts.schoolPhone || "01XXXXXXXXX",
+    schoolEmail   = opts.schoolEmail || "—",
+    schoolLogoUrl = opts.schoolLogoUrl || "—",
     generatedBy   = opts.generatedBy || "Admin",
+
   } = opts;
 
   const doc  = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -112,6 +117,14 @@ export function generateSalaryReportPDF(opts: SalaryReportOptions): void {
   // Green top bar
   doc.setFillColor(16, 185, 129);   // emerald-500
   doc.rect(0, 0, PW, 32, "F");
+
+  doc.addImage(
+      schoolLogoUrl,
+      "JPEG",
+      ML, 4,
+      20,
+      20
+    );
 
   // School name
   doc.setFont("helvetica", "bold");
@@ -169,11 +182,11 @@ export function generateSalaryReportPDF(opts: SalaryReportOptions): void {
 
 
   // Transactions count
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(100,116,139);
-  doc.text(`${payments.length} transaction${payments.length !== 1 ? "s" : ""} found`, ML, y);
-  doc.text(`Generated: ${generatedAt}  |  By: ${generatedBy}`, PW - MR, y, { align: "right" });
+  // doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(100,116,139);
+  // doc.text(`${payments.length} transaction${payments.length !== 1 ? "s" : ""} found`, ML, y);
+  // doc.text(`Generated: ${generatedAt}  |  By: ${generatedBy}`, PW - MR, y, { align: "right" });
 
-  y += 7;
+  // y += 7;
 
   // ══════════════════════════════════════════════════════════════════════════
   // PAYMENT TABLE
@@ -321,6 +334,15 @@ export function generateSalaryReportPDF(opts: SalaryReportOptions): void {
   doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(150, 150, 150);
   doc.text(sigDate, ML, y);
   doc.text(`${schoolName} — Confidential`, PW - MR, y, { align: "right" });
+
+  
+  y += 33;
+  // Transactions count
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(100,116,139);
+  doc.text(`${payments.length} transaction${payments.length !== 1 ? "s" : ""} found`, ML, 289);
+  doc.text(`Generated: ${generatedAt}  |  By: ${generatedBy}`, PW - MR, 289, { align: "right" });
+
+
 
   // ══════════════════════════════════════════════════════════════════════════
   // PAGE NUMBERS

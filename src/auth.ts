@@ -157,6 +157,52 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
           }
 
+          // ── Step 3: Parent by username, else by parent id ────────────────────
+          const parentInclude = {
+            school: {
+              include: {
+                plan: true,
+                _count: {
+                  select: {
+                    students: true,
+                    employees: true,
+                  },
+                },
+              },
+            },
+          } as const;
+
+          let parent = await prisma.parent.findFirst({
+            where: { username: loginKey, schoolId: schoolIdNum },
+            include: parentInclude,
+          });
+
+          if (!parent) {
+            parent = await prisma.parent.findFirst({
+              where: { id: loginKey, schoolId: schoolIdNum },
+              include: parentInclude,
+            });
+            if (parent) {
+              authDebugServer("authorize: parent match by id", { id: parent.id });
+            }
+          }
+
+          if (parent) {
+            authDebugServer("authorize: parent match", { id: parent.id });
+            if (!parent.password) {
+              throw new Error("INVALID_PASSWORD" satisfies AuthError);
+            }
+            return await verifyAndBuildUser({
+              id: parent.id,
+              username: parent.username,
+              password: parent.password,
+              name: parent.name,
+              role: "PARENT",
+              school: parent.school,
+              inputPassword: password,
+            });
+          }
+
           authDebugServer("authorize: no user for school/loginKey", {
             schoolId: schoolIdNum,
             loginKey,

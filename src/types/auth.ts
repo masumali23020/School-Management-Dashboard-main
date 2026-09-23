@@ -1,7 +1,7 @@
 // types/auth.ts
 // Centralized type definitions for the entire auth system
 
-export type UserRole = "ADMIN" | "TEACHER" | "CASHIER" | "STAFF" | "STUDENT" ;
+export type UserRole = "ADMIN" | "TEACHER" | "CASHIER" | "STAFF" | "STUDENT" | "PARENT";
 export type PlanType = "FREE" | "STANDARD" | "POPULAR";
 
 // // types/auth.ts

@@ -98,6 +98,10 @@ export function generateSalaryPDF(inv: SalaryInvoiceData): void {
     doc.setDrawColor(70, 70, 70);
     doc.setLineWidth(0.3);
     doc.rect(x, boxTop, CW, boxHeight);
+    if (safeInv.schoolLogo) {
+      const logoFormat = safeInv.schoolLogo.startsWith("data:image/png") ? "PNG" : "JPEG";
+      doc.addImage(safeInv.schoolLogo, logoFormat, x + 4, boxTop + 4, 16, 16);
+    }
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);

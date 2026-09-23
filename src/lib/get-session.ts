@@ -108,7 +108,7 @@ export async function requireSession(
         CASHIER: "/cashier/dashboard",
         STAFF: "/staff/dashboard",
         STUDENT: "/student/dashboard",
-        PARENT: "/parent/dashboard",
+        PARENT: "/parent",
       };
       redirect(dashboards[userRole] ?? "/");
     }

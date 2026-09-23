@@ -16,16 +16,21 @@ interface NavbarProps {
 export default function SchoolNavbar({ settings }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  
-  // স্কুলের স্লাগ বের করা (URL থেকে)
-  const schoolSlug = pathname?.split('/')[1] || settings?.slug || "";
-  
-  // ডাইনামিক নেভিগেশন লিংক - স্কুল স্লাগ অনুযায়ী
+
+  const segments = pathname?.split("/").filter(Boolean) ?? [];
+  const isSchoolPrefix = segments[0] === "school";
+  const schoolSlug =
+    isSchoolPrefix ? segments[1] : segments[0] || settings?.slug || "";
+
+  const admissionHref = isSchoolPrefix
+    ? `/school/${schoolSlug}/admission`
+    : `/${schoolSlug}/admission`;
+
   const navLinks = [
     { label: "হোম", href: `/${schoolSlug}/` },
     { label: "আমাদের সম্পর্কে", href: `/${schoolSlug}/about` },
     { label: "একাডেমিক", href: `/${schoolSlug}/academic` },
-    { label: "ভর্তি", href: `/${schoolSlug}/admission` },
+    { label: "ভর্তি", href: admissionHref },
     { label: "ইভেন্ট", href: `/${schoolSlug}/events` },
     { label: "যোগাযোগ", href: `/${schoolSlug}/contact` },
     { label: "নোটিশ", href: `/${schoolSlug}/notice` },

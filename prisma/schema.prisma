@@ -53,6 +53,45 @@ enum SubscriptionPaymentStatus {
   FAILED
 }
 
+enum AdmissionSessionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum AdmissionClassStatus {
+  OPEN
+  CLOSED
+  FULL
+}
+
+enum AdmissionApplicationStatus {
+  SUBMITTED
+  PAYMENT_PENDING
+  PAYMENT_VERIFIED
+  PAYMENT_REJECTED
+  UNDER_REVIEW
+  APPROVED
+  APPLICATION_REJECTED
+  CONFIRMED
+  CANCELLED
+}
+
+enum AdmissionPaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AdmissionDocumentType {
+  STUDENT_PHOTO
+  BIRTH_CERTIFICATE
+  PREVIOUS_REPORT_CARD
+  NID
+  OTHER
+}
+
 // --- SAAS SUPER ADMIN & SUBSCRIPTION ---
 
 model SuperAdmin {
@@ -132,6 +171,15 @@ model School {
   expenses           Expense[]
   expenseCategories  ExpenseCategory[]
 
+  admissionSessions      AdmissionSession[]
+  admissionClasses       AdmissionClass[]
+  admissionApplications  AdmissionApplication[]
+  admissionInvoices      AdmissionInvoice[] @relation("AdmissionInvoiceSchool")
+  admissionPayments      AdmissionPayment[]
+  admissionDocuments     AdmissionDocument[]
+  admissionStatusHistory AdmissionStatusHistory[]
+  admissionSetting       AdmissionSetting?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -207,6 +255,11 @@ model Employee {
   collectedFees     FeePayment[]              @relation("FeeCollector")
   processedSalaries EmployeeSalaryPayment[]   @relation("SalaryProcessor")
 
+  verifiedAdmissionPayments AdmissionPayment[]       @relation("AdmissionPaymentVerifier")
+  admissionStatusChanges    AdmissionStatusHistory[] @relation("AdmissionStatusChanger")
+  admissionConfirmedApplications AdmissionApplication[] @relation("AdmissionConfirmer")
+  generatedAdmissionInvoices AdmissionInvoice[] @relation("AdmissionInvoiceGenerator")
+
   @@index([schoolId])
   @@index([role])
   @@index([schoolId, role])
@@ -247,6 +300,8 @@ model Student {
   results      Result[]
   classHistory StudentClassHistory[]
   feePayments  FeePayment[]
+
+  admissionApplication AdmissionApplication?
 
   @@index([schoolId])
   @@index([classId])
@@ -309,7 +364,10 @@ model Class {
   examPublish       ExamPublish[]
   assignmentPublish AssignmentPublish[]
 
+  admissionClasses AdmissionClass[]
+
   @@unique([schoolId, name])
+  @@unique([id, schoolId])
   @@index([schoolId])
   @@index([gradeId])
   @@index([supervisorId])
@@ -858,4 +916,232 @@ model DailyMenu {
   updatedAt   DateTime @updatedAt
 
   @@unique([schoolId, date, mealTypeId]) // একই স্কুলে একই সময়ে দুইবার মেনু হবে না
+}
+
+// --- ADMISSION MANAGEMENT SYSTEM ---
+
+model AdmissionSetting {
+  id                 Int     @id @default(autoincrement())
+  schoolId           Int     @unique
+  school             School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  admissionEnabled   Boolean @default(false)
+  bkashNumber        String?
+  paymentInstruction String? @db.Text
+  applicationPrefix  String  @default("ADM")
+  admissionPrefix    String  @default("ADM")
+  invoicePrefix      String  @default("INV-ADM")
+  formFieldConfig    Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([admissionEnabled])
+}
+
+model AdmissionSession {
+  id           Int                    @id @default(autoincrement())
+  schoolId     Int
+  school       School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name         String
+  academicYear String
+  startDate    DateTime
+  endDate      DateTime
+  status       AdmissionSessionStatus @default(DRAFT)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  admissionClasses      AdmissionClass[]
+  admissionApplications AdmissionApplication[]
+
+  @@unique([schoolId, academicYear])
+  @@unique([id, schoolId])
+  @@index([schoolId])
+  @@index([status])
+  @@index([schoolId, status])
+  @@index([startDate, endDate])
+}
+
+model AdmissionClass {
+  id                 Int                  @id @default(autoincrement())
+  schoolId           Int
+  school             School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  admissionSessionId Int
+  admissionSession   AdmissionSession     @relation(fields: [admissionSessionId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  classId            Int
+  class              Class                @relation(fields: [classId, schoolId], references: [id, schoolId], onDelete: Restrict)
+  seatCapacity       Int
+  admissionFee       Decimal              @db.Decimal(10, 2)
+  startDate          DateTime?
+  endDate            DateTime?
+  status             AdmissionClassStatus @default(OPEN)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  admissionApplications AdmissionApplication[]
+
+  @@unique([admissionSessionId, classId])
+  @@unique([id, schoolId])
+  @@index([schoolId])
+  @@index([admissionSessionId])
+  @@index([classId])
+  @@index([status])
+  @@index([schoolId, status])
+}
+
+model AdmissionApplication {
+  id                     Int                        @id @default(autoincrement())
+  schoolId               Int
+  school                 School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  admissionSessionId     Int
+  admissionSession       AdmissionSession           @relation(fields: [admissionSessionId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  admissionClassId       Int
+  admissionClass         AdmissionClass             @relation(fields: [admissionClassId, schoolId], references: [id, schoolId], onDelete: Restrict)
+  applicationNumber      String
+  admissionNumber        String?
+  studentName            String
+  studentNameBangla      String?
+  surname                String
+  dateOfBirth            DateTime
+  gender                 UserSex
+  birthCertificateNumber String?
+  bloodGroup             String
+  religion               String?
+  nationality            String?                    @default("Bangladeshi")
+  studentPhoto           String?
+  fatherName             String
+  fatherMobile           String
+  fatherOccupation       String?
+  fatherNid                String?
+  motherName             String?
+  motherMobile           String?
+  motherOccupation       String?
+  motherNid                String?
+  guardianName           String?
+  guardianMobile         String?
+  guardianRelation       String?
+  presentAddress         String
+  permanentAddress       String?
+  division               String?
+  district               String?
+  upazila                String?
+  villageArea            String?
+  previousSchool         String?
+  previousClass          String?
+  previousResult         String?
+  previousSchoolAddress  String?                    @db.Text
+  transferCertificateNumber String?
+  medicalInfo            String?                    @db.Text
+  applicationStatus      AdmissionApplicationStatus @default(SUBMITTED)
+  paymentStatus          AdmissionPaymentStatus     @default(PENDING)
+  studentId              String?                    @unique
+  student                Student?                   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  submittedAt            DateTime                   @default(now())
+  admissionConfirmedAt   DateTime?
+  admissionConfirmedById String?
+  admissionConfirmedBy   Employee?                  @relation("AdmissionConfirmer", fields: [admissionConfirmedById], references: [id], onDelete: SetNull)
+  verificationCode       String?                    @unique
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+
+  payments       AdmissionPayment[]
+  documents      AdmissionDocument[]
+  statusHistory  AdmissionStatusHistory[]
+  invoices       AdmissionInvoice[]       @relation("AdmissionInvoiceApplication")
+  
+  @@unique([schoolId, admissionNumber])
+  @@index([verificationCode])
+  @@unique([schoolId, applicationNumber])
+  @@index([schoolId])
+  @@index([admissionSessionId])
+  @@index([admissionClassId])
+  @@index([applicationStatus])
+  @@index([paymentStatus])
+  @@index([schoolId, applicationStatus])
+  @@index([schoolId, paymentStatus])
+  @@index([schoolId, admissionSessionId])
+  @@index([fatherMobile])
+  @@index([guardianMobile])
+  @@index([createdAt])
+}
+
+model AdmissionInvoice {
+  id            Int                  @id @default(autoincrement())
+  schoolId      Int
+  school        School               @relation("AdmissionInvoiceSchool", fields: [schoolId], references: [id], onDelete: Cascade)
+  applicationId Int
+  application   AdmissionApplication @relation("AdmissionInvoiceApplication", fields: [applicationId], references: [id], onDelete: Cascade)
+  paymentId     Int?
+  payment       AdmissionPayment?    @relation("AdmissionInvoicePayment", fields: [paymentId], references: [id])
+  invoiceNumber String               @unique
+  amount        Decimal              @db.Decimal(10, 2)
+  pdfUrl        String?
+  generatedById String?
+  generatedBy   Employee?            @relation("AdmissionInvoiceGenerator", fields: [generatedById], references: [id])
+  issuedAt      DateTime             @default(now())
+  createdAt     DateTime             @default(now())
+
+  @@index([schoolId])
+  @@index([applicationId])
+  @@index([issuedAt])
+}
+
+model AdmissionPayment {
+  id              Int                    @id @default(autoincrement())
+  schoolId        Int
+  school          School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  applicationId   Int
+  application     AdmissionApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  amount          Decimal                @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod          @default(MOBILE_BANKING)
+  senderMobile    String
+  transactionId   String                 @unique
+  status          AdmissionPaymentStatus @default(PENDING)
+  verifiedById    String?
+  verifiedBy      Employee?              @relation("AdmissionPaymentVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime               @default(now())
+  invoices        AdmissionInvoice[]     @relation("AdmissionInvoicePayment")
+
+  @@index([schoolId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([schoolId, status])
+  @@index([senderMobile])
+  @@index([createdAt])
+}
+
+model AdmissionDocument {
+  id           Int                   @id @default(autoincrement())
+  schoolId     Int
+  school       School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  applicationId Int
+  application  AdmissionApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType AdmissionDocumentType
+  fileUrl      String
+  fileName     String?
+  uploadedAt   DateTime              @default(now())
+
+  @@index([schoolId])
+  @@index([applicationId])
+  @@index([documentType])
+}
+
+model AdmissionStatusHistory {
+  id             Int                         @id @default(autoincrement())
+  schoolId       Int
+  school         School                      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  applicationId  Int
+  application    AdmissionApplication        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus AdmissionApplicationStatus?
+  newStatus      AdmissionApplicationStatus
+  changedById    String?
+  changedBy      Employee?                   @relation("AdmissionStatusChanger", fields: [changedById], references: [id], onDelete: SetNull)
+  note           String?
+  createdAt      DateTime                    @default(now())
+
+  @@index([schoolId])
+  @@index([applicationId])
+  @@index([newStatus])
+  @@index([createdAt])
+  @@index([applicationId, createdAt])
 }

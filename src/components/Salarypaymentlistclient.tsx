@@ -9,6 +9,7 @@ import { generateSalaryPDF, type SalaryInvoiceData } from "@/lib/Generatesalaryp
 import { generateSalaryReportPDF, type SalaryReportPayment } from "@/lib/generateSalaryReportPDF";
 import Pagination from "@/components/Pagination";
 import { itemPerPage } from "@/lib/setting";
+import { loadSchoolLogoDataUrl } from "@/lib/admission/pdf/pdf-assets";
 
 type SalaryTypeFilter = { id: number; name: string };
 
@@ -18,6 +19,7 @@ type PaymentRow = {
   teacherId:      string;
   employeeName:    string;
   teacherImg:     string | null;
+  employeeRole:   string;
   salaryTypeName: string;
   amountPaid:     number;
   paymentMethod:  string;
@@ -36,6 +38,12 @@ const METHOD_PILL: Record<string, string> = {
   MOBILE_BANKING: "bg-blue-100 text-blue-700",
   BANK_TRANSFER:  "bg-purple-100 text-purple-700",
 };
+const ROLE_LABEL: Record<string, string> = {
+  TEACHER: "Teacher",
+  STAFF: "Staff",
+  CASHIER: "Cashier",
+  ADMIN: "Admin",
+};
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -52,7 +60,7 @@ export default function SalaryPaymentListClient({
   academicYears: string[];
   
   loginusername: string;
-    schoolInfo: any
+  schoolInfo: any
 
   
 }) {
@@ -75,6 +83,7 @@ export default function SalaryPaymentListClient({
   const [filterTypeId,  setFilterTypeId]  = useState<number | "">("");
   const [filterYear,    setFilterYear]    = useState(academicYears[0] ?? currentYear);
   const [filterMethod,  setFilterMethod]  = useState("");
+  const [filterRole,    setFilterRole]    = useState("");
   const [filterMonth,   setFilterMonth]   = useState("");
   const [filterFrom,    setFilterFrom]    = useState("");
   const [filterTo,      setFilterTo]      = useState("");
@@ -90,7 +99,7 @@ export default function SalaryPaymentListClient({
   const [reportGenerating, setReportGenerating] = useState(false);
 
   // ── Fetch from server action ──────────────────────────────────────────────
-const fetchData = useCallback(async () => {
+const fetchData = useCallback(async (roleOverride?: string) => {
   setLoading(true);
 
   const res = await getAllSalaryPayments({
@@ -98,6 +107,7 @@ const fetchData = useCallback(async () => {
     salaryTypeId: filterTypeId ? Number(filterTypeId) : undefined,
     academicYear: filterYear || undefined,
     paymentMethod: filterMethod || undefined,
+    employeeRole: (roleOverride ?? filterRole) || undefined,
     fromDate: filterFrom || undefined,
     toDate: filterTo || undefined,
 
@@ -109,6 +119,7 @@ const fetchData = useCallback(async () => {
       ...item,
       teacherId: item.employeeId,
       teacherImg: item.employeeImg,
+      employeeRole: item.employeeRole,
       amountPaid: Number(item.amountPaid),
       monthLabel: MONTHS[new Date(item.paidAt).getMonth()],
 
@@ -120,7 +131,7 @@ const fetchData = useCallback(async () => {
 
   setPage(1);
   setLoading(false);
-}, [filterName, filterTypeId, filterYear, filterMethod, filterFrom, filterTo]);
+}, [filterName, filterTypeId, filterYear, filterMethod, filterRole, filterFrom, filterTo]);
 
   // ── Only fetch AFTER mount — never during SSR ─────────────────────────────
   useEffect(() => {
@@ -160,11 +171,14 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
   const res = await getFullSalaryInvoiceForPDF(p.invoiceNumber);
   
   if (res.success && res.data) {
+    const schoolLogo = await loadSchoolLogoDataUrl(schoolInfo.logoUrl || "");
     const pdfData = {
       ...convertDecimalsToNumbers(res.data),
       schoolName: schoolInfo.name || "Your School Name",
       schoolAddress: schoolInfo.address || "School Address, City",
       schoolPhone: schoolInfo.phone || "01XXXXXXXXX",
+      schoolEmail: schoolInfo.email || "",
+      schoolLogo: schoolLogo || undefined,
       loginusername: loginusername || "Unknown User",
     };
     
@@ -209,7 +223,8 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
         toDate:        filterTo       || undefined,
         schoolName:    schoolInfo.name || "Your School Name",
         schoolAddress: schoolInfo.address || "School Address, City",
-        schoolPhone:   schoolInfo.phone || "01XXXXXXXXX",
+        schoolEmail:   schoolInfo.email || "—",
+        schoolLogoUrl: schoolInfo.logoUrl || "—",
         generatedBy:   loginusername || "Unknown User",
       });
     } catch {
@@ -348,6 +363,19 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
             <option value="BANK_TRANSFER">Bank Transfer</option>
           </select>
 
+          <select value={filterRole}
+            onChange={e => {
+              const role = e.target.value;
+              setFilterRole(role);
+              fetchData(role);
+            }}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300">
+            <option value="">All Roles</option>
+            {Object.entries(ROLE_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+
           <div className="flex flex-col gap-0.5">
             <label className="text-xs text-gray-400 px-1">From date</label>
             <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
@@ -362,7 +390,7 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
         </div>
 
         <div className="flex gap-2">
-          <button onClick={fetchData}
+          <button onClick={() => fetchData()}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-5 py-2 rounded-lg font-medium transition-colors">
             Apply
           </button>
@@ -370,7 +398,7 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
             onClick={() => {
               setFilterName(""); setFilterTypeId("");
               setFilterYear(academicYears[0] ?? currentYear);
-              setFilterMethod(""); setFilterFrom(""); setFilterTo(""); setFilterMonth("");
+              setFilterMethod(""); setFilterRole(""); setFilterFrom(""); setFilterTo(""); setFilterMonth("");
               pushPage(1);
             }}
             className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
@@ -509,7 +537,7 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Invoice","Teacher","Salary Type","Month","Amount","Method","Date","Paid By","PDF"].map(h => (
+                  {["Invoice","Name","Category","Salary Type","Month","Amount","Method","Date","Paid By","PDF"].map(h => (
                     <th key={h} className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -522,6 +550,11 @@ const handleDownloadInvoice = async (p: PaymentRow) => {
                       <span className="font-mono text-xs text-emerald-600 whitespace-nowrap">{p.invoiceNumber}</span>
                     </td>
                     <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{p.employeeName}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                        {ROLE_LABEL[p.employeeRole] ?? p.employeeRole}
+                      </span>
+                    </td>
                     <td className="px-3 py-2.5 text-gray-700 whitespace-nowrap">{p.salaryTypeName}</td>
                     <td className="px-3 py-2.5">
                       {p.monthLabel

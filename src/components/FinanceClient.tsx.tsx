@@ -34,7 +34,7 @@ export default function  FinanceClient({ academicYears,schoolInfo,loginusername 
   // ── Filters ────────────────────────────────────────────────────────────────
   const [filterYear,   setFilterYear]   = useState(academicYears[0] ?? currentYear);
   const [filterMonth,  setFilterMonth]  = useState("");
-  const [filterType,   setFilterType]   = useState<"" | "INCOME" | "EXPENSE">("");
+  const [filterType,   setFilterType]   = useState<"" | "INCOME" | "EXPENSE" | "STUDENT_FEE" | "SALARY">("");
   const [filterFrom,   setFilterFrom]   = useState("");
   const [filterTo,     setFilterTo]     = useState("");
 
@@ -63,7 +63,11 @@ export default function  FinanceClient({ academicYears,schoolInfo,loginusername 
     setLoading(false);
   }, [filterYear, filterMonth, filterFrom, filterTo, filterType]);
 
-  useEffect(() => { if (mounted) fetchData(); }, [mounted]); // eslint-disable-line
+  useEffect(() => {
+    if (mounted) {
+      fetchData();
+    }
+  }, [mounted, fetchData]);
 
   // ── PDF ────────────────────────────────────────────────────────────────────
   const handleDownloadPDF = () => {
@@ -145,13 +149,13 @@ export default function  FinanceClient({ academicYears,schoolInfo,loginusername 
             {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
 
-          <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
+          <select value={filterType} onChange={e => setFilterType(e.target.value as "" | "INCOME" | "EXPENSE" | "STUDENT_FEE" | "SALARY")}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">Income & Expense</option>
-            <option value="INCOME">Dhan</option>
+            <option value="INCOME">Income only</option>
             <option value="EXPENSE">Expense only</option>
-            <option value="EXPENSE">student Fees</option>
-            <option value="EXPENSE">Salary</option>
+            <option value="STUDENT_FEE">Student Fees</option>
+            <option value="SALARY">Salary</option>
           </select>
 
           <div className="flex flex-col gap-0.5">

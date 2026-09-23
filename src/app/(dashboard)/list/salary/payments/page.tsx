@@ -17,14 +17,14 @@ export default async function SalaryPaymentListPage() {
   const [salaryTypes, yearRows, school] = await Promise.all([
     prisma.salaryType.findMany({
       where: { schoolId: Number(schoolId) },
-      select:  { id: true, name: true },
+      select:  { id: true, name: true,},
       orderBy: { name: "asc" },
     }),
 
     prisma.employeeSalaryPayment.findMany({
         where: { schoolId: Number(schoolId) },
       distinct: ["academicYear"],
-      select:   { academicYear: true },
+      select:   { academicYear: true, employee:true },
       orderBy:  { academicYear: "desc" },
     }),
      prisma.school.findUnique({
@@ -39,6 +39,7 @@ export default async function SalaryPaymentListPage() {
       academicSession: true,
       address: true,
       phone: true,
+      
     }
   })
   ]);

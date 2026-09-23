@@ -86,10 +86,19 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
     });
   };
 
+  const selectedFee = feeStatus?.feeStatus.find((f) => f.structureId === Number(selectedStructureId)) ?? null;
+  const paidMonthsForSelectedFee = new Set(
+    selectedFee?.payments
+      .filter((payment) => payment.monthLabel)
+      .map((payment) => payment.monthLabel as string) ?? []
+  );
+  const availablePayMonths = MONTHS.filter((month) => !paidMonthsForSelectedFee.has(month));
+
   const handleSelectStructure = (id: number) => {
     setSelectedStructureId(id);
     const fee = feeStatus?.feeStatus.find((f) => f.structureId === id);
     if (fee) setPayAmount(String(fee.amount));
+    setPayMonth("");
     setPayError("");
   };
 
@@ -97,6 +106,18 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
     if (!selectedStudent || !selectedStructureId || !payAmount) { setPayError("Please select a fee type and enter an amount."); return; }
     const amount = parseFloat(payAmount);
     if (isNaN(amount) || amount <= 0) { setPayError("Enter a valid amount."); return; }
+    if (selectedFee && payMonth && paidMonthsForSelectedFee.has(payMonth)) {
+      setPayError(`This month (${payMonth}) is already paid for this student in ${selectedSession}. Please choose another unpaid month.`);
+      return;
+    }
+    if (selectedFee && availablePayMonths.length > 0 && !payMonth) {
+      setPayError("Please select a month for this payment.");
+      return;
+    }
+    if (selectedFee && availablePayMonths.length === 0) {
+      setPayError("All months for this fee type are already paid in this academic year.");
+      return;
+    }
     setPayError(""); setPayLoading(true);
     const res = await recordPayment({
       studentId: selectedStudent.id, classFeeStructureId: Number(selectedStructureId),
@@ -306,10 +327,18 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 mb-0.5 block">Month</label>
-                        <select value={payMonth} onChange={(e) => setPayMonth(e.target.value)}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
-                          <option value="">—</option>
-                          {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
+                        <select
+                          value={payMonth}
+                          onChange={(e) => setPayMonth(e.target.value)}
+                          disabled={!selectedFee || availablePayMonths.length === 0}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                        >
+                          <option value="">
+                            {selectedFee
+                              ? (availablePayMonths.length === 0 ? "No unpaid month left" : "Select month")
+                              : "Select fee type first"}
+                          </option>
+                          {availablePayMonths.map((m) => <option key={m} value={m}>{m}</option>)}
                         </select>
                       </div>
                       <div>

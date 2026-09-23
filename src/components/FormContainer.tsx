@@ -212,6 +212,11 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, name: true },
           orderBy: { name: 'asc' }
         });
+        const lessonday = await prisma.lesson.findMany({
+          where: { schoolId: Number(schoolId) },
+          select: { day: true,},
+          orderBy: { name: 'asc' }
+        });
 
         // Only get classes from the same school
         const lessonClasses = await prisma.class.findMany({
@@ -242,7 +247,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           teachers: lessonTeachers, 
           subjects: lessonSubjects, 
           classes: lessonClasses,
-          assignments: lessonAssignments 
+          assignments: lessonAssignments ,
+          lessonday:lessonday
         };
         break;
 
