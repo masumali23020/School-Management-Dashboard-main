@@ -14,7 +14,10 @@ type PaymentRow = {
   className: string;
   feeTypeName: string;
   amountPaid: number;
+<<<<<<< HEAD
   discountAmount: number;
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   paymentMethod: string;
   academicYear: string;
   monthLabel: string | null;
@@ -53,7 +56,10 @@ export default function PaymentListClient({
   // ── Data ───────────────────────────────────────────────────────────────
   const [payments,     setPayments]     = useState<PaymentRow[]>([]);
   const [totalAmount,  setTotalAmount]  = useState(0);
+<<<<<<< HEAD
   const [totalDiscount, setTotalDiscount] = useState(0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   const [totalCount,   setTotalCount]   = useState(0);
   const [loading,      setLoading]      = useState(true);
 
@@ -76,13 +82,19 @@ const fetchData = useCallback(async () => {
     if (res.success) {
       setPayments(res.data as PaymentRow[]);
       setTotalAmount(res.totalAmount ?? 0);  // Use nullish coalescing
+<<<<<<< HEAD
       setTotalDiscount(res.totalDiscount ?? 0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       setTotalCount(res.count ?? 0);         // Use nullish coalescing
     } else {
       // Handle error case
       setPayments([]);
       setTotalAmount(0);
+<<<<<<< HEAD
       setTotalDiscount(0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       setTotalCount(0);
       console.error("Failed to fetch payments:", res.error);
     }
@@ -90,7 +102,10 @@ const fetchData = useCallback(async () => {
     console.error("Error fetching payments:", error);
     setPayments([]);
     setTotalAmount(0);
+<<<<<<< HEAD
     setTotalDiscount(0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     setTotalCount(0);
   } finally {
     setPage(1);
@@ -117,7 +132,10 @@ const fetchData = useCallback(async () => {
       className:     p.className,
       feeTypeName:   p.feeTypeName,
       amountPaid:    p.amountPaid,
+<<<<<<< HEAD
       discountAmount: p.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       paymentMethod: p.paymentMethod,
       monthLabel:    p.monthLabel,
       academicYear:  p.academicYear,
@@ -166,10 +184,13 @@ const fetchData = useCallback(async () => {
           <p className="text-xs text-indigo-200 font-medium uppercase tracking-wider">Total Collected</p>
           <p className="text-2xl font-bold mt-1">৳{totalAmount.toLocaleString()}</p>
         </div>
+<<<<<<< HEAD
         <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 text-white">
           <p className="text-xs text-amber-100 font-medium uppercase tracking-wider">Total Discount</p>
           <p className="text-2xl font-bold mt-1">৳{totalDiscount.toLocaleString()}</p>
         </div>
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 text-white">
           <p className="text-xs text-emerald-200 font-medium uppercase tracking-wider">Transactions</p>
           <p className="text-2xl font-bold mt-1">{totalCount}</p>
@@ -288,10 +309,14 @@ const fetchData = useCallback(async () => {
                     <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{p.className}</td>
                     <td className="px-3 py-3 text-gray-700 whitespace-nowrap">{p.feeTypeName}</td>
                     <td className="px-3 py-3 text-gray-500 text-xs">{p.monthLabel ?? "—"}</td>
+<<<<<<< HEAD
                     <td className="px-3 py-3 font-bold text-gray-900 whitespace-nowrap">
                       ৳{p.amountPaid.toLocaleString()}
                       {p.discountAmount > 0 && <span className="block text-xs font-normal text-amber-600">Discount ৳{p.discountAmount.toLocaleString()}</span>}
                     </td>
+=======
+                    <td className="px-3 py-3 font-bold text-gray-900 whitespace-nowrap">৳{p.amountPaid.toLocaleString()}</td>
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                     <td className="px-3 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${METHOD_COLOR[p.paymentMethod] ?? "bg-gray-100 text-gray-600"}`}>
                         {METHOD_LABEL[p.paymentMethod] ?? p.paymentMethod}

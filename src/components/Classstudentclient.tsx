@@ -5,14 +5,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { assignRollNumbers, promoteStudents } from "@/Actions/ClassActions/ClassactionsWithRole";
+<<<<<<< HEAD
 import { Student, StudentClassHistory } from "@prisma/client";
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 type StudentRow = Student & {
   studentclass: StudentClassHistory
 }
+=======
+type StudentRow = {
+  id: string;
+  name: string;
+  surname: string;
+  img: string | null;
+  phone: string | null;
+  address: string;
+  rollNumber: number | null;
+};
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
 
 type ClassInfo = {
   id: number;
@@ -56,6 +71,7 @@ export default function ClassStudentClient({ data }: Props) {
   const isHistorical = !!historicalStudents;
   const displayStudents = historicalStudents ?? students;
 
+<<<<<<< HEAD
  
 
 
@@ -66,6 +82,13 @@ export default function ClassStudentClient({ data }: Props) {
   students.forEach((s) => { initialRolls[s.id] = s.studentclass?.rollNumber ?? null; });
 
   console.log("ClassS students dftudentClient data:", initialRolls);
+=======
+  // ── Optimistic roll numbers ──────────────────────────────────────────────
+  // Seed from server data
+  const initialRolls: Record<string, number | null> = {};
+  students.forEach((s) => { initialRolls[s.id] = s.rollNumber; });
+
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
  const [optimisticRolls, setOptimisticRolls] = useState(initialRolls);
 
   // Tracks edits not yet saved to DB
@@ -431,7 +454,11 @@ export default function ClassStudentClient({ data }: Props) {
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 rounded-t-2xl">
               <h2 className="text-white text-xl font-bold">🎓 Promote Class</h2>
               <p className="text-emerald-100 text-sm mt-1">
+<<<<<<< HEAD
                 Move all {students.length} students to a new class for the student in class {classInfo.name}
+=======
+                Move all {students.length} students to a new class
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
               </p>
             </div>
 

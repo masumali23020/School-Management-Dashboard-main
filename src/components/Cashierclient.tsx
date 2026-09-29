@@ -13,12 +13,21 @@ type StudentResult = {
 };
 type FeeStatusItem = {
   structureId: number; feeTypeId: number; feeTypeName: string;
+<<<<<<< HEAD
   amount: number; totalPaid: number; totalDiscount: number;
   payments: { id: number; invoiceNumber: string; amountPaid: number; discountAmount: number; paymentMethod: string; monthLabel: string | null; paidAt: string; collectedBy: string; }[];
 };
 type Invoice = {
   id: number; invoiceNumber: string; studentName: string; className: string;
   feeTypeName: string; amountPaid: number; discountAmount: number; paymentMethod: string;
+=======
+  amount: number; totalPaid: number;
+  payments: { id: number; invoiceNumber: string; amountPaid: number; paymentMethod: string; monthLabel: string | null; paidAt: string; collectedBy: string; }[];
+};
+type Invoice = {
+  id: number; invoiceNumber: string; studentName: string; className: string;
+  feeTypeName: string; amountPaid: number; paymentMethod: string;
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   monthLabel: string | null; paidAt: string; collectedBy: string; academicYear: string;
 };
 
@@ -45,7 +54,10 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
   const [feeLoading, setFeeLoading]           = useState(false);
   const [selectedStructureId, setSelectedStructureId] = useState<number | "">("");
   const [payAmount, setPayAmount]   = useState("");
+<<<<<<< HEAD
   const [payDiscount, setPayDiscount] = useState("");
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   const [payMethod, setPayMethod]   = useState<"CASH"|"MOBILE_BANKING"|"BANK_TRANSFER">("CASH");
   const [payMonth, setPayMonth]     = useState("");
   const [payRemarks, setPayRemarks] = useState("");
@@ -54,9 +66,12 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
   const [lastInvoice, setLastInvoice] = useState<Invoice | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   useEffect(() => {
     getFeeCollectionSessions().then((sessions) => {
       if (sessions.length > 0) {
@@ -81,7 +96,11 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
 
   const handleSelectStudent = async (student: StudentResult) => {
     setSelectedStudent(student); setFeeStatus(null); setFeeLoading(true);
+<<<<<<< HEAD
     setSelectedStructureId(""); setPayAmount(""); setPayDiscount(""); setLastInvoice(null); setShowInvoice(false);
+=======
+    setSelectedStructureId(""); setPayAmount(""); setLastInvoice(null); setShowInvoice(false);
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     const res = await getStudentFeeStatus(student.id, selectedSession);
     setFeeLoading(false);
     if (res.success && res.data) setFeeStatus({
@@ -102,15 +121,25 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
     setSelectedStructureId(id);
     const fee = feeStatus?.feeStatus.find((f) => f.structureId === id);
     if (fee) setPayAmount(String(fee.amount));
+<<<<<<< HEAD
     setPayDiscount(""); setPayMonth("");
+=======
+    setPayMonth("");
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     setPayError("");
   };
 
   const handlePay = async () => {
+<<<<<<< HEAD
     if (!selectedStudent || !selectedStructureId || (!payAmount && !payDiscount)) { setPayError("Please select a fee type and enter payment or discount."); return; }
     const amount = payAmount ? parseFloat(payAmount) : 0;
     const discount = payDiscount ? parseFloat(payDiscount) : 0;
     if (isNaN(amount) || amount < 0 || isNaN(discount) || discount < 0 || amount + discount <= 0) { setPayError("Enter valid payment and discount amounts."); return; }
+=======
+    if (!selectedStudent || !selectedStructureId || !payAmount) { setPayError("Please select a fee type and enter an amount."); return; }
+    const amount = parseFloat(payAmount);
+    if (isNaN(amount) || amount <= 0) { setPayError("Enter a valid amount."); return; }
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     if (selectedFee && payMonth && paidMonthsForSelectedFee.has(payMonth)) {
       setPayError(`This month (${payMonth}) is already paid for this student in ${selectedSession}. Please choose another unpaid month.`);
       return;
@@ -126,13 +155,21 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
     setPayError(""); setPayLoading(true);
     const res = await recordPayment({
       studentId: selectedStudent.id, classFeeStructureId: Number(selectedStructureId),
+<<<<<<< HEAD
       amountPaid: amount, discountAmount: discount, paymentMethod: payMethod, academicYear: selectedSession,
+=======
+      amountPaid: amount, paymentMethod: payMethod, academicYear: selectedSession,
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       monthLabel: payMonth || undefined, remarks: payRemarks || undefined,
     });
     setPayLoading(false);
     if (res.success && res.data) {
       setLastInvoice(res.data as Invoice); setShowInvoice(true);
+<<<<<<< HEAD
       setSelectedStructureId(""); setPayAmount(""); setPayDiscount(""); setPayMonth(""); setPayRemarks("");
+=======
+      setSelectedStructureId(""); setPayAmount(""); setPayMonth(""); setPayRemarks("");
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       handleSelectStudent(selectedStudent);
     } else {
       setPayError(res.error ?? "Payment failed.");
@@ -150,7 +187,10 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
       fatherName:    selectedStudent?.fatherName,
       feeTypeName:   lastInvoice.feeTypeName,
       amountPaid:    lastInvoice.amountPaid,
+<<<<<<< HEAD
       discountAmount: lastInvoice.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       paymentMethod: lastInvoice.paymentMethod,
       monthLabel:    lastInvoice.monthLabel,
       academicYear:  lastInvoice.academicYear,
@@ -273,8 +313,12 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
                     {[
                       { label: "Total Due", val: feeStatus.totalDue,  color: "sky" },
                       { label: "Paid",      val: feeStatus.totalPaid, color: "emerald" },
+<<<<<<< HEAD
                       { label: "Discount",  val: feeStatus.feeStatus.reduce((sum, fee) => sum + fee.totalDiscount, 0), color: "amber" },
                       { label: "Balance",   val: Math.max(0, feeStatus.totalDue - feeStatus.totalPaid - feeStatus.feeStatus.reduce((sum, fee) => sum + fee.totalDiscount, 0)), color: "red" },
+=======
+                      { label: "Balance",   val: Math.max(0, feeStatus.totalDue - feeStatus.totalPaid), color: "red" },
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                     ].map(({ label, val, color }) => (
                       <div key={label} className={`bg-${color}-50 rounded-lg p-2 text-center`}>
                         <p className={`text-xs text-${color}-400`}>{label}</p>
@@ -296,9 +340,15 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
                             <td className="px-3 py-2 font-medium text-gray-700">{f.feeTypeName}</td>
                             <td className="px-3 py-2 text-gray-600">৳{f.amount.toLocaleString()}</td>
                             <td className="px-3 py-2">
+<<<<<<< HEAD
                               {f.totalPaid + f.totalDiscount >= f.amount
                                 ? <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✅ Paid</span>
                                 : f.totalPaid + f.totalDiscount > 0
+=======
+                              {f.totalPaid >= f.amount
+                                ? <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✅ Paid</span>
+                                : f.totalPaid > 0
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                                 ? <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Partial ৳{f.totalPaid}</span>
                                 : <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">❌ Unpaid</span>}
                             </td>
@@ -324,11 +374,14 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                       </div>
                       <div>
+<<<<<<< HEAD
                         <label className="text-xs text-gray-500 mb-0.5 block">Discount (৳)</label>
                         <input type="number" min="0" value={payDiscount} onChange={(e) => setPayDiscount(e.target.value)}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                       </div>
                       <div>
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                         <label className="text-xs text-gray-500 mb-0.5 block">Method</label>
                         <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as any)}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
@@ -393,7 +446,10 @@ export default function CashierClient({ classes, defaultSession,schoolInfo }: { 
                 ["Class",         lastInvoice.className],
                 ["Fee Type",      lastInvoice.feeTypeName],
                 ...(lastInvoice.monthLabel ? [["Month", lastInvoice.monthLabel]] : []),
+<<<<<<< HEAD
                 ...(lastInvoice.discountAmount > 0 ? [["Discount", `৳${lastInvoice.discountAmount.toLocaleString()}`]] : []),
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                 ["Amount",        `৳${lastInvoice.amountPaid.toLocaleString()}`],
                 ["Method",        METHOD_LABEL[lastInvoice.paymentMethod] ?? lastInvoice.paymentMethod],
                 ["Date",          new Date(lastInvoice.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })],

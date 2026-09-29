@@ -12,7 +12,10 @@ type Payment = {
   invoiceNumber: string;
   feeTypeName: string;
   amountPaid: number;
+<<<<<<< HEAD
   discountAmount: number;
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   paymentMethod: string;
   academicYear: string;
   monthLabel: string | null;
@@ -40,7 +43,10 @@ export default function StudentFeeHistory({ studentId }: { studentId: string }) 
   const years = [...new Set(payments.map((p) => p.academicYear))].sort().reverse();
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+<<<<<<< HEAD
   const totalDiscount = payments.reduce((sum, p) => sum + p.discountAmount, 0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
 
   return (
     <div className="space-y-3">
@@ -66,7 +72,10 @@ export default function StudentFeeHistory({ studentId }: { studentId: string }) 
         <>
           <div className="text-right text-sm text-gray-500">
             Total paid: <strong className="text-emerald-600">৳{totalPaid.toLocaleString()}</strong>
+<<<<<<< HEAD
             {totalDiscount > 0 && <span className="ml-3">Discount: <strong className="text-amber-600">৳{totalDiscount.toLocaleString()}</strong></span>}
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
           </div>
           <div className="overflow-x-auto rounded-xl border border-gray-100">
             <table className="w-full text-sm">
@@ -89,9 +98,13 @@ export default function StudentFeeHistory({ studentId }: { studentId: string }) 
                       {p.feeTypeName}
                       {p.monthLabel && <span className="text-xs text-gray-400 ml-1">({p.monthLabel})</span>}
                     </td>
+<<<<<<< HEAD
                     <td className="px-3 py-2 font-semibold text-gray-800">৳{p.amountPaid.toLocaleString()}
                       {p.discountAmount > 0 && <span className="block text-xs text-amber-600">Discount ৳{p.discountAmount.toLocaleString()}</span>}
                     </td>
+=======
+                    <td className="px-3 py-2 font-semibold text-gray-800">৳{p.amountPaid.toLocaleString()}</td>
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
                     <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
                       {new Date(p.paidAt).toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric" })}
                     </td>

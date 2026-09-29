@@ -549,7 +549,10 @@ model FeePayment {
   classFeeStructureId Int
   classFeeStructure   ClassFeeStructure @relation(fields: [classFeeStructureId], references: [id])
   amountPaid          Float
+<<<<<<< HEAD
   discountAmount      Float             @default(0)
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   paymentMethod       PaymentMethod
   academicYear        String
   monthLabel          String?

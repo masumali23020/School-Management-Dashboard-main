@@ -23,7 +23,11 @@ export default function ResultsSubMenu({ schoolId, role }: Props) {
   const isExamActive = pathname.startsWith("/list/results/exams");
   const isAssignmentActive = pathname.startsWith("/list/results/assignments");
   const isPublishActive = pathname.startsWith("/list/results/publish");
+<<<<<<< HEAD
 console.log("Current Role:", role);
+=======
+
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   // Only navigate if NOT already on that page — prevents remount/state reset
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -96,8 +100,13 @@ console.log("Current Role:", role);
             </span>
           </Link>
 
+<<<<<<< HEAD
           {/* Publish Results - only for ADMIN */}
           {role === "ADMIN" && (
+=======
+          {/* Publish Results - only for ADMIN and TEACHER */}
+          {canManageResults && (
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
             <Link
               href="/list/results/publish"
               onClick={(e) => handleNavClick(e, "/list/results/publish")}

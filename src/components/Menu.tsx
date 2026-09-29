@@ -35,7 +35,10 @@ const menuItems = [
       { icon: "/salary.png", label: "Salary", href: "/list/salary", visible: [ "CASHIER"] },
       { icon: "/salary.png", label: "Employee Payments", href: "/list/salary/payments", visible: [ "CASHIER"] },
       { icon: "/fees.png", label: "Fees", href: "/list/fees", visible: [ "CASHIER"] },
+<<<<<<< HEAD
       { icon: "/fees.png", label: "Transactions", href: "/list/transactions", visible: [ "CASHIER","TEACHER", "STAFF", "STUDENT", "PARENT"] },
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       // { icon: "/collections.png", label: "Collection Categories", href: "/list/collection-categories", visible: ["ADMIN", "CASHIER"] },
       // { icon: "/collections.png", label: "Collections", href: "/list/collections", visible: ["ADMIN", "CASHIER"] },
       // { icon: "/expenses.png", label: "Expense Categories", href: "/list/expense-categories", visible: ["ADMIN", "CASHIER"] },
@@ -63,7 +66,11 @@ const FEETYPE_VISIBLE = ["ADMIN", "CASHIER"];
 
 const Menu = async ({ user }: { user: any }) => {
   // Extract role and schoolId from user object
+<<<<<<< HEAD
   const role = String(user?.role || "null").toUpperCase();
+=======
+  const role = user?.role || "null";
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   console.log("Menu Component - User Role:", role);
   const schoolId = user?.schoolId;
 
@@ -136,6 +143,7 @@ const Menu = async ({ user }: { user: any }) => {
                   <ExpenseSubMenu key="expense-submenu" schoolId={schoolId} role={role} />
                 )}
 
+<<<<<<< HEAD
                 <MenuLink
                   item={
                     item.label === "Transactions" && role === "STUDENT"
@@ -143,6 +151,9 @@ const Menu = async ({ user }: { user: any }) => {
                       : item
                   }
                 />
+=======
+                <MenuLink item={item} />
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
               </div>
             ))}
           </div>

@@ -13,16 +13,23 @@ export default async function CashierPage() {
   if (!["admin", "cashier"].includes(normalizedRole)) redirect("/");
   if (!schoolId) redirect("/");
 
+<<<<<<< HEAD
   const [classes,  school] = await Promise.all([
+=======
+  const [classes, school] = await Promise.all([
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     prisma.class.findMany({
       where: { schoolId: Number(schoolId) },
       include: { grade: true },
       orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
     }),
+<<<<<<< HEAD
     // prisma.studentClassHistory.findMany({
     //   where: { schoolId: Number(schoolId) },
     //   select: { academicYear: true },
     // }),
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
  
 
       // ১. ডাটাবেস থেকে স্কুলের তথ্য নিয়ে আসুন
@@ -45,10 +52,13 @@ export default async function CashierPage() {
 
   const currentYear = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   const defaultSession = school?.academicSession || currentYear;
+<<<<<<< HEAD
   // const defaultSession = yerarss?.[0]?.academicYear || currentYear;
 
   // console.log("CashierPage - school:", school);
   // console.log("CashierPage - years:", yerarss);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
 
   return (
     <CashierClient

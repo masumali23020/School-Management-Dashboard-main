@@ -116,6 +116,7 @@ export async function createAdmissionSession(input: unknown): Promise<ActionResu
       };
     }
     const d = parsed.data;
+<<<<<<< HEAD
     const duplicate = await prisma.admissionSession.findFirst({
       where: { schoolId, academicYear: d.academicYear },
       select: { id: true },
@@ -128,6 +129,8 @@ export async function createAdmissionSession(input: unknown): Promise<ActionResu
       };
     }
 
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     await prisma.admissionSession.create({
       data: {
         schoolId,
@@ -157,6 +160,7 @@ export async function updateAdmissionSession(input: unknown): Promise<ActionResu
     });
     if (!existing) return { success: false, error: true, message: "Session not found." };
 
+<<<<<<< HEAD
     const duplicate = await prisma.admissionSession.findFirst({
       where: {
         schoolId,
@@ -173,6 +177,8 @@ export async function updateAdmissionSession(input: unknown): Promise<ActionResu
       };
     }
 
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     await prisma.admissionSession.update({
       where: { id: parsed.data.id },
       data: {

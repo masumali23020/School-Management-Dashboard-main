@@ -91,7 +91,11 @@ const FEATURE_ROUTES: Record<string, Feature> = {
 };
 
 const ROLE_DASHBOARDS: Record<string, string> = {
+<<<<<<< HEAD
   ADMIN: "/admin",
+=======
+  ADMIN: "/admin/dashboard",
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   TEACHER: "/teacher",
   CASHIER: "/cashier",
   STAFF: "/staff",

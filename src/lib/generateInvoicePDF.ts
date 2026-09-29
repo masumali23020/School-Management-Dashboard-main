@@ -14,7 +14,10 @@ export type InvoiceData = {
   fatherName?:     string | null;   // ← shown if available
   feeTypeName:     string;
   amountPaid:      number;
+<<<<<<< HEAD
   discountAmount?: number;
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   paymentMethod:   string;
   monthLabel?:     string | null;
   academicYear:    string;
@@ -194,9 +197,12 @@ export function generateInvoicePDF(inv: InvoiceData): void {
     // ── Payment info ──────────────────────────────────────────────────────
     drawRow("Invoice No:", inv.invoiceNumber,                    "Date:",   paidDate,    true);
     drawRow("Fee Type:",   inv.feeTypeName,                      "Month:",  inv.monthLabel ?? "—", true);
+<<<<<<< HEAD
     if (Number(inv.discountAmount ?? 0) > 0) {
       drawRow("Discount:", `${Number(inv.discountAmount).toLocaleString()}/=`, "Status:", "DISCOUNT APPLIED", true);
     }
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     drawRow("Amount:",     `${Number(inv.amountPaid).toLocaleString()}/=`, "Method:", methodStr, true);
     drawRow("In Words:",   words,                                undefined, undefined,   true);
     if (inv.remarks) drawRow("Remarks:", inv.remarks);

@@ -348,7 +348,10 @@ export async function getStudentFeeStatus(
         id: p.id,
         invoiceNumber: p.invoiceNumber,
         amountPaid: p.amountPaid,
+<<<<<<< HEAD
         discountAmount: p.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: p.paymentMethod,
         monthLabel: p.monthLabel,
         paidAt: p.paidAt.toISOString(),
@@ -357,7 +360,10 @@ export async function getStudentFeeStatus(
           : "",
       })),
       totalPaid: (paidMap[s.id] || []).reduce((sum, p) => sum + p.amountPaid, 0),
+<<<<<<< HEAD
       totalDiscount: (paidMap[s.id] || []).reduce((sum, p) => sum + p.discountAmount, 0),
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     }));
 
     return {
@@ -392,7 +398,10 @@ export async function recordPayment(data: {
   studentId: string;
   classFeeStructureId: number;
   amountPaid: number;
+<<<<<<< HEAD
   discountAmount?: number;
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
   paymentMethod: "CASH" | "MOBILE_BANKING" | "BANK_TRANSFER";
   academicYear: string;
   monthLabel?: string;
@@ -401,6 +410,7 @@ export async function recordPayment(data: {
   try {
     // ── 1. Auth + get cashier's userId and schoolId ────────────────────────────────────
     const { role, schoolId, userId: cashierId } = await requireRoleAndSchool("admin", "cashier");
+<<<<<<< HEAD
 
     const amountPaid = Number(data.amountPaid);
     const discountAmount = Number(data.discountAmount ?? 0);
@@ -413,6 +423,8 @@ export async function recordPayment(data: {
     if (amountPaid + discountAmount <= 0) {
       return { success: false, error: "Payment or discount amount is required." };
     }
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     
     // Ensure cashierId is not null/undefined
     if (!cashierId) {
@@ -436,10 +448,13 @@ export async function recordPayment(data: {
       return { success: false, error: "Selected fee type does not belong to this session." };
     }
 
+<<<<<<< HEAD
     if (amountPaid + discountAmount > structure.amount) {
       return { success: false, error: "Payment plus discount cannot exceed the fee amount." };
     }
 
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
     // ── 3. Validate student belongs to school ───────────────────────────────────────────────
     const student = await prisma.student.findUnique({ 
       where: { id: data.studentId } 
@@ -508,8 +523,12 @@ export async function recordPayment(data: {
         studentId: data.studentId,
         classId: structure.classId,
         classFeeStructureId: data.classFeeStructureId,
+<<<<<<< HEAD
         amountPaid,
         discountAmount,
+=======
+        amountPaid: data.amountPaid,
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: data.paymentMethod,
         academicYear: data.academicYear,
         monthLabel: data.monthLabel || null,
@@ -540,7 +559,10 @@ export async function recordPayment(data: {
         className: payment.student.class?.name ?? "",
         feeTypeName: payment.classFeeStructure.feeType.name,
         amountPaid: payment.amountPaid,
+<<<<<<< HEAD
         discountAmount: payment.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: payment.paymentMethod,
         monthLabel: payment.monthLabel,
         paidAt: payment.paidAt.toISOString(),
@@ -646,7 +668,10 @@ export async function getStudentPaymentHistory(
         invoiceNumber: p.invoiceNumber,
         feeTypeName: p.classFeeStructure?.feeType?.name ?? "Unknown",
         amountPaid: p.amountPaid,
+<<<<<<< HEAD
         discountAmount: p.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: p.paymentMethod,
         academicYear: p.academicYear,
         monthLabel: p.monthLabel,
@@ -730,7 +755,10 @@ export async function getInvoiceById(invoiceNumber: string) {
         rollNumber: history?.rollNumber ?? null,
         feeTypeName: payment.classFeeStructure.feeType.name,
         amountPaid: Number(payment.amountPaid),
+<<<<<<< HEAD
         discountAmount: Number(payment.discountAmount),
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: payment.paymentMethod,
         monthLabel: payment.monthLabel,
         academicYear: payment.academicYear,
@@ -797,12 +825,18 @@ export async function getAllPayments(params: {
     });
 
     const totalAmount = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+<<<<<<< HEAD
     const totalDiscount = payments.reduce((sum, p) => sum + p.discountAmount, 0);
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
 
     return {
       success: true,
       totalAmount,
+<<<<<<< HEAD
       totalDiscount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
       count: payments.length,
       data: payments.map((p) => ({
         id: p.id,
@@ -812,7 +846,10 @@ export async function getAllPayments(params: {
         className: p.student.class?.name ?? "",
         feeTypeName: p.classFeeStructure.feeType.name,
         amountPaid: p.amountPaid,
+<<<<<<< HEAD
         discountAmount: p.discountAmount,
+=======
+>>>>>>> 637d2b338431a202f203494526ceb5cc68466820
         paymentMethod: p.paymentMethod,
         academicYear: p.academicYear,
         monthLabel: p.monthLabel,
